@@ -1760,9 +1760,8 @@ function findCurrentAndNext(now) {
       ended = (now - ev.startDt) > 60 * 1000;   // 60s max for procedures
     } else if (ev.type === 'race' || ev.type === 'session') {
       // Race/session without end time: stays active until next event starts
-      const idx = processedSchedule.indexOf(ev);
       let nextStart = null;
-      for (let j = idx + 1; j < processedSchedule.length; j++) {
+      for (let j = ev.idx + 1; j < processedSchedule.length; j++) {
         const nev = processedSchedule[j];
         if (nev.startDt && nev.type !== 'procedure' && nev.startDt > ev.startDt) {
           nextStart = nev.startDt;
@@ -2003,32 +2002,24 @@ function buildSchedule() {
   for (let ev of processedSchedule) {
     if (!ev.startDt) continue;
 
-    // Determine if past — same logic as findCurrentAndNext
+    // Determine if past — only filter events that have actually started AND ended
     let isPast = false;
-    const effectiveEnd = ev.endDt || ev.implicitEndDt || null;
-    if (effectiveEnd) {
-      isPast = now > effectiveEnd;
-    } else if (ev.type === 'procedure') {
-      isPast = (now - ev.startDt) > 60 * 1000;
-    } else if (ev.type === 'race' || ev.type === 'session') {
-      const idx = processedSchedule.indexOf(ev);
-      let nextStart = null;
-      for (let j = idx + 1; j < processedSchedule.length; j++) {
-        const nev = processedSchedule[j];
-        if (nev.startDt && nev.type !== 'procedure' && nev.startDt > ev.startDt) {
-          nextStart = nev.startDt;
-          break;
-        }
-      }
-      isPast = nextStart ? now >= nextStart : (now - ev.startDt) > 4 * 60 * 60 * 1000;
-    } else {
-      isPast = (now - ev.startDt) > 30 * 60 * 1000;
+    if (now < ev.startDt) {
+      isPast = false; // jövőbeli esemény, soha nem past
+    } else if (ev.endDt && now > ev.endDt) {
+      isPast = true;
+    } else if (!ev.endDt && ev.implicitEndDt && now > ev.implicitEndDt) {
+      isPast = true;
+    } else if (!ev.endDt && !ev.implicitEndDt && ev.type === 'procedure' && (now - ev.startDt) > 60 * 1000) {
+      isPast = true;
+    } else if (!ev.endDt && !ev.implicitEndDt && ev.type !== 'procedure' && (now - ev.startDt) > 30 * 60 * 1000) {
+      isPast = true;
     }
 
     if (isPast) continue;
 
     if (!groups[ev.date]) groups[ev.date] = [];
-    groups[ev.date].push({ ...ev, isPast });
+    groups[ev.date].push(ev);
     futureCount++;
   }
 
@@ -2040,7 +2031,7 @@ function buildSchedule() {
   }
 
   let html = '';
-  const { current } = findCurrentAndNext(now);
+  const { current, next } = findCurrentAndNext(now);
 
   for (let date of Object.keys(groups).sort()) {
     const [y, mo, d] = date.split('-').map(Number);
