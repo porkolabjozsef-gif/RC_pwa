@@ -903,18 +903,11 @@ body::after {
 
   <!-- IMPORT BAR -->
   <div class="pdf-bar">
-    <div class="pdf-label">📥 IMPORT</div>
-
     <button class="pdf-file-btn" onclick="document.getElementById('jsonFileInput').click()">
-      📂 JSON betöltése
+      📂 Időterv betöltése
     </button>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJsonUpload(event)" />
-
-    <button class="pdf-file-btn" onclick="exportScheduleJson()" style="border-color: rgba(29,185,84,0.5); color: var(--green);">
-      💾 JSON mentése
-    </button>
-
-    <div class="pdf-status" id="pdfStatus">Betölthető JSON, vagy Claude.ai-ban feldolgozott PDF exportálható JSON-ként</div>
+    <div class="pdf-status" id="pdfStatus">Töltsd be az időtervet JSON formátumban</div>
   </div>
 
   <!-- TEST BAR -->
