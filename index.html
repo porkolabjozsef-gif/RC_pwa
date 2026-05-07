@@ -50,6 +50,27 @@ body::after {
   pointer-events:none; z-index:999;
 }
 
+/* ── CATEGORY LOGO BACKGROUND ── */
+#bgLogo {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 1.5s ease;
+  opacity: 0;
+}
+
+#bgLogo img {
+  max-width: 60%;
+  max-height: 60%;
+  object-fit: contain;
+  filter: grayscale(30%);
+  opacity: 0.08;
+}
+
 /* ── TOP HEADER ── */
 .header {
   height: 40px;
@@ -879,6 +900,9 @@ body::after {
 
 <div class="app">
 
+  <!-- HÁTTÉR LOGÓ -->
+  <div id="bgLogo"><img id="bgLogoImg" src="" alt="" /></div>
+
   <!-- HEADER -->
   <div class="header">
     <div class="header-logo">RACE CONTROL</div>
@@ -891,12 +915,6 @@ body::after {
                color:rgba(245,196,0,0.7); font-family:'Oswald',sans-serif; font-size:9px;
                letter-spacing:2px; padding:3px 8px; cursor:pointer; text-transform:uppercase;">
         ⚙ TEST
-      </button>
-      <button onclick="confirmExit()"
-        style="margin-left:6px; background:rgba(232,0,13,0.1); border:1px solid rgba(232,0,13,0.3);
-               color:rgba(232,0,13,0.7); font-family:'Oswald',sans-serif; font-size:9px;
-               letter-spacing:2px; padding:3px 8px; cursor:pointer; text-transform:uppercase;">
-        ✕ KILÉPÉS
       </button>
     </div>
   </div>
@@ -1502,6 +1520,10 @@ function loadNewSchedule(parsed) {
   hornFired.clear();
   liveHornFired.clear();
 
+  // Kategória logók betöltése
+  categoryLogos = parsed.categoryLogos || {};
+  currentBgCategory = null; // reset hogy újra kiértékelje
+
   // Update header with event name
   if (parsed.eventName) {
     const parts = parsed.eventName.toUpperCase().split(' ');
@@ -1536,22 +1558,15 @@ function loadNewSchedule(parsed) {
 // KILÉPÉS
 function confirmExit() {
   if (confirm('Biztosan kilép a Race Control dashboardból?')) {
-    window.close();
-    // Fallback ha window.close() nem működik (PWA)
-    document.body.innerHTML = `
-      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
-                  height:100vh; background:#080808; color:#fff; font-family:'Oswald',sans-serif;
-                  gap:20px; text-align:center;">
-        <div style="font-size:48px;">🏁</div>
-        <div style="font-size:24px; letter-spacing:3px; color:#E8000D;">RACE CONTROL</div>
-        <div style="font-size:14px; color:#666; letter-spacing:2px;">Az alkalmazás bezárva.</div>
-        <button onclick="location.reload()"
-          style="margin-top:20px; padding:10px 24px; background:#E8000D; border:none;
-                 color:#fff; font-family:'Oswald',sans-serif; font-size:14px;
-                 letter-spacing:2px; cursor:pointer;">
-          ↩ VISSZATÉRÉS
-        </button>
-      </div>`;
+    // Android PWA-ban: visszalép a home screenre
+    if (window.AndroidBridge) {
+      // Native Android WebView esetén
+      window.AndroidBridge.exitApp();
+    } else {
+      // PWA: history back vagy home screen
+      window.history.go(-(window.history.length - 1));
+      setTimeout(() => { window.location.href = 'about:blank'; }, 100);
+    }
   }
 }
 
@@ -1564,6 +1579,55 @@ function toggleTestBar() {
   btn.style.color = hidden ? 'var(--yellow)' : 'rgba(245,196,0,0.7)';
   btn.style.borderColor = hidden ? 'var(--yellow)' : 'rgba(245,196,0,0.3)';
   btn.style.background = hidden ? 'rgba(245,196,0,0.15)' : 'rgba(245,196,0,0.1)';
+}
+
+// ── CATEGORY LOGOS ──────────────────────────────────────────
+// Beépített logó könyvtár — kategória neve alapján automatikus
+const BUILTIN_LOGOS = {
+  // MotoGP sorozat
+  'MotoGP':  'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/MotoGP_logo.svg/800px-MotoGP_logo.svg.png',
+  'Moto2':   'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Moto2_logo.svg/800px-Moto2_logo.svg.png',
+  'Moto3':   'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Moto3_logo.svg/800px-Moto3_logo.svg.png',
+  'MotoE':   'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/FIM_Enel_MotoE_World_Cup_logo.svg/800px-FIM_Enel_MotoE_World_Cup_logo.svg.png',
+  // WorldSBK sorozat
+  'WorldSBK': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Superbike-World-Championship-Logo.svg/800px-Superbike-World-Championship-Logo.svg.png',
+  'WorldSSP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/World_Supersport_Championship_logo.svg/800px-World_Supersport_Championship_logo.svg.png',
+  'WorldWCR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/WorldWCR_Logo.svg/800px-WorldWCR_Logo.svg.png',
+  'R3':       'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/FIM_Yamaha_R3_bLU_cRU_World_Cup_Logo.svg/800px-FIM_Yamaha_R3_bLU_cRU_World_Cup_Logo.svg.png',
+};
+
+let categoryLogos = {};
+let currentBgCategory = null;
+
+function getLogoUrl(category) {
+  // 1. JSON-ban megadott egyedi logó (ha van)
+  if (categoryLogos[category]) return categoryLogos[category];
+  // 2. Beépített könyvtár
+  if (BUILTIN_LOGOS[category]) return BUILTIN_LOGOS[category];
+  // 3. Nincs logó
+  return null;
+}
+
+function updateBgLogo(category) {
+  if (category === currentBgCategory) return;
+  currentBgCategory = category;
+
+  const url = getLogoUrl(category);
+  const bgLogo = document.getElementById('bgLogo');
+  const bgImg  = document.getElementById('bgLogoImg');
+
+  if (!url) {
+    bgLogo.style.opacity = '0';
+    return;
+  }
+
+  // Fade out → swap → fade in
+  bgLogo.style.opacity = '0';
+  setTimeout(() => {
+    bgImg.src = url;
+    bgImg.onload = () => { bgLogo.style.opacity = '1'; };
+    bgImg.onerror = () => { bgLogo.style.opacity = '0'; };
+  }, 600);
 }
 
 // TEST MODE
@@ -1703,6 +1767,10 @@ function findCurrentAndNext(now) {
 function updateDashboard() {
   const now = getNow();
   const { current, signal, next } = findCurrentAndNext(now);
+
+  // Háttér logó frissítése az aktuális kategória alapján
+  const activeCategory = (current && current.category) || (next && next.category) || null;
+  updateBgLogo(activeCategory);
 
   // --- SIGNAL PANEL (pillanatnyi esemény) ---
   const signalPanel = document.getElementById('signalPanel');
