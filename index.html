@@ -785,7 +785,7 @@ body::after {
 /* SCHEDULE ITEM */
 .sched-item {
   display: grid;
-  grid-template-columns: 88px 1fr;
+  grid-template-columns: 115px 1fr;
   gap: 8px;
   align-items: center;
   padding: 7px 12px;
@@ -891,6 +891,12 @@ body::after {
                color:rgba(245,196,0,0.7); font-family:'Oswald',sans-serif; font-size:9px;
                letter-spacing:2px; padding:3px 8px; cursor:pointer; text-transform:uppercase;">
         ⚙ TEST
+      </button>
+      <button onclick="confirmExit()"
+        style="margin-left:6px; background:rgba(232,0,13,0.1); border:1px solid rgba(232,0,13,0.3);
+               color:rgba(232,0,13,0.7); font-family:'Oswald',sans-serif; font-size:9px;
+               letter-spacing:2px; padding:3px 8px; cursor:pointer; text-transform:uppercase;">
+        ✕ KILÉPÉS
       </button>
     </div>
   </div>
@@ -1534,6 +1540,28 @@ function loadNewSchedule(parsed) {
 }
 
 // ============================================================
+// KILÉPÉS
+function confirmExit() {
+  if (confirm('Biztosan kilép a Race Control dashboardból?')) {
+    window.close();
+    // Fallback ha window.close() nem működik (PWA)
+    document.body.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                  height:100vh; background:#080808; color:#fff; font-family:'Oswald',sans-serif;
+                  gap:20px; text-align:center;">
+        <div style="font-size:48px;">🏁</div>
+        <div style="font-size:24px; letter-spacing:3px; color:#E8000D;">RACE CONTROL</div>
+        <div style="font-size:14px; color:#666; letter-spacing:2px;">Az alkalmazás bezárva.</div>
+        <button onclick="location.reload()"
+          style="margin-top:20px; padding:10px 24px; background:#E8000D; border:none;
+                 color:#fff; font-family:'Oswald',sans-serif; font-size:14px;
+                 letter-spacing:2px; cursor:pointer;">
+          ↩ VISSZATÉRÉS
+        </button>
+      </div>`;
+  }
+}
+
 // TEST BAR toggle
 function toggleTestBar() {
   const bar = document.querySelector('.test-bar');
