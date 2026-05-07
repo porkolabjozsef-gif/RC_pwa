@@ -1585,8 +1585,12 @@ function goLive() {
   document.getElementById('liveScrBtn').style.display = 'none';
   const body = document.getElementById('scheduleBody');
   const currentEl = body ? body.querySelector('.is-current') : null;
-  if (currentEl) {
-    currentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const nextEl    = body ? body.querySelector('.is-next') : null;
+  const target = currentEl || nextEl;
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (body) {
+    body.scrollTop = 0;
   }
 }
 
