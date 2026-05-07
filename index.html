@@ -2003,10 +2003,27 @@ function buildSchedule() {
   for (let ev of processedSchedule) {
     if (!ev.startDt) continue;
 
-    // Determine if past
+    // Determine if past — same logic as findCurrentAndNext
     let isPast = false;
-    if (ev.endDt && now > ev.endDt) isPast = true;
-    else if (!ev.endDt && now > ev.startDt && (now - ev.startDt) > 30 * 60 * 1000) isPast = true;
+    const effectiveEnd = ev.endDt || ev.implicitEndDt || null;
+    if (effectiveEnd) {
+      isPast = now > effectiveEnd;
+    } else if (ev.type === 'procedure') {
+      isPast = (now - ev.startDt) > 60 * 1000;
+    } else if (ev.type === 'race' || ev.type === 'session') {
+      const idx = processedSchedule.indexOf(ev);
+      let nextStart = null;
+      for (let j = idx + 1; j < processedSchedule.length; j++) {
+        const nev = processedSchedule[j];
+        if (nev.startDt && nev.type !== 'procedure' && nev.startDt > ev.startDt) {
+          nextStart = nev.startDt;
+          break;
+        }
+      }
+      isPast = nextStart ? now >= nextStart : (now - ev.startDt) > 4 * 60 * 60 * 1000;
+    } else {
+      isPast = (now - ev.startDt) > 30 * 60 * 1000;
+    }
 
     if (isPast) continue;
 
