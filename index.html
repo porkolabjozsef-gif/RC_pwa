@@ -293,8 +293,7 @@ body::after {
 .main-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 1.4fr 0.8fr 1.6fr;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 2.2fr 1.6fr;
   gap: 0;
   overflow: hidden;
   min-height: 0;
@@ -404,11 +403,15 @@ body::after {
 /* CLOCK */
 .clock-panel {
   background: linear-gradient(180deg, #110000 0%, var(--bg2) 100%);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   padding: 6px 14px 5px;
   text-align: center;
   flex-shrink: 0;
   overflow: hidden;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .clock-time {
@@ -660,11 +663,15 @@ body::after {
 /* COUNTDOWN PANEL */
 .countdown-panel {
   background: var(--bg2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   border-left: 3px solid var(--border-hi);
   padding: 10px 14px 10px;
   flex-shrink: 0;
   text-align: center;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .countdown-sub {
@@ -772,9 +779,9 @@ body::after {
 
 .schedule-header {
   background: var(--bg3);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   padding: 0 16px;
-  height: 36px;
+  min-height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -979,6 +986,10 @@ body::after {
   <!-- MAIN BODY -->
   <div class="main-body">
 
+    <!-- LEFT WRAPPER: col-left + col-mid + logo -->
+    <div class="col-left-wrapper">
+    <div class="col-top-row">
+
     <!-- COL 1: CLOCK + CURRENT EVENT + SIGNAL -->
     <div class="col-left">
 
@@ -1073,16 +1084,23 @@ body::after {
 
     </div><!-- /col-mid -->
 
+    </div><!-- /col-top-row -->
+
     <!-- LOGÓ PANEL -->
     <div class="col-logo" id="logoPanel">
       <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
 
+    </div><!-- /col-left-wrapper -->
+
     <!-- COL 3: SCHEDULE LIST -->
     <div class="col-right">
       <div class="schedule-header">
-        <span class="schedule-header-title">Event Schedule — From Now</span>
+        <div>
+          <span class="schedule-header-title">Event Schedule — From Now</span>
+          <div id="scheduleHeaderDate" style="font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-mid); letter-spacing:2px; margin-top:3px;"></div>
+        </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <button id="liveScrBtn" onclick="goLive()"
             style="display:none; font-family:'Oswald',sans-serif; font-size:9px;
@@ -1773,6 +1791,8 @@ function updateClock() {
   const dayName = DAY_NAMES[now.getDay()];
   const dateStr = now.getDate() + ' ' + MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
   document.getElementById('clockSub').textContent = dayName.toUpperCase() + ' ' + dateStr + (testModeTime ? ' — TEST MODE' : ' — CET');
+  const schedHdr = document.getElementById('scheduleHeaderDate');
+  if (schedHdr) schedHdr.textContent = dayName.toUpperCase() + ' ' + dateStr;
   document.getElementById('clockTime').classList.toggle('test-mode', testModeTime !== null);
 }
 
