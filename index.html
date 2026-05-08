@@ -294,7 +294,7 @@ body::after {
   flex: 1;
   display: grid;
   grid-template-columns: 1.4fr 0.8fr 1.6fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr;
   gap: 0;
   overflow: hidden;
   min-height: 0;
@@ -357,12 +357,14 @@ body::after {
   border-right: 2px solid var(--border);
   grid-column: 1;
   grid-row: 1;
+  align-self: start;
 }
 
 .col-mid {
   border-right: 2px solid var(--border);
   grid-column: 2;
   grid-row: 1;
+  align-self: start;
 }
 
 .col-right {
@@ -379,7 +381,7 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg2);
+  background: #1a1a1a;
   overflow: hidden;
   min-height: 60px;
 }
@@ -1679,16 +1681,14 @@ function toggleTestBar() {
 // ── CATEGORY LOGOS ──────────────────────────────────────────
 // Beépített logó könyvtár — kategória neve alapján automatikus
 const BUILTIN_LOGOS = {
-  // MotoGP sorozat
-  'MotoGP':  'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/MotoGP_logo.svg/800px-MotoGP_logo.svg.png',
-  'Moto2':   'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Moto2_logo.svg/800px-Moto2_logo.svg.png',
-  'Moto3':   'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Moto3_logo.svg/800px-Moto3_logo.svg.png',
-  'MotoE':   'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/FIM_Enel_MotoE_World_Cup_logo.svg/800px-FIM_Enel_MotoE_World_Cup_logo.svg.png',
-  // WorldSBK sorozat
-  'WorldSBK': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Superbike-World-Championship-Logo.svg/800px-Superbike-World-Championship-Logo.svg.png',
-  'WorldSSP': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/World_Supersport_Championship_logo.svg/800px-World_Supersport_Championship_logo.svg.png',
-  'WorldWCR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/WorldWCR_Logo.svg/800px-WorldWCR_Logo.svg.png',
-  'R3':       'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/FIM_Yamaha_R3_bLU_cRU_World_Cup_Logo.svg/800px-FIM_Yamaha_R3_bLU_cRU_World_Cup_Logo.svg.png',
+  'MotoGP':   'https://upload.wikimedia.org/wikipedia/commons/9/9e/MotoGP_logo.svg',
+  'Moto2':    'https://upload.wikimedia.org/wikipedia/commons/6/6f/Moto2_logo.svg',
+  'Moto3':    'https://upload.wikimedia.org/wikipedia/commons/a/a6/Moto3_logo.svg',
+  'MotoE':    'https://upload.wikimedia.org/wikipedia/commons/6/6e/FIM_Enel_MotoE_World_Cup_logo.svg',
+  'WorldSBK': 'https://upload.wikimedia.org/wikipedia/commons/8/8b/Superbike-World-Championship-Logo.svg',
+  'WorldSSP': 'https://upload.wikimedia.org/wikipedia/commons/d/d7/World_Supersport_Championship_logo.svg',
+  'WorldWCR': 'https://upload.wikimedia.org/wikipedia/commons/0/09/WorldWCR_Logo.svg',
+  'R3':       'https://upload.wikimedia.org/wikipedia/commons/0/09/FIM_Yamaha_R3_bLU_cRU_World_Cup_Logo.svg',
 };
 
 let categoryLogos = {};
@@ -1718,16 +1718,23 @@ function updateBgLogo(category) {
   }
 
   if (panelImg) {
+    if (placeholder) placeholder.style.display = 'none';
     panelImg.style.opacity = '0';
     panelImg.style.display = 'block';
-    if (placeholder) placeholder.style.display = 'none';
     panelImg.onload = () => {
       panelImg.style.transition = 'opacity 1s ease';
       panelImg.style.opacity = '1';
     };
     panelImg.onerror = () => {
+      // Ha az SVG nem tölt be, mutasd a kategória nevét
       panelImg.style.display = 'none';
-      if (placeholder) placeholder.style.display = 'block';
+      if (placeholder) {
+        placeholder.textContent = category;
+        placeholder.style.display = 'block';
+        placeholder.style.fontSize = '32px';
+        placeholder.style.letterSpacing = '6px';
+        placeholder.style.color = 'var(--text-mid)';
+      }
     };
     panelImg.src = url;
   }
