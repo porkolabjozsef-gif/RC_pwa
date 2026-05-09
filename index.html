@@ -1733,33 +1733,13 @@ async function initTimingData() {
   try {
     tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:10px;text-align:center;padding:16px;">⏳ Csatlakozás...</div>';
 
-    // Get current season UUID
-    if (!seasonUuid) {
-      const seasons = await apiFetch(MOTOGP_API + 'seasons');
-      const cur = seasons.find(s => s.current);
-      seasonUuid = cur ? cur.id : seasons[0].id;
-    }
-
-    // Try to get categories, fallback to known UUIDs if fails
-    if (Object.keys(categoryUuids).length === 0) {
-      try {
-        const cats = await apiFetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`);
-        cats.forEach(c => {
-          const name = c.name || c.legacy_id;
-          if (name) categoryUuids[name] = c.id;
-        });
-      } catch(e) {
-        // Fallback: get categories from a known finished event
-        const evs = await apiFetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
-        if (evs && evs.length > 0) {
-          const lastEv = evs[evs.length - 1];
-          // Try to infer categories from sessions
-          ['MotoGP','Moto2','Moto3'].forEach((name, i) => {
-            categoryUuids[name] = `cat-${i}`;
-          });
-        }
-      }
-    }
+    // Hardcoded season and category UUIDs - skip slow API calls
+    seasonUuid = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e';
+    categoryUuids = {
+      'MotoGP': 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942',
+      'Moto2':  '549640b8-fd9c-4245-acfd-60e4bc38b25c',
+      'Moto3':  '954f7e65-2ef2-4423-b949-4961cc603e45'
+    };
 
     renderCategoryButtons();
     await refreshTiming();
@@ -1866,7 +1846,10 @@ async function fetchStandings(resultsDiv) {
     const catName = selectedCategory;
     let catUuid = categoryUuids[catName];
     if (!catUuid) {
-      const key = Object.keys(categoryUuids).find(k => k.toLowerCase().includes(catName.toLowerCase()));
+      const key = Object.keys(categoryUuids).find(k =>
+        k.toLowerCase().replace('™','').includes(catName.toLowerCase()) ||
+        catName.toLowerCase().includes(k.toLowerCase().replace('™',''))
+      );
       catUuid = key ? categoryUuids[key] : null;
     }
     if (!catUuid) throw new Error(`${catName} kategória nem található`);
@@ -1886,17 +1869,36 @@ async function fetchStandings(resultsDiv) {
 
 async function fetchResults(resultsDiv) {
   try {
+    // First try live timing
+    const live = await apiFetch(`${MOTOGP_API}timing-gateway/livetiming-lite`);
+    if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
+      const catName = live.head.category || selectedCategory;
+      // Only show if matches selected category
+      if (catName.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+          selectedCategory.toLowerCase().includes(catName.toLowerCase())) {
+        renderLiveTiming(resultsDiv, live);
+        return;
+      }
+    }
+  } catch(e) { /* fallback to results */ }
+
+  // Fallback: latest finished session results
+  try {
     const catName = selectedCategory;
     let catUuid = categoryUuids[catName];
     if (!catUuid) {
-      const key = Object.keys(categoryUuids).find(k => k.toLowerCase().includes(catName.toLowerCase()));
+      const key = Object.keys(categoryUuids).find(k =>
+        k.toLowerCase().replace('™','').includes(catName.toLowerCase()) ||
+        catName.toLowerCase().includes(k.toLowerCase().replace('™',''))
+      );
       catUuid = key ? categoryUuids[key] : null;
     }
     if (!catUuid) throw new Error(`${catName} kategória nem található`);
 
     const events = await apiFetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
     if (!events || events.length === 0) throw new Error('Nincs befejezett esemény');
-    const latestEvent = events[events.length - 1];
+    const raceEvents = events.filter(e => !e.test);
+    const latestEvent = raceEvents.length > 0 ? raceEvents[raceEvents.length - 1] : events[events.length - 1];
 
     const sessions = await apiFetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`);
     if (!sessions || sessions.length === 0) throw new Error('Nincs session adat');
@@ -1911,6 +1913,39 @@ async function fetchResults(resultsDiv) {
   } catch(e) {
     resultsDiv.innerHTML = `<div style="color:var(--red);font-family:'Share Tech Mono',monospace;font-size:9px;padding:4px;">❌ ${e.message}</div>`;
   }
+}
+
+function renderLiveTiming(container, data) {
+  const head = data.head;
+  const riders = Object.values(data.rider).filter(r => r.pos > 0).sort((a,b) => a.pos - b.pos);
+
+  const sessionLabel = head.session_shortname || head.session_name || '';
+  const statusLabel = head.session_status_id === 'F' ? '🏁 FINISHED' :
+                      head.session_status_id === 'R' ? '🔴 LIVE' : sessionLabel;
+
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--text-mid);margin-bottom:4px;display:flex;justify-content:space-between;">
+    <span><span style="color:var(--green);">${head.category}</span> · ${head.event_shortname} · ${head.session_name}</span>
+    <span style="color:${head.session_status_id==='R'?'var(--red)':'var(--text-dim)'};">${statusLabel}</span>
+  </div>`;
+
+  html += '<table style="width:100%;border-collapse:collapse;font-family:\'Share Tech Mono\',monospace;font-size:10px;">';
+  html += '<tr style="color:var(--text-dim);font-size:8px;letter-spacing:1px;"><th style="text-align:left;padding:1px 3px;width:20px;">P</th><th style="text-align:left;padding:1px 3px;width:22px;">#</th><th style="text-align:left;padding:1px 3px;">RIDER</th><th style="text-align:right;padding:1px 3px;">GAP</th><th style="text-align:right;padding:1px 3px;">BEST</th></tr>';
+
+  riders.slice(0, 20).forEach((r, i) => {
+    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+    const posColor = r.pos === 1 ? '#f5c400' : r.pos === 2 ? '#aaa' : r.pos === 3 ? '#cd7f32' : 'var(--off-white)';
+    const onTrack = r.trac_status === 'T';
+    const nameColor = onTrack ? 'var(--green)' : 'var(--white)';
+    html += `<tr style="background:${bg};">
+      <td style="padding:2px 3px;color:${posColor};font-weight:bold;">${r.pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);">${r.rider_number}</td>
+      <td style="padding:2px 3px;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;">${r.rider_surname}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap_first > 0 ? '+'+r.gap_first : '—'}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.lap_time}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  container.innerHTML = html;
 }
 
 function renderStandings(container, riders, catName) {
