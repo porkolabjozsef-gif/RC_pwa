@@ -392,6 +392,7 @@ body::after {
   object-fit: contain;
   opacity: 0.9;
   transition: opacity 1.5s ease;
+  filter: invert(1);
 }
 
 .col-logo .logo-placeholder {
@@ -1637,6 +1638,7 @@ const WSBK_CATEGORIES = ['WorldSBK', 'WorldSSP', 'WorldWCR', 'R3'];
 
 let timingMode = false;
 let timingInterval = null;
+let isFetching = false;
 let timingAutoTimer = null;
 let selectedCategory = null;
 let autoCategory = null;
@@ -1707,22 +1709,37 @@ function showTimingPanel() {
   timingInterval = setInterval(refreshTiming, 30000);
 }
 
-async function initTimingData() {
+async function apiFetch(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, {
+      headers: MOTOGP_HEADERS,
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch(e) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') throw new Error('Időtúllépés (8s)');
+    throw e;
+  }
+}
   const tp = document.getElementById('timingPanel');
   if (!tp) return;
   try {
+    tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:10px;text-align:center;padding:16px;">⏳ Szezon lekérése...</div>';
     // 1. Get current season UUID
     if (!seasonUuid) {
-      const res = await fetch(MOTOGP_API + 'seasons');
-      const seasons = await res.json();
+      const seasons = await apiFetch(MOTOGP_API + 'seasons');
       const cur = seasons.find(s => s.current);
       seasonUuid = cur ? cur.id : seasons[0].id;
     }
 
     // 2. Get categories
     if (Object.keys(categoryUuids).length === 0) {
-      const res = await fetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`, {headers: MOTOGP_HEADERS});
-      const cats = await res.json();
+      const cats = await apiFetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`);
       cats.forEach(c => {
         const name = c.name || c.legacy_id;
         if (name) categoryUuids[name] = c.id;
@@ -1811,15 +1828,21 @@ function selectCategory(cat) {
 }
 
 async function refreshTiming() {
+  if (isFetching) return;
   const resultsDiv = document.getElementById('timingResults');
   if (!resultsDiv || !seasonUuid) return;
+  isFetching = true;
 
   resultsDiv.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
 
-  if (viewMode === 'standings') {
-    await fetchStandings(resultsDiv);
-  } else {
-    await fetchResults(resultsDiv);
+  try {
+    if (viewMode === 'standings') {
+      await fetchStandings(resultsDiv);
+    } else {
+      await fetchResults(resultsDiv);
+    }
+  } finally {
+    isFetching = false;
   }
 }
 
@@ -1833,7 +1856,7 @@ async function fetchStandings(resultsDiv) {
     }
     if (!catUuid) throw new Error(`${catName} kategória nem található`);
 
-    const res = await fetch(`${MOTOGP_API}standings?seasonUuid=${seasonUuid}&categoryUuid=${catUuid}`, {headers: MOTOGP_HEADERS});
+    const res = await apiFetch(`${MOTOGP_API}standings?seasonUuid=${seasonUuid}&categoryUuid=${catUuid}`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
 
@@ -1856,19 +1879,19 @@ async function fetchResults(resultsDiv) {
     }
     if (!catUuid) throw new Error(`${catName} kategória nem található`);
 
-    const evRes = await fetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`, {headers: MOTOGP_HEADERS});
+    const evRes = await apiFetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
     const events = await evRes.json();
     if (!events || events.length === 0) throw new Error('Nincs befejezett esemény');
     const latestEvent = events[events.length - 1];
 
-    const sessRes = await fetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`, {headers: MOTOGP_HEADERS});
+    const sessRes = await apiFetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`);
     const sessions = await sessRes.json();
     if (!sessions || sessions.length === 0) throw new Error('Nincs session adat');
 
     const finished = sessions.filter(s => s.status === 'Finished' || s.type === 'RAC' || s.type === 'SPR');
     const session = finished.length > 0 ? finished[finished.length - 1] : sessions[sessions.length - 1];
 
-    const classRes = await fetch(`${MOTOGP_API}session/${session.id}/classification?test=false`, {headers: MOTOGP_HEADERS});
+    const classRes = await apiFetch(`${MOTOGP_API}session/${session.id}/classification?test=false`);
     const classData = await classRes.json();
     const riders = classData.classification || classData;
 
