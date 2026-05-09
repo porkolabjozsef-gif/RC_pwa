@@ -1726,6 +1726,8 @@ async function apiFetch(url) {
     throw e;
   }
 }
+
+async function initTimingData() {
   const tp = document.getElementById('timingPanel');
   if (!tp) return;
   try {
