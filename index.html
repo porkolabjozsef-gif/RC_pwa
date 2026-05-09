@@ -2016,14 +2016,13 @@ function toggleTestBar() {
 // ── CATEGORY LOGOS ──────────────────────────────────────────
 // Beépített logó könyvtár — kategória neve alapján automatikus
 const BUILTIN_LOGOS = {
-  'MotoGP':   'https://upload.wikimedia.org/wikipedia/commons/9/9e/MotoGP_logo.svg',
-  'Moto2':    'https://upload.wikimedia.org/wikipedia/commons/6/6f/Moto2_logo.svg',
-  'Moto3':    'https://upload.wikimedia.org/wikipedia/commons/a/a6/Moto3_logo.svg',
-  'MotoE':    'https://upload.wikimedia.org/wikipedia/commons/6/6e/FIM_Enel_MotoE_World_Cup_logo.svg',
-  'WorldSBK': 'https://upload.wikimedia.org/wikipedia/commons/8/8b/Superbike-World-Championship-Logo.svg',
-  'WorldSSP': 'https://upload.wikimedia.org/wikipedia/commons/d/d7/World_Supersport_Championship_logo.svg',
-  'WorldWCR': 'https://upload.wikimedia.org/wikipedia/commons/0/09/WorldWCR_Logo.svg',
-  'R3':       'https://upload.wikimedia.org/wikipedia/commons/0/09/FIM_Yamaha_R3_bLU_cRU_World_Cup_Logo.svg',
+  'MotoGP':   'https://porkolabjozsef-gif.github.io/RC_pwa/motogp.png',
+  'Moto2':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto2.png',
+  'Moto3':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto3.png',
+  'WorldSBK': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldsbk.png',
+  'WorldSSP': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldssp.png',
+  'WorldWCR': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldwcr.png',
+  'R3':       'https://porkolabjozsef-gif.github.io/RC_pwa/r3.png',
 };
 
 let categoryLogos = {};
@@ -2071,7 +2070,7 @@ function updateBgLogo(category) {
         placeholder.style.color = 'var(--text-mid)';
       }
     };
-    panelImg.src = url;
+    panelImg.src = url + '?v=' + Date.now();
   }
 }
 
