@@ -1628,7 +1628,11 @@ function loadNewSchedule(parsed) {
 // 4. PANEL — LIVE TIMING / RESULTS (MotoGP API)
 // ============================================================
 const MOTOGP_API = 'https://api.motogp.pulselive.com/motogp/v1/results/';
-const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
+const MOTOGP_HEADERS = {
+  'Accept': 'application/json',
+  'Origin': 'https://www.motogp.com',
+  'Referer': 'https://www.motogp.com/',
+};
 const WSBK_CATEGORIES = ['WorldSBK', 'WorldSSP', 'WorldWCR', 'R3'];
 
 let timingMode = false;
@@ -1717,7 +1721,7 @@ async function initTimingData() {
 
     // 2. Get categories
     if (Object.keys(categoryUuids).length === 0) {
-      const res = await fetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`);
+      const res = await fetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`, {headers: MOTOGP_HEADERS});
       const cats = await res.json();
       cats.forEach(c => {
         const name = c.name || c.legacy_id;
@@ -1829,7 +1833,7 @@ async function fetchStandings(resultsDiv) {
     }
     if (!catUuid) throw new Error(`${catName} kategória nem található`);
 
-    const res = await fetch(`${MOTOGP_API}standings?seasonUuid=${seasonUuid}&categoryUuid=${catUuid}`);
+    const res = await fetch(`${MOTOGP_API}standings?seasonUuid=${seasonUuid}&categoryUuid=${catUuid}`, {headers: MOTOGP_HEADERS});
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
 
@@ -1852,19 +1856,19 @@ async function fetchResults(resultsDiv) {
     }
     if (!catUuid) throw new Error(`${catName} kategória nem található`);
 
-    const evRes = await fetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
+    const evRes = await fetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`, {headers: MOTOGP_HEADERS});
     const events = await evRes.json();
     if (!events || events.length === 0) throw new Error('Nincs befejezett esemény');
     const latestEvent = events[events.length - 1];
 
-    const sessRes = await fetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`);
+    const sessRes = await fetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`, {headers: MOTOGP_HEADERS});
     const sessions = await sessRes.json();
     if (!sessions || sessions.length === 0) throw new Error('Nincs session adat');
 
     const finished = sessions.filter(s => s.status === 'Finished' || s.type === 'RAC' || s.type === 'SPR');
     const session = finished.length > 0 ? finished[finished.length - 1] : sessions[sessions.length - 1];
 
-    const classRes = await fetch(`${MOTOGP_API}session/${session.id}/classification?test=false`);
+    const classRes = await fetch(`${MOTOGP_API}session/${session.id}/classification?test=false`, {headers: MOTOGP_HEADERS});
     const classData = await classRes.json();
     const riders = classData.classification || classData;
 
