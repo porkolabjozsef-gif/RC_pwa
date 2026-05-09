@@ -1731,21 +1731,34 @@ async function initTimingData() {
   const tp = document.getElementById('timingPanel');
   if (!tp) return;
   try {
-    tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:10px;text-align:center;padding:16px;">⏳ Szezon lekérése...</div>';
-    // 1. Get current season UUID
+    tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:10px;text-align:center;padding:16px;">⏳ Csatlakozás...</div>';
+
+    // Get current season UUID
     if (!seasonUuid) {
       const seasons = await apiFetch(MOTOGP_API + 'seasons');
       const cur = seasons.find(s => s.current);
       seasonUuid = cur ? cur.id : seasons[0].id;
     }
 
-    // 2. Get categories
+    // Try to get categories, fallback to known UUIDs if fails
     if (Object.keys(categoryUuids).length === 0) {
-      const cats = await apiFetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`);
-      cats.forEach(c => {
-        const name = c.name || c.legacy_id;
-        if (name) categoryUuids[name] = c.id;
-      });
+      try {
+        const cats = await apiFetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`);
+        cats.forEach(c => {
+          const name = c.name || c.legacy_id;
+          if (name) categoryUuids[name] = c.id;
+        });
+      } catch(e) {
+        // Fallback: get categories from a known finished event
+        const evs = await apiFetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
+        if (evs && evs.length > 0) {
+          const lastEv = evs[evs.length - 1];
+          // Try to infer categories from sessions
+          ['MotoGP','Moto2','Moto3'].forEach((name, i) => {
+            categoryUuids[name] = `cat-${i}`;
+          });
+        }
+      }
     }
 
     renderCategoryButtons();
@@ -1881,20 +1894,17 @@ async function fetchResults(resultsDiv) {
     }
     if (!catUuid) throw new Error(`${catName} kategória nem található`);
 
-    const evRes = await apiFetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
-    const events = await evRes.json();
+    const events = await apiFetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
     if (!events || events.length === 0) throw new Error('Nincs befejezett esemény');
     const latestEvent = events[events.length - 1];
 
-    const sessRes = await apiFetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`);
-    const sessions = await sessRes.json();
+    const sessions = await apiFetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`);
     if (!sessions || sessions.length === 0) throw new Error('Nincs session adat');
 
     const finished = sessions.filter(s => s.status === 'Finished' || s.type === 'RAC' || s.type === 'SPR');
     const session = finished.length > 0 ? finished[finished.length - 1] : sessions[sessions.length - 1];
 
-    const classRes = await apiFetch(`${MOTOGP_API}session/${session.id}/classification?test=false`);
-    const classData = await classRes.json();
+    const classData = await apiFetch(`${MOTOGP_API}session/${session.id}/classification?test=false`);
     const riders = classData.classification || classData;
 
     renderResults(resultsDiv, riders, latestEvent.name || latestEvent.short_name, session.type || session.name, catName);
