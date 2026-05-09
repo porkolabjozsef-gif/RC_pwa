@@ -1694,11 +1694,6 @@ function showTimingPanel() {
   tp.style.display = 'block';
   tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:11px;text-align:center;padding:16px;">⏳ Csatlakozás...</div>';
 
-  if (!isMotogpWeekend() && processedSchedule.length > 0) {
-    tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:11px;text-align:center;padding:16px;">WorldSBK hétvégén nem elérhető az API.<br>MotoGP versenyen automatikusan működik.</div>';
-    return;
-  }
-
   // Determine auto category from current event if schedule loaded, otherwise default to MotoGP
   const { current, next } = findCurrentAndNext(getNow());
   const activeCat = (current && current.category) || (next && next.category);
@@ -1825,11 +1820,9 @@ function selectCategory(cat) {
 async function refreshTiming() {
   if (isFetching) return;
   const resultsDiv = document.getElementById('timingResults');
-  if (!resultsDiv || !seasonUuid) return;
+  if (!resultsDiv) return;
   isFetching = true;
-
   resultsDiv.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
-
   try {
     if (viewMode === 'standings') {
       await fetchStandings(resultsDiv);
