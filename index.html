@@ -2053,14 +2053,10 @@ function updateBgLogo(category) {
 
   if (panelImg) {
     if (placeholder) placeholder.style.display = 'none';
-    panelImg.style.opacity = '0';
     panelImg.style.display = 'block';
-    panelImg.onload = () => {
-      panelImg.style.transition = 'opacity 1s ease';
-      panelImg.style.opacity = '1';
-    };
+    panelImg.style.opacity = '1';
+    panelImg.style.transition = 'opacity 1s ease';
     panelImg.onerror = () => {
-      // Ha az SVG nem tölt be, mutasd a kategória nevét
       panelImg.style.display = 'none';
       if (placeholder) {
         placeholder.textContent = category;
@@ -2070,7 +2066,7 @@ function updateBgLogo(category) {
         placeholder.style.color = 'var(--text-mid)';
       }
     };
-    panelImg.src = url + '?v=' + Date.now();
+    panelImg.src = url;
   }
 }
 
