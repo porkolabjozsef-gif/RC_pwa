@@ -1699,7 +1699,7 @@ function showTimingPanel() {
     return;
   }
 
-  // Determine auto category from current event
+  // Determine auto category from current event if schedule loaded, otherwise default to MotoGP
   const { current, next } = findCurrentAndNext(getNow());
   const activeCat = (current && current.category) || (next && next.category);
   autoCategory = MOTOGP_CATEGORIES.includes(activeCat) ? activeCat : 'MotoGP';
