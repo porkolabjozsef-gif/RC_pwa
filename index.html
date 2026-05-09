@@ -1083,8 +1083,16 @@ body::after {
 
     </div><!-- /col-mid -->
 
-    <!-- LOGÓ PANEL -->
-    <div class="col-logo" id="logoPanel">
+    <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
+    <div class="col-logo" id="logoPanel" style="position:relative;">
+      <button onclick="toggleTiming()" id="timingToggleBtn"
+        style="position:absolute; top:6px; right:8px; z-index:10;
+               font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
+               padding:3px 8px; cursor:pointer; text-transform:uppercase;
+               background:rgba(29,185,84,0.1); border:1px solid rgba(29,185,84,0.4);
+               color:rgba(29,185,84,0.8);">
+        ⏱ TIMING
+      </button>
       <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
@@ -1616,6 +1624,329 @@ function loadNewSchedule(parsed) {
 }
 
 // ============================================================
+// ============================================================
+// 4. PANEL — LIVE TIMING / RESULTS (MotoGP API)
+// ============================================================
+const MOTOGP_API = 'https://api.motogp.pulselive.com/motogp/v1/results/';
+const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
+const WSBK_CATEGORIES = ['WorldSBK', 'WorldSSP', 'WorldWCR', 'R3'];
+
+let timingMode = false;
+let timingInterval = null;
+let timingAutoTimer = null;
+let selectedCategory = null;
+let autoCategory = null;
+let seasonUuid = null;
+let categoryUuids = {};
+let lastEventUuid = null;
+
+function isMotogpWeekend() {
+  if (!processedSchedule || processedSchedule.length === 0) return false;
+  const cats = new Set(processedSchedule.map(e => e.category));
+  return MOTOGP_CATEGORIES.some(c => cats.has(c));
+}
+
+function toggleTiming() {
+  timingMode = !timingMode;
+  const btn = document.getElementById('timingToggleBtn');
+  if (timingMode) {
+    btn.style.background = 'rgba(29,185,84,0.3)';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    btn.textContent = '🏁 LOGÓ';
+    showTimingPanel();
+  } else {
+    btn.style.background = 'rgba(29,185,84,0.1)';
+    btn.style.borderColor = 'rgba(29,185,84,0.4)';
+    btn.style.color = 'rgba(29,185,84,0.8)';
+    btn.textContent = '⏱ TIMING';
+    clearInterval(timingInterval);
+    clearTimeout(timingAutoTimer);
+    showLogoPanel();
+  }
+}
+
+function showLogoPanel() {
+  const tp = document.getElementById('timingPanel');
+  if (tp) tp.style.display = 'none';
+  currentBgCategory = null;
+  const { current, next } = findCurrentAndNext(getNow());
+  const activeCategory = (current && current.category) || (next && next.category) || null;
+  updateBgLogo(activeCategory);
+}
+
+function showTimingPanel() {
+  document.getElementById('logoPanelImg').style.display = 'none';
+  document.getElementById('logoPlaceholder').style.display = 'none';
+  let tp = document.getElementById('timingPanel');
+  if (!tp) {
+    tp = document.createElement('div');
+    tp.id = 'timingPanel';
+    tp.style.cssText = 'width:100%;height:100%;overflow:auto;padding:6px 10px;box-sizing:border-box;';
+    document.getElementById('logoPanel').appendChild(tp);
+  }
+  tp.style.display = 'block';
+  tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:11px;text-align:center;padding:16px;">⏳ Csatlakozás...</div>';
+
+  if (!isMotogpWeekend() && processedSchedule.length > 0) {
+    tp.innerHTML = '<div style="color:var(--text-mid);font-family:\'Share Tech Mono\',monospace;font-size:11px;text-align:center;padding:16px;">WorldSBK hétvégén nem elérhető az API.<br>MotoGP versenyen automatikusan működik.</div>';
+    return;
+  }
+
+  // Determine auto category from current event
+  const { current, next } = findCurrentAndNext(getNow());
+  const activeCat = (current && current.category) || (next && next.category);
+  autoCategory = MOTOGP_CATEGORIES.includes(activeCat) ? activeCat : 'MotoGP';
+  if (!selectedCategory) selectedCategory = autoCategory;
+
+  initTimingData();
+  timingInterval = setInterval(refreshTiming, 30000);
+}
+
+async function initTimingData() {
+  const tp = document.getElementById('timingPanel');
+  if (!tp) return;
+  try {
+    // 1. Get current season UUID
+    if (!seasonUuid) {
+      const res = await fetch(MOTOGP_API + 'seasons');
+      const seasons = await res.json();
+      const cur = seasons.find(s => s.current);
+      seasonUuid = cur ? cur.id : seasons[0].id;
+    }
+
+    // 2. Get categories
+    if (Object.keys(categoryUuids).length === 0) {
+      const res = await fetch(`${MOTOGP_API}categories?seasonUuid=${seasonUuid}`);
+      const cats = await res.json();
+      cats.forEach(c => {
+        const name = c.name || c.legacy_id;
+        if (name) categoryUuids[name] = c.id;
+      });
+    }
+
+    renderCategoryButtons();
+    await refreshTiming();
+
+  } catch(e) {
+    tp.innerHTML = `<div style="color:var(--red);font-family:'Share Tech Mono',monospace;font-size:10px;text-align:center;padding:10px;">❌ ${e.message}</div>`;
+  }
+}
+
+let viewMode = 'results'; // 'results' or 'standings'
+
+function renderCategoryButtons() {
+  const tp = document.getElementById('timingPanel');
+  if (!tp) return;
+
+  let btnHtml = '<div id="catBtns" style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;align-items:center;">';
+  MOTOGP_CATEGORIES.forEach(cat => {
+    const isActive = cat === selectedCategory;
+    const isAuto = cat === autoCategory;
+    btnHtml += `<button onclick="selectCategory('${cat}')"
+      style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;
+             padding:2px 8px;cursor:pointer;text-transform:uppercase;border:1px solid;
+             background:${isActive ? 'rgba(29,185,84,0.3)' : 'rgba(255,255,255,0.05)'};
+             border-color:${isActive ? 'var(--green)' : 'rgba(255,255,255,0.2)'};
+             color:${isActive ? 'var(--green)' : 'var(--text-mid)'};
+             ${isAuto && !isActive ? 'border-style:dashed;' : ''}">
+      ${cat}${isAuto ? ' ●' : ''}
+    </button>`;
+  });
+
+  // View mode toggle
+  btnHtml += `<div style="margin-left:auto;display:flex;gap:2px;">
+    <button onclick="setViewMode('results')"
+      style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;
+             border:1px solid;text-transform:uppercase;
+             background:${viewMode==='results' ? 'rgba(245,196,0,0.25)' : 'rgba(255,255,255,0.05)'};
+             border-color:${viewMode==='results' ? 'var(--yellow)' : 'rgba(255,255,255,0.2)'};
+             color:${viewMode==='results' ? 'var(--yellow)' : 'var(--text-mid)'};">
+      RESULTS
+    </button>
+    <button onclick="setViewMode('standings')"
+      style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;
+             border:1px solid;text-transform:uppercase;
+             background:${viewMode==='standings' ? 'rgba(245,196,0,0.25)' : 'rgba(255,255,255,0.05)'};
+             border-color:${viewMode==='standings' ? 'var(--yellow)' : 'rgba(255,255,255,0.2)'};
+             color:${viewMode==='standings' ? 'var(--yellow)' : 'var(--text-mid)'};">
+      STANDINGS
+    </button>
+  </div>`;
+
+  btnHtml += '</div><div id="timingResults"></div>';
+
+  tp.innerHTML = btnHtml;
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  // Reset auto-return timer
+  clearTimeout(timingAutoTimer);
+  timingAutoTimer = setTimeout(() => {
+    selectedCategory = autoCategory;
+    viewMode = 'results';
+    renderCategoryButtons();
+    refreshTiming();
+  }, 30000);
+  renderCategoryButtons();
+  refreshTiming();
+}
+
+function selectCategory(cat) {
+  selectedCategory = cat;
+  // Reset auto-return timer
+  clearTimeout(timingAutoTimer);
+  timingAutoTimer = setTimeout(() => {
+    selectedCategory = autoCategory;
+    renderCategoryButtons();
+    refreshTiming();
+  }, 30000);
+  renderCategoryButtons();
+  refreshTiming();
+}
+
+async function refreshTiming() {
+  const resultsDiv = document.getElementById('timingResults');
+  if (!resultsDiv || !seasonUuid) return;
+
+  resultsDiv.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
+
+  if (viewMode === 'standings') {
+    await fetchStandings(resultsDiv);
+  } else {
+    await fetchResults(resultsDiv);
+  }
+}
+
+async function fetchStandings(resultsDiv) {
+  try {
+    const catName = selectedCategory;
+    let catUuid = categoryUuids[catName];
+    if (!catUuid) {
+      const key = Object.keys(categoryUuids).find(k => k.toLowerCase().includes(catName.toLowerCase()));
+      catUuid = key ? categoryUuids[key] : null;
+    }
+    if (!catUuid) throw new Error(`${catName} kategória nem található`);
+
+    const res = await fetch(`${MOTOGP_API}standings?seasonUuid=${seasonUuid}&categoryUuid=${catUuid}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    const riders = data.classification || data;
+    if (!riders || riders.length === 0) throw new Error('Nincs pontállás adat');
+
+    renderStandings(resultsDiv, riders, catName);
+  } catch(e) {
+    resultsDiv.innerHTML = `<div style="color:var(--red);font-family:'Share Tech Mono',monospace;font-size:9px;padding:4px;">❌ ${e.message}</div>`;
+  }
+}
+
+async function fetchResults(resultsDiv) {
+  try {
+    const catName = selectedCategory;
+    let catUuid = categoryUuids[catName];
+    if (!catUuid) {
+      const key = Object.keys(categoryUuids).find(k => k.toLowerCase().includes(catName.toLowerCase()));
+      catUuid = key ? categoryUuids[key] : null;
+    }
+    if (!catUuid) throw new Error(`${catName} kategória nem található`);
+
+    const evRes = await fetch(`${MOTOGP_API}events?seasonUuid=${seasonUuid}&isFinished=true`);
+    const events = await evRes.json();
+    if (!events || events.length === 0) throw new Error('Nincs befejezett esemény');
+    const latestEvent = events[events.length - 1];
+
+    const sessRes = await fetch(`${MOTOGP_API}sessions?eventUuid=${latestEvent.id}&categoryUuid=${catUuid}`);
+    const sessions = await sessRes.json();
+    if (!sessions || sessions.length === 0) throw new Error('Nincs session adat');
+
+    const finished = sessions.filter(s => s.status === 'Finished' || s.type === 'RAC' || s.type === 'SPR');
+    const session = finished.length > 0 ? finished[finished.length - 1] : sessions[sessions.length - 1];
+
+    const classRes = await fetch(`${MOTOGP_API}session/${session.id}/classification?test=false`);
+    const classData = await classRes.json();
+    const riders = classData.classification || classData;
+
+    renderResults(resultsDiv, riders, latestEvent.name || latestEvent.short_name, session.type || session.name, catName);
+  } catch(e) {
+    resultsDiv.innerHTML = `<div style="color:var(--red);font-family:'Share Tech Mono',monospace;font-size:9px;padding:4px;">❌ ${e.message}</div>`;
+  }
+}
+
+function renderStandings(container, riders, catName) {
+  if (!riders || riders.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás adat</div>';
+    return;
+  }
+
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--text-mid);margin-bottom:4px;">
+    <span style="color:var(--yellow);">${catName}</span> · 2026 CHAMPIONSHIP STANDINGS
+  </div>`;
+
+  html += '<table style="width:100%;border-collapse:collapse;font-family:\'Share Tech Mono\',monospace;font-size:10px;">';
+  html += '<tr style="color:var(--text-dim);font-size:8px;letter-spacing:1px;"><th style="text-align:left;padding:1px 3px;width:24px;">P</th><th style="text-align:left;padding:1px 3px;width:20px;">#</th><th style="text-align:left;padding:1px 3px;">RIDER</th><th style="text-align:right;padding:1px 3px;">PTS</th><th style="text-align:right;padding:1px 3px;">GAP</th></tr>';
+
+  const leader = riders[0];
+  const leaderPts = leader?.points || 0;
+
+  riders.slice(0, 20).forEach((r, i) => {
+    const pos = r.position || (i + 1);
+    const num = r.rider?.number || r.number || '';
+    const name = r.rider?.full_name || r.rider?.surname || r.full_name || r.name || '—';
+    const pts = r.points || 0;
+    const gap = i === 0 ? '—' : `-${(leaderPts - pts)}`;
+    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+    const posColor = pos === 1 ? '#f5c400' : pos === 2 ? '#aaa' : pos === 3 ? '#cd7f32' : 'var(--off-white)';
+    const ptsColor = pos === 1 ? '#f5c400' : 'var(--green)';
+    html += `<tr style="background:${bg};">
+      <td style="padding:2px 3px;color:${posColor};font-weight:bold;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);">${num}</td>
+      <td style="padding:2px 3px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;">${name}</td>
+      <td style="padding:2px 3px;text-align:right;color:${ptsColor};font-weight:bold;">${pts}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${gap}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+function renderResults(container, riders, eventName, sessionType, catName) {
+  if (!riders || riders.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>';
+    return;
+  }
+
+  const sessionLabel = sessionType === 'RAC' ? 'RACE' : sessionType === 'SPR' ? 'SPRINT' :
+                       sessionType === 'Q' ? 'QUALIFYING' : sessionType === 'FP' ? 'FREE PRACTICE' : sessionType;
+
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--text-mid);margin-bottom:4px;">
+    <span style="color:var(--green);">${catName}</span> · ${eventName} · ${sessionLabel}
+  </div>`;
+
+  html += '<table style="width:100%;border-collapse:collapse;font-family:\'Share Tech Mono\',monospace;font-size:10px;">';
+  html += '<tr style="color:var(--text-dim);font-size:8px;letter-spacing:1px;"><th style="text-align:left;padding:1px 3px;width:24px;">P</th><th style="text-align:left;padding:1px 3px;width:20px;">#</th><th style="text-align:left;padding:1px 3px;">RIDER</th><th style="text-align:right;padding:1px 3px;">GAP</th><th style="text-align:right;padding:1px 3px;">BEST</th></tr>';
+
+  riders.slice(0, 20).forEach((r, i) => {
+    const pos = r.position || (i + 1);
+    const num = r.rider?.number || r.number || '';
+    const name = r.rider?.full_name || r.rider?.surname || r.full_name || r.name || '—';
+    const gap = r.gap?.first || r.gap || '';
+    const best = r.best_lap?.time || r.time || '';
+    const bg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+    const posColor = pos === 1 ? '#f5c400' : pos === 2 ? '#aaa' : pos === 3 ? '#cd7f32' : 'var(--off-white)';
+    html += `<tr style="background:${bg};">
+      <td style="padding:2px 3px;color:${posColor};font-weight:bold;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);">${num}</td>
+      <td style="padding:2px 3px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;">${name}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${gap}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${best}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  container.innerHTML = html;
+}
+
 // ============================================================
 // LISTA GÖRGETÉS — szabad görgetés + LIVE gomb
 // ============================================================
