@@ -1626,7 +1626,7 @@ function loadNewSchedule(parsed) {
 // ============================================================
 // 4. PANEL — LIVE TIMING / RESULTS (via Cloudflare Proxy)
 // ============================================================
-const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
+const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/results/';
 const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
 const SEASON_UUID = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e';
 const CAT_UUIDS = {
@@ -1694,7 +1694,8 @@ function showTimingPanel() {
 }
 
 function buildButtons() {
-  let html = '<div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;align-items:center;">';
+  // Row 1: category buttons
+  let html = '<div style="display:flex;gap:4px;margin-bottom:3px;flex-wrap:wrap;">';
   MOTOGP_CATEGORIES.forEach(cat => {
     const active = cat === selectedCat;
     const isAuto = cat === autoCat;
@@ -1706,7 +1707,9 @@ function buildButtons() {
       ${cat}${isAuto?' ●':''}
     </button>`;
   });
-  html += `<div style="margin-left:auto;display:flex;gap:2px;">
+  html += '</div>';
+  // Row 2: view toggle buttons
+  html += `<div style="display:flex;gap:2px;margin-bottom:4px;">
     <button onclick="switchView('results')" style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;border:1px solid;text-transform:uppercase;
       background:${viewMode==='results'?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
       border-color:${viewMode==='results'?'var(--yellow)':'rgba(255,255,255,0.2)'};
@@ -1715,7 +1718,7 @@ function buildButtons() {
       background:${viewMode==='standings'?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
       border-color:${viewMode==='standings'?'var(--yellow)':'rgba(255,255,255,0.2)'};
       color:${viewMode==='standings'?'var(--yellow)':'var(--text-mid)'};">STANDINGS</button>
-  </div></div><div id="timingResults"></div>`;
+  </div><div id="timingResults"></div>`;
   return html;
 }
 
