@@ -1879,7 +1879,11 @@ async function doResults() {
   const events = await apiGet(`events?seasonUuid=${SEASON_UUID}&isFinished=true`);
   const races = events.filter(e => !e.test);
   if (!races.length) throw new Error('Nincs befejezett futam');
-  const ev = races[races.length - 1];
+  // Match selectedEventCode
+  const ev = races.find(e =>
+    (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
+    (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase()
+  ) || races[races.length - 1];
 
   const sessions = await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   if (!sessions.length) throw new Error('Nincs session');
