@@ -1731,7 +1731,17 @@ const SEASON_EVENTS = {
 };
 let selectedYear = '2026';
 let selectedEventCode = 'FRA';
+let selectedSession = 'RAC';
+const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
+const SESSION_TYPES_OTHER = ['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
+function getSessionTypes() {
+  return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER;
+}
 
+function switchSession(sess) {
+  selectedSession = sess;
+  doFetch();
+}
 function switchYear(year) {
   selectedYear = year;
   const evs = SEASON_EVENTS[year] || [];
@@ -1759,6 +1769,18 @@ function buildButtons() {
   </select>`;
   html += '</div>';
   // Row 1: category buttons
+  // Row 1b: session buttons
+  html += '<div style="display:flex;gap:3px;margin-bottom:3px;flex-wrap:wrap;">';
+  getSessionTypes().forEach(sess => {
+    const active = sess === selectedSession;
+    html += `<button onclick="switchSession('${sess}')"
+      style="font-family:'Oswald',sans-serif;font-size:9px;padding:2px 5px;cursor:pointer;border:1px solid;
+      background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
+      border-color:${active?'var(--yellow)':'rgba(255,255,255,0.2)'};
+      color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
+  });
+  html += '</div>';
+  // Row 2: category buttons
   html += '<div style="display:flex;gap:4px;margin-bottom:3px;flex-wrap:wrap;">';
   MOTOGP_CATEGORIES.forEach(cat => {
     const active = cat === selectedCat;
@@ -1861,8 +1883,37 @@ async function doResults() {
 
   const sessions = await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   if (!sessions.length) throw new Error('Nincs session');
-  const finished = sessions.filter(s => s.status === 'Finished' || s.type === 'RAC' || s.type === 'SPR');
-  const sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
+
+  // Map button code to API session type
+  const sessTypeMap = {
+    'FP1': ['FP','FP1','P1','FREE PRACTICE 1'],
+    'FP2': ['FP2','P2','FREE PRACTICE 2'],
+    'PR':  ['PR','P','PRACTICE'],
+    'Q1':  ['Q1','QUALIFYING 1','Q'],
+    'Q2':  ['Q2','QUALIFYING 2'],
+    'SPR': ['SPR','S','SPRINT'],
+    'WUP': ['WUP','WU','W','WARM UP'],
+    'RAC': ['RAC','R','RACE']
+  };
+  const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
+  let sess = sessions.find(s => typeCodes.some(code =>
+    (s.type||'').toUpperCase() === code.toUpperCase() ||
+    (s.shortname||s.short_name||'').toUpperCase() === code.toUpperCase()
+  ));
+  if (!sess) {
+    // FP1/FP2 fallback: pick by index
+    const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
+    if (selectedSession === 'FP1') sess = fpSessions[0];
+    else if (selectedSession === 'FP2') sess = fpSessions[1] || fpSessions[0];
+    // Q1/Q2 fallback: pick by number
+    const qSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('Q'));
+    if (selectedSession === 'Q1') sess = qSessions[0];
+    else if (selectedSession === 'Q2') sess = qSessions[1] || qSessions[0];
+  }
+  if (!sess) {
+    const finished = sessions.filter(s => s.status === 'Finished');
+    sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
+  }
 
   const cls = await apiGet(`session/${sess.id}/classification?test=false`);
   const riders = cls.classification || cls;
