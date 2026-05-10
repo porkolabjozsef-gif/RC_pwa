@@ -1629,7 +1629,13 @@ function loadNewSchedule(parsed) {
 // ============================================================
 const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
 const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
-const SEASON_UUID = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e';
+const SEASON_UUIDS = {
+  '2026': 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e',
+  '2025': 'ae6c6f0d-c652-44f8-94aa-420fc5b3dab4',
+  '2024': 'dd12382e-1d9f-46ee-a5f7-c5104db28e43',
+  '2023': 'db8dc197-c7b2-4c1b-b3a4-6dc534c023ef'
+};
+const SEASON_UUID = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e'; // fallback
 const CAT_UUIDS = {
   'MotoGP': 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942',
   'Moto2':  '549640b8-fd9c-4245-acfd-60e4bc38b25c',
@@ -1698,25 +1704,29 @@ const SEASONS = ['2026', '2025', '2024', '2023'];
 const SEASON_EVENTS = {
   '2026': [
     {code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},
-    {code:'SPA',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
-    {code:'KAZ',name:'Kazakhstan'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
-    {code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'CZE',name:'Czech Republic'},
-    {code:'RSM',name:'San Marino'},{code:'ARA',name:'Aragon'},{code:'INA',name:'Indonesia'},
-    {code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}
+    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
+    {code:'CAT',name:'Catalonia'},{code:'ITA',name:'Italy'},{code:'HUN',name:'Hungary'},
+    {code:'CZE',name:'Czech Republic'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
+    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},
+    {code:'AUT',name:'Austria'},{code:'JPN',name:'Japan'},{code:'INA',name:'Indonesia'},
+    {code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},
+    {code:'VAL',name:'Valencia'}
   ],
   '2025': [
     {code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
-    {code:'SPA',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
-    {code:'GER',name:'Germany'},{code:'NED',name:'Netherlands'},{code:'GBR',name:'Great Britain'},
-    {code:'AUT',name:'Austria'},{code:'CZE',name:'Czech Republic'},{code:'RSM',name:'San Marino'},
-    {code:'ARA',name:'Aragon'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},
-    {code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}
+    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
+    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'ITA',name:'Italy'},
+    {code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},{code:'CZE',name:'Czech Republic'},
+    {code:'AUT',name:'Austria'},{code:'HUN',name:'Hungary'},{code:'RSM',name:'San Marino'},
+    {code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},
+    {code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},{code:'VAL',name:'Valencia'}
   ],
   '2024': [
-    {code:'POR',name:'Portugal'},{code:'ESP',name:'Spain'},{code:'FRA',name:'France'},
-    {code:'ITA',name:'Italy'},{code:'GER',name:'Germany'},{code:'NED',name:'Netherlands'},
-    {code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'CZE',name:'Czech Republic'},
-    {code:'RSM',name:'San Marino'},{code:'ARA',name:'Aragon'},{code:'INA',name:'Indonesia'},
+    {code:'QAT',name:'Qatar'},{code:'POR',name:'Portugal'},{code:'USA',name:'USA'},
+    {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
+    {code:'CAT',name:'Catalonia'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
+    {code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'ARA',name:'Aragon'},
+    {code:'RSM',name:'San Marino'},{code:'EMI',name:'Emilia Romagna'},{code:'INA',name:'Indonesia'},
     {code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},
     {code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}
   ],
@@ -1724,9 +1734,10 @@ const SEASON_EVENTS = {
     {code:'POR',name:'Portugal'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
     {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
     {code:'GER',name:'Germany'},{code:'NED',name:'Netherlands'},{code:'GBR',name:'Great Britain'},
-    {code:'AUT',name:'Austria'},{code:'CZE',name:'Czech Republic'},{code:'RSM',name:'San Marino'},
-    {code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},
-    {code:'THA',name:'Thailand'},{code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}
+    {code:'AUT',name:'Austria'},{code:'CAT',name:'Catalonia'},{code:'RSM',name:'San Marino'},
+    {code:'IND',name:'India'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},
+    {code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},{code:'MAL',name:'Malaysia'},
+    {code:'VAL',name:'Valencia'}
   ]
 };
 let selectedYear = '2026';
@@ -1876,7 +1887,7 @@ async function doResults() {
   } catch(e) { /* fallback */ }
 
   // Latest results
-  const events = await apiGet(`events?seasonUuid=${SEASON_UUID}&isFinished=true`);
+  const events = await apiGet(`events?seasonUuid=${SEASON_UUIDS[selectedYear]||SEASON_UUID}&isFinished=true`);
   const races = events.filter(e => !e.test);
   if (!races.length) throw new Error('Nincs befejezett futam');
   // Match selectedEventCode
@@ -1928,7 +1939,7 @@ async function doStandings() {
   const rd = document.getElementById('timingResults');
   if (!rd) return;
   // Use XML worldstanding for latest event
-  const evts = await apiGet(`events?seasonUuid=${SEASON_UUID}&isFinished=true`);
+  const evts = await apiGet(`events?seasonUuid=${SEASON_UUIDS[selectedYear]||SEASON_UUID}&isFinished=true`);
   const races = evts.filter(e => !e.test);
   if (!races.length) throw new Error('Nincs befejezett futam');
   const ev = races[races.length - 1];
@@ -1948,7 +1959,7 @@ async function doStandings() {
   } catch(e) {}
   
   // Fallback: API standings
-  const data = await apiGet(`standings?seasonUuid=${SEASON_UUID}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
+  const data = await apiGet(`standings?seasonUuid=${SEASON_UUIDS[selectedYear]||SEASON_UUID}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   const riders = data.classification || data;
   if (!riders || !riders.length) throw new Error('Nincs pontállás');
   showStandings(rd, riders, selectedCat);
