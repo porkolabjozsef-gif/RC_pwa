@@ -1633,15 +1633,89 @@ const SESSIONS = ['FP1', 'PR', 'FP2', 'Q1', 'Q2', 'SPR', 'WUP', 'RAC', 'STANDING
 const SESSION_LABELS = { FP1:'FP1', PR:'PRACTICE', FP2:'FP2', Q1:'Q1', Q2:'Q2', SPR:'SPRINT', WUP:'WARM UP', RAC:'RACE', STANDINGS:'STANDINGS' };
 const YEAR = '2026';
 
-// Event short codes from MotoGP API
-const EVENTS = {
-  'THA': 'Thailand', 'BRA': 'Brazil', 'USA': 'USA',
-  'SPA': 'Spain', 'FRA': 'France', 'ITA': 'Italy',
-  'GER': 'Germany', 'NED': 'Netherlands', 'KAZ': 'Kazakhstan',
-  'GBR': 'Great Britain', 'AUT': 'Austria', 'CZE': 'Czech Republic',
-  'RSM': 'San Marino', 'ARA': 'Aragon', 'INA': 'Indonesia',
-  'JPN': 'Japan', 'AUS': 'Australia', 'THA2': 'Thailand 2',
-  'MAL': 'Malaysia', 'VAL': 'Valencia'
+// Seasons and events
+const SEASONS = ['2026', '2025', '2024', '2023'];
+const SEASON_EVENTS = {
+  '2026': [
+    {code:'THA', name:'Thailand', date:'Feb 27–Mar 1'},
+    {code:'BRA', name:'Brazil', date:'Mar 20–22'},
+    {code:'USA', name:'USA', date:'Mar 27–29'},
+    {code:'SPA', name:'Spain', date:'Apr 24–26'},
+    {code:'FRA', name:'France', date:'May 8–10'},
+    {code:'ITA', name:'Italy', date:'May 29–31'},
+    {code:'KAZ', name:'Kazakhstan', date:'Jun 6–8'},
+    {code:'NED', name:'Netherlands', date:'Jun 27–29'},
+    {code:'GER', name:'Germany', date:'Jul 4–6'},
+    {code:'GBR', name:'Great Britain', date:'Jul 25–27'},
+    {code:'AUT', name:'Austria', date:'Aug 7–9'},
+    {code:'CZE', name:'Czech Republic', date:'Aug 15–17'},
+    {code:'RSM', name:'San Marino', date:'Sep 5–7'},
+    {code:'ARA', name:'Aragon', date:'Sep 12–14'},
+    {code:'INA', name:'Indonesia', date:'Sep 26–28'},
+    {code:'JPN', name:'Japan', date:'Oct 3–5'},
+    {code:'AUS', name:'Australia', date:'Oct 17–19'},
+    {code:'MAL', name:'Malaysia', date:'Oct 31–Nov 2'},
+    {code:'VAL', name:'Valencia', date:'Nov 6–8'},
+  ],
+  '2025': [
+    {code:'THA', name:'Thailand', date:'Feb 28–Mar 2'},
+    {code:'ARG', name:'Argentina', date:'Mar 28–30'},
+    {code:'USA', name:'USA', date:'Apr 11–13'},
+    {code:'SPA', name:'Spain', date:'Apr 25–27'},
+    {code:'FRA', name:'France', date:'May 9–11'},
+    {code:'ITA', name:'Italy', date:'May 30–Jun 1'},
+    {code:'GER', name:'Germany', date:'Jun 20–22'},
+    {code:'NED', name:'Netherlands', date:'Jun 27–29'},
+    {code:'GBR', name:'Great Britain', date:'Aug 1–3'},
+    {code:'AUT', name:'Austria', date:'Aug 15–17'},
+    {code:'CZE', name:'Czech Republic', date:'Aug 22–24'},
+    {code:'RSM', name:'San Marino', date:'Sep 5–7'},
+    {code:'ARA', name:'Aragon', date:'Sep 12–14'},
+    {code:'INA', name:'Indonesia', date:'Sep 26–28'},
+    {code:'JPN', name:'Japan', date:'Oct 3–5'},
+    {code:'AUS', name:'Australia', date:'Oct 17–19'},
+    {code:'MAL', name:'Malaysia', date:'Oct 31–Nov 2'},
+    {code:'VAL', name:'Valencia', date:'Nov 14–16'},
+  ],
+  '2024': [
+    {code:'POR', name:'Portugal', date:'Mar 22–24'},
+    {code:'ESP', name:'Spain', date:'Apr 26–28'},
+    {code:'FRA', name:'France', date:'May 10–12'},
+    {code:'ITA', name:'Italy', date:'May 31–Jun 2'},
+    {code:'GER', name:'Germany', date:'Jun 28–30'},
+    {code:'NED', name:'Netherlands', date:'Jul 26–28'},
+    {code:'GBR', name:'Great Britain', date:'Aug 2–4'},
+    {code:'AUT', name:'Austria', date:'Aug 16–18'},
+    {code:'CZE', name:'Czech Republic', date:'Aug 23–25'},
+    {code:'RSM', name:'San Marino', date:'Sep 6–8'},
+    {code:'ARA', name:'Aragon', date:'Sep 27–29'},
+    {code:'INA', name:'Indonesia', date:'Oct 4–6'},
+    {code:'JPN', name:'Japan', date:'Oct 18–20'},
+    {code:'AUS', name:'Australia', date:'Oct 25–27'},
+    {code:'THA', name:'Thailand', date:'Nov 1–3'},
+    {code:'MAL', name:'Malaysia', date:'Nov 1–3'},
+    {code:'VAL', name:'Valencia', date:'Nov 15–17'},
+  ],
+  '2023': [
+    {code:'POR', name:'Portugal', date:'Mar 24–26'},
+    {code:'ARG', name:'Argentina', date:'Mar 31–Apr 2'},
+    {code:'USA', name:'USA', date:'Apr 14–16'},
+    {code:'ESP', name:'Spain', date:'Apr 28–30'},
+    {code:'FRA', name:'France', date:'May 12–14'},
+    {code:'ITA', name:'Italy', date:'Jun 2–4'},
+    {code:'GER', name:'Germany', date:'Jun 16–18'},
+    {code:'NED', name:'Netherlands', date:'Jun 23–25'},
+    {code:'GBR', name:'Great Britain', date:'Aug 4–6'},
+    {code:'AUT', name:'Austria', date:'Aug 18–20'},
+    {code:'CZE', name:'Czech Republic', date:'Aug 4–6'},
+    {code:'RSM', name:'San Marino', date:'Sep 8–10'},
+    {code:'INA', name:'Indonesia', date:'Oct 13–15'},
+    {code:'JPN', name:'Japan', date:'Oct 6–8'},
+    {code:'AUS', name:'Australia', date:'Oct 20–22'},
+    {code:'THA', name:'Thailand', date:'Oct 27–29'},
+    {code:'MAL', name:'Malaysia', date:'Nov 3–5'},
+    {code:'VAL', name:'Valencia', date:'Nov 24–26'},
+  ]
 };
 
 let timingMode = false;
@@ -1649,6 +1723,7 @@ let timingInterval = null;
 let timingAutoTimer = null;
 let selectedCat = 'MotoGP';
 let autoCat = 'MotoGP';
+let selectedYear = '2026';
 let selectedEvent = 'FRA';
 let selectedSession = 'RAC';
 let isFetching = false;
@@ -1702,8 +1777,13 @@ function showTimingPanel() {
   autoCat = MOTOGP_CATEGORIES.includes(activeCat) ? activeCat : 'MotoGP';
   selectedCat = autoCat;
 
-  // Auto event from current date - default FRA for now
-  selectedEvent = 'FRA';
+  // Auto: latest finished event
+  selectedYear = '2026';
+  const evs = SEASON_EVENTS['2026'] || [];
+  selectedEvent = evs.length ? evs.filter(e => {
+    const d = new Date(e.date.split('–')[0] + ' 2026');
+    return d <= new Date();
+  }).slice(-1)[0]?.code || evs[0].code : 'FRA';
   selectedSession = 'RAC';
 
   doFetch();
@@ -1711,8 +1791,27 @@ function showTimingPanel() {
 }
 
 function buildButtons() {
+  const events = SEASON_EVENTS[selectedYear] || [];
+  const selEv = events.find(e => e.code === selectedEvent);
+
+  // Row 0: season + event in one compact row
+  let html = '<div style="display:flex;gap:4px;margin-bottom:4px;align-items:center;">';
+  // Season select
+  html += `<select onchange="switchYear(this.value)"
+    style="font-family:'Oswald',sans-serif;font-size:10px;background:#2a2a2a;color:var(--red);
+    border:1px solid var(--red);padding:3px 4px;cursor:pointer;border-radius:2px;min-width:52px;">
+    ${SEASONS.map(y => `<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
+  </select>`;
+  // Event select
+  html += `<select onchange="switchEvent(this.value)"
+    style="font-family:'Oswald',sans-serif;font-size:10px;background:#2a2a2a;color:var(--off-white);
+    border:1px solid rgba(255,255,255,0.3);padding:3px 4px;cursor:pointer;border-radius:2px;flex:1;">
+    ${events.map(e => `<option value="${e.code}" ${e.code===selectedEvent?'selected':''}>${e.name}</option>`).join('')}
+  </select>`;
+  html += '</div>';
+
   // Row 1: category
-  let html = '<div style="display:flex;gap:3px;margin-bottom:3px;">';
+  html += '<div style="display:flex;gap:3px;margin-bottom:3px;">';
   MOTOGP_CATEGORIES.forEach(cat => {
     const active = cat === selectedCat;
     html += `<button onclick="switchCat('${cat}')"
@@ -1745,6 +1844,20 @@ function buildButtons() {
 
   html += '<div id="timingResults"></div>';
   return html;
+}
+
+function switchYear(year) {
+  selectedYear = year;
+  const events = SEASON_EVENTS[year] || [];
+  if (events.length) selectedEvent = events[events.length - 1].code;
+  resetAutoTimer();
+  doFetch();
+}
+
+function switchEvent(code) {
+  selectedEvent = code;
+  resetAutoTimer();
+  doFetch();
 }
 
 function switchCat(cat) {
@@ -1790,7 +1903,7 @@ async function loadXmlResults(rd) {
 
   if (selectedSession === 'STANDINGS') {
     // Standings: use worldstanding.XML from latest race
-    const baseUrl = `${RES_BASE}${YEAR}/${selectedEvent}/${selectedCat}/RAC/`;
+    const baseUrl = `${RES_BASE}${selectedYear}/${selectedEvent}/${selectedCat}/RAC/`;
     const r = await fetch(baseUrl + 'worldstanding.XML');
     if (!r.ok) throw new Error(`Nincs pontállás: ${selectedEvent}/${selectedCat}`);
     const xml = await r.text();
@@ -1800,7 +1913,7 @@ async function loadXmlResults(rd) {
   }
 
   // Classification results
-  const baseUrl = `${RES_BASE}${YEAR}/${selectedEvent}/${selectedCat}/${selectedSession}/`;
+  const baseUrl = `${RES_BASE}${selectedYear}/${selectedEvent}/${selectedCat}/${selectedSession}/`;
   
   let xml = null;
   try {
@@ -1846,7 +1959,7 @@ function renderStandingXml(rd, doc) {
   if (!entries.length) { rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>'; return; }
 
   let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--yellow);">${selectedCat}</span> · ${YEAR} STANDINGS
+    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS
   </div>`;
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   const leader = parseFloat(entries[0]?.getAttribute('Points') || entries[0]?.getAttribute('points') || 0);
