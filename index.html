@@ -1085,7 +1085,14 @@ body::after {
 
     <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
     <div class="col-logo" id="logoPanel" style="position:relative;">
-
+      <button onclick="toggleTiming()" id="timingToggleBtn"
+        style="position:absolute; top:6px; right:8px; z-index:10;
+               font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
+               padding:3px 8px; cursor:pointer; text-transform:uppercase;
+               background:rgba(29,185,84,0.1); border:1px solid rgba(29,185,84,0.4);
+               color:rgba(29,185,84,0.8);">
+        ⏱ TIMING
+      </button>
       <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
