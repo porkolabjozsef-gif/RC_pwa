@@ -1900,36 +1900,56 @@ async function doFetch() {
 
 async function loadXmlResults(rd) {
   const parser = new DOMParser();
+  const baseUrl = `${RES_BASE}${selectedYear}/${selectedEvent}/${selectedCat}/${selectedSession}/`;
 
   if (selectedSession === 'STANDINGS') {
-    // Standings: use worldstanding.XML from latest race
-    const baseUrl = `${RES_BASE}${selectedYear}/${selectedEvent}/${selectedCat}/RAC/`;
-    const r = await fetch(baseUrl + 'worldstanding.XML');
-    if (!r.ok) throw new Error(`Nincs pontállás: ${selectedEvent}/${selectedCat}`);
-    const xml = await r.text();
-    const doc = parser.parseFromString(xml, 'text/xml');
-    renderStandingXml(rd, doc);
-    return;
+    // Try worldstanding.XML from latest race
+    const urls = [
+      `${RES_BASE}${selectedYear}/${selectedEvent}/${selectedCat}/RAC/worldstanding.XML`,
+      `${RES_BASE}${selectedYear}/${selectedEvent}/${selectedCat}/RAC/worldstanding.xml`,
+    ];
+    for (const url of urls) {
+      try {
+        const r = await fetch(url);
+        if (r.ok) {
+          const xml = await r.text();
+          const doc = parser.parseFromString(xml, 'text/xml');
+          renderStandingXml(rd, doc);
+          return;
+        }
+      } catch(e) {}
+    }
+    throw new Error(`Nincs pontállás: ${selectedEvent}/${selectedCat}`);
   }
 
-  // Classification results
-  const baseUrl = `${RES_BASE}${selectedYear}/${selectedEvent}/${selectedCat}/${selectedSession}/`;
-  
-  let xml = null;
-  try {
-    const r = await fetch(baseUrl + 'Classification.xml');
-    if (r.ok) xml = await r.text();
-  } catch(e) {}
+  // Try multiple filename variants
+  const filenames = ['Classification.xml', 'Classification.XML', 'classification.xml'];
+  for (const fname of filenames) {
+    try {
+      const r = await fetch(baseUrl + fname);
+      if (r.ok) {
+        const xml = await r.text();
+        const doc = parser.parseFromString(xml, 'text/xml');
+        renderClassXml(rd, doc);
+        return;
+      }
+    } catch(e) {}
+  }
 
-  if (!xml) throw new Error(`Nincs adat: ${selectedEvent}/${selectedCat}/${selectedSession}`);
-
-  const doc = parser.parseFromString(xml, 'text/xml');
-  renderClassXml(rd, doc);
+  throw new Error(`Nincs adat: ${selectedEvent}/${selectedCat}/${selectedSession}`);
 }
 
 function renderClassXml(rd, doc) {
-  const entries = Array.from(doc.querySelectorAll('ClassificationEntry, Entry, Rider'));
-  if (!entries.length) { rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>'; return; }
+  const rootTag = doc.documentElement.tagName;
+  const allTags = Array.from(doc.querySelectorAll('*')).map(e => e.tagName).slice(0, 10);
+  const entries = Array.from(doc.querySelectorAll('ClassificationEntry, Entry, Rider, Classification > *'));
+  
+  if (!entries.length) { 
+    rd.innerHTML = `<div style="color:var(--text-mid);font-size:9px;padding:4px;">
+      Root: ${rootTag}<br>Tags: ${[...new Set(allTags)].join(', ')}<br>Entries: 0
+    </div>`; 
+    return; 
+  }
 
   let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
     <span style="color:var(--green);">${selectedCat}</span> · ${selectedEvent} · ${SESSION_LABELS[selectedSession]||selectedSession}
