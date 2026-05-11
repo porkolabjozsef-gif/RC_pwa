@@ -1126,7 +1126,14 @@ body::after {
 </div><!-- /app -->
 
 
+
+
+
+
+
+
 <script>
+
 // ============================================================
 // FULL SCHEDULE DATA — Superbike of Hungary 2026
 // Dates: 2026-04-29 to 2026-05-03
@@ -2720,12 +2727,11 @@ if ('serviceWorker' in navigator) {
     .then(() => console.log('Service Worker aktív'))
     .catch(err => console.warn('SW hiba:', err));
 }
-</script>
 
-<script>
+
 var CI = {
   THA:{n:'Chang Int. Circuit',    l:'4.554 km',c:12,r:{MotoGP:{r:'J. Martin',  t:'1:30.177',y:2024},Moto2:{r:'Chantra',    t:'1:36.533',y:2023},Moto3:{r:'Sasaki',     t:'1:43.218',y:2023}}},
-  BRA:{n:'Ayrton Senna Circuit',  l:'3.806 km',c:11,r:{MotoGP:{r:'—',          t:'—',       y:2026},Moto2:{r:'—',          t:'—',       y:2026},Moto3:{r:'—',          t:'—',       y:2026}}},
+  BRA:{n:'Ayrton Senna Circuit',  l:'3.806 km',c:11,r:{MotoGP:{r:'n/a',t:'n/a',y:2026},Moto2:{r:'n/a',t:'n/a',y:2026},Moto3:{r:'n/a',t:'n/a',y:2026}}},
   USA:{n:'Circuit of the Americas',l:'5.513 km',c:20,r:{MotoGP:{r:'M. Marquez',t:'2:02.369',y:2015},Moto2:{r:'Roberts',    t:'2:09.916',y:2021},Moto3:{r:'Foggia',     t:'2:18.888',y:2021}}},
   QAT:{n:'Lusail Int. Circuit',   l:'5.380 km',c:16,r:{MotoGP:{r:'Bagnaia',    t:'1:52.988',y:2024},Moto2:{r:'Ogura',      t:'1:59.303',y:2023},Moto3:{r:'Masia',      t:'2:06.005',y:2023}}},
   SPA:{n:'Circuito de Jerez',     l:'4.423 km',c:13,r:{MotoGP:{r:'M. Marquez',t:'1:36.635',y:2019},Moto2:{r:'Fernandez',  t:'1:42.048',y:2022},Moto3:{r:'Guevara',    t:'1:47.035',y:2022}}},
@@ -2789,9 +2795,8 @@ function showCI(code, cat) {
     })
     .catch(function() {});
 }
-</script>
 
-<script>
+
 // ============================================================
 // WSBK PANEL
 // ============================================================
@@ -3016,7 +3021,8 @@ function parseWsbkText(rd, text) {
   });
   rd.innerHTML = html + '</table>';
 }
-</script>
 
+
+</script>
 </body>
 </html>
