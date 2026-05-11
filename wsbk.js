@@ -176,8 +176,14 @@ function loadWsbkPdf(panelEl) {
     + '/' + wsbkSession + '/' + wsbkSessionSub + '/' + wsbkSessionFile;
 
   if (typeof pdfjsLib === 'undefined') {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">PDF.js nem elerheto</div>';
+    // Retry after 1 second
+    setTimeout(function() { loadWsbkPdf(panelEl); }, 1000);
+    rd.innerHTML = '<div style="color:var(--text-mid);font-size:9px;padding:4px;">PDF.js betoltese...</div>';
     return;
+  }
+  
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   }
 
   pdfjsLib.getDocument(url).promise.then(function(pdf) {
