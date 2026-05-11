@@ -192,70 +192,112 @@ function loadWsbkPdf(panelEl) {
 }
 
 function parseWsbkPdf(rd, text) {
+  // Detect if this is a standings PDF
+  var isStandings = wsbkSessionLabel === 'STD' || 
+    text.indexOf('Riders Standings') > -1 || 
+    text.indexOf('Championship Standing') > -1;
+
+  if (isStandings) {
+    parseWsbkStandings(rd, text);
+  } else {
+    parseWsbkResults(rd, text);
+  }
+}
+
+function parseWsbkStandings(rd, text) {
+  // Structure: NAME (NAT) total_pts round_pts round_pts...
+  // e.g. "NEILA 2... 115  20 25  20 25 20"
+  // or "1 Maria (ESP) 18 97  16 16  20 25 20 NEILA"
+  
   var riders = [];
-
-  // WSBK PDF text structure (from actual PDF):
-  // "...NEILA Yamaha YZF-R7 0.952 ITA 4 Klint Racing Team 96 R. 128.851 0.952 1'53.852 2..."
-  // Time format: 1'33.901 or 41'18.001
-  // Find all times and work backwards to find rider info
-
-  // Strategy: find position numbers 1,2,3... followed by rider data
-  // The PDF has: gap time laps speed... SURNAME team gap time pos
-  // Better: extract times and find names before them
   
-  // Split by time pattern and extract surrounding context
-  var timePattern = /(\d{1,2}'\d{2}\.\d{3})/g;
-  var times = [];
+  // Pattern: UPPERCASE surname followed by numbers
+  // From raw: "1 Maria (ESP) 18 97 16 16 20 25 20 NEILA 2..."
+  // Better pattern: find pos + name + points
+  
+  // Try: number + name + (nat) + number (points)
+  var pattern = /(\d{1,2})\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+\(([A-Z]{3})\)\s+(\d{1,3})/g;
   var m;
-  while ((m = timePattern.exec(text)) !== null) {
-    times.push({time: m[1], index: m.index});
-  }
-
-  // Find rider names - ALL CAPS words before time entries
-  // Pattern: SURNAME appears before the time, after speed numbers
-  var riderPattern = /\b([A-Z]{2,}(?:\s[A-Z]{2,})?)\s+Yamaha|Honda|Ducati|BMW|Kawasaki|Triumph|Aprilia|MV\s/g;
-  
-  // Simpler approach: find position markers
-  // In WSBK PDF the layout per rider is:
-  // [speed] [gap] [time] [pos_number] [name] [bike] [gap] [time] [lap]
-  // Let's find names followed by bike brands
-  var brands = 'Yamaha|Ducati|Kawasaki|BMW|Honda|Triumph|Aprilia|MV Agusta|Bimota';
-  var nameBeforeBike = new RegExp('([A-Z][A-Z]+(?:\\s[A-Z][A-Z]+)?)\\s+(' + brands + ')', 'g');
-  
-  var names = [];
-  var nm;
-  while ((nm = nameBeforeBike.exec(text)) !== null) {
-    names.push({name: nm[1], index: nm.index});
-  }
-
-  // Match positions with names and times
-  // Find position numbers 1-30 in text
-  var posPattern = /(?:^|\s)(\d{1,2})\s+([A-Z]{3})\s+([A-Z])\s+([A-Z]+(?:\s[A-Z]+)?)\s+/gm;
-  var pm;
-  while ((pm = posPattern.exec(text)) !== null) {
-    var pos = parseInt(pm[1]);
+  while ((m = pattern.exec(text)) !== null) {
+    var pos = parseInt(m[1]);
     if (pos >= 1 && pos <= 30) {
-      // Find nearest time after this position
-      var nearTime = times.find(function(t) { return t.index > pm.index && t.index < pm.index + 200; });
-      if (nearTime) {
-        riders.push({pos: pos, num: '', name: pm[4], time: nearTime.time});
+      riders.push({pos: pos, name: m[2], nat: m[3], pts: m[4]});
+    }
+  }
+  
+  // Fallback: UPPERCASE names with points
+  if (!riders.length) {
+    var pattern2 = /([A-Z]{3,}(?:\s[A-Z]{2,})?)\s+(\d{2,3})\s/g;
+    var idx = 1;
+    while ((m = pattern2.exec(text)) !== null) {
+      var pts = parseInt(m[2]);
+      if (pts > 0 && pts <= 999 && m[1].length > 2) {
+        riders.push({pos: idx++, name: m[1], nat: '', pts: m[2]});
       }
+      if (riders.length >= 20) break;
     }
   }
 
-  // If still nothing, try the simplest approach:
-  // Names in WSBK PDFs are SURNAME only in caps, before bike brand
   if (!riders.length) {
-    // Use names array matched with times
-    names.forEach(function(n, i) {
-      var nearTime = times.find(function(t) { return Math.abs(t.index - n.index) < 150; });
-      if (nearTime) {
-        riders.push({pos: i+1, num: '', name: n.name, time: nearTime.time});
-      }
-    });
+    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
+      + text.substring(0, 800).replace(/</g,'&lt;') + '</div>';
+    return;
   }
 
-  // Deduplicate by name
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS - ' + wsbkEvent + ' ' + wsbkYear + '</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  var leader = riders[0] ? parseInt(riders[0].pts) : 0;
+  riders.slice(0,20).forEach(function(r, i) {
+    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
+    var gap = i===0 ? '' : '-'+(leader-parseInt(r.pts));
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;font-size:8px;">' + r.nat + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
+      + '</tr>';
+  });
+  rd.innerHTML = html + '</table>';
+}
+
+function parseWsbkResults(rd, text) {
+  var riders = [];
+
+  // WSBK Results PDF structure:
+  // pos num NAT flag SURNAME Team Bike ... laps gap time
+  // Time format: 1'33.901 or 41'18.001
+  
+  // Find all lap times
+  var times = [];
+  var tm;
+  var timeRe = /(\d{1,2}'\d{2}\.\d{3})/g;
+  while ((tm = timeRe.exec(text)) !== null) {
+    times.push({time: tm[1], index: tm.index});
+  }
+
+  // Find rider surnames before bike brands
+  var brands = 'Yamaha|Ducati|Kawasaki|BMW|Honda|Triumph|Aprilia|Bimota';
+  var nameRe = new RegExp('([A-Z]{3,}(?:\\s[A-Z]{2,})?(?:\\s[A-Z]{2,})?)'
+    + '\\s+(?:' + brands + ')', 'g');
+  var pos = 1;
+  var nm;
+  while ((nm = nameRe.exec(text)) !== null) {
+    var nearTime = times.find(function(t) {
+      return t.index > nm.index - 50 && t.index < nm.index + 200;
+    });
+    // Skip obvious non-names
+    var name = nm[1].trim();
+    if (name.length < 3) continue;
+    if (['ITA','ESP','GBR','FRA','GER','NED','AUS','USA','BRA','THA','JPN','CHI','RSA','ARG','POR','BEL','SUI','CZE','NOR','FIN','DEN','SWE','POL','HUN','AUT','TUR','SLO','GRE','RUS','KAZ'].includes(name)) continue;
+    
+    riders.push({pos: pos++, num: '', name: name, time: nearTime ? nearTime.time : ''});
+    if (riders.length >= 25) break;
+  }
+
+  // Deduplicate
   var seen = {};
   riders = riders.filter(function(r) {
     if (seen[r.name]) return false;
@@ -264,7 +306,6 @@ function parseWsbkPdf(rd, text) {
   });
 
   if (!riders.length) {
-    // Show raw text for debugging - first 800 chars
     rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
       + text.substring(0, 800).replace(/</g,'&lt;') + '</div>';
     return;
@@ -275,9 +316,9 @@ function parseWsbkPdf(rd, text) {
     + '<span style="color:var(--green);">' + label + '</span> - ' + wsbkEvent + ' - ' + wsbkSessionLabel + '</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.slice(0,25).forEach(function(r, i) {
-    var pc = r.pos == 1 ? '#f5c400' : r.pos == 2 ? '#aaa' : r.pos == 3 ? '#cd7f32' : 'var(--off-white)';
-    html += '<tr style="background:' + (i % 2 ? 'transparent' : 'rgba(255,255,255,0.02)') + '">'
-      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + r.pos + '</td>'
+    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
       + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + r.num + '</td>'
       + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.time + '</td>'
