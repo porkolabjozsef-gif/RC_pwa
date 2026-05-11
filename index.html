@@ -1083,9 +1083,9 @@ body::after {
 
     </div><!-- /col-mid -->
 
-    <!-- 4. PANEL: EREDMÉNYEK -->
+    <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
     <div class="col-logo" id="logoPanel" style="position:relative;">
-      <div class="logo-placeholder" id="logoPlaceholder" style="display:none;">—</div>
+      <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
 
@@ -1616,7 +1616,8 @@ function loadNewSchedule(parsed) {
 }
 
 // ============================================================
-// 4. PANEL — EREDMÉNYEK (automatikus, gomb nélkül)
+// ============================================================
+// 4. PANEL — LOGÓ + EREDMÉNYEK (automatikus, gomb nélkül)
 // ============================================================
 const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
 const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
@@ -1632,7 +1633,7 @@ const CAT_UUIDS = {
   'Moto2':  '549640b8-fd9c-4245-acfd-60e4bc38b25c',
   'Moto3':  '954f7e65-2ef2-4423-b949-4961cc603e45'
 };
-const SEASONS = ['2026','2025','2024','2023'];
+const SEASONS = ['2026', '2025', '2024', '2023'];
 const SEASON_EVENTS = {
   '2026': [
     {code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},
@@ -1673,13 +1674,13 @@ const SEASON_EVENTS = {
   ]
 };
 
-let timingInterval = null;
-let autoTimer = null;
-let selectedCat = 'MotoGP';
-let autoCat = 'MotoGP';
 let selectedYear = '2026';
 let selectedEventCode = 'FRA';
+let selectedCat = 'MotoGP';
+let autoCat = 'MotoGP';
 let selectedSession = 'RAC';
+let autoTimer = null;
+let fetchInterval = null;
 let isFetching = false;
 
 const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
@@ -1688,28 +1689,38 @@ function getSessionTypes() {
   return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER;
 }
 
+// Panel inicializálás — oldalbetöltéskor automatikusan indul
 function initResultsPanel() {
+  // Auto kategória a menetrendből
   const { current, next } = findCurrentAndNext(getNow());
   const activeCat = (current && current.category) || (next && next.category);
   if (MOTOGP_CATEGORIES.includes(activeCat)) {
     autoCat = activeCat;
     selectedCat = activeCat;
   }
+  // Automatikusan az aktuális szezon és legutóbbi futam
   selectedYear = '2026';
   const evs = SEASON_EVENTS['2026'] || [];
-  selectedEventCode = evs[evs.length - 1].code;
+  const now = new Date();
+  // Select latest event that has passed
+  selectedEventCode = evs[evs.length - 1].code; // fallback to last
+  
   renderPanel();
   doFetch();
-  timingInterval = setInterval(doFetch, 30000);
+  fetchInterval = setInterval(doFetch, 30000);
 }
 
 function resetAutoTimer() {
   clearTimeout(autoTimer);
-  autoTimer = setTimeout(function() {
-    var cc = findCurrentAndNext(getNow());
-    var activeCat = (cc.current && cc.current.category) || (cc.next && cc.next.category);
-    if (MOTOGP_CATEGORIES.includes(activeCat)) selectedCat = activeCat;
-    else selectedCat = autoCat;
+  autoTimer = setTimeout(() => {
+    // Visszatér az aktív sorozathoz
+    const { current, next } = findCurrentAndNext(getNow());
+    const activeCat = (current && current.category) || (next && next.category);
+    if (MOTOGP_CATEGORIES.includes(activeCat)) {
+      selectedCat = activeCat;
+    } else {
+      selectedCat = autoCat;
+    }
     selectedSession = 'RAC';
     renderPanel();
     doFetch();
@@ -1718,43 +1729,41 @@ function resetAutoTimer() {
 
 function switchYear(year) {
   selectedYear = year;
-  var evs = SEASON_EVENTS[year] || [];
+  const evs = SEASON_EVENTS[year] || [];
   selectedEventCode = evs.length ? evs[evs.length-1].code : '';
   resetAutoTimer();
   renderPanel();
   doFetch();
 }
-
 function switchEventCode(code) {
   selectedEventCode = code;
   resetAutoTimer();
   doFetch();
 }
-
 function switchCat(cat) {
   selectedCat = cat;
+  // Reset session if SPR not available
   if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
   resetAutoTimer();
   renderPanel();
   doFetch();
 }
-
 function switchSession(sess) {
   selectedSession = sess;
   resetAutoTimer();
-  renderPanel();
+  renderPanel(); // újrarajzol hogy a gomb kiemelés frissüljön
   doFetch();
 }
 
 function renderPanel() {
-  var panel = document.getElementById('logoPanel');
+  const panel = document.getElementById('logoPanel');
   if (!panel) return;
-  var img = document.getElementById('logoPanelImg');
-  var ph  = document.getElementById('logoPlaceholder');
+  const img = document.getElementById('logoPanelImg');
+  const ph  = document.getElementById('logoPlaceholder');
   if (img) img.style.display = 'none';
   if (ph)  ph.style.display  = 'none';
 
-  var tp = document.getElementById('timingPanel');
+  let tp = document.getElementById('timingPanel');
   if (!tp) {
     tp = document.createElement('div');
     tp.id = 'timingPanel';
@@ -1762,72 +1771,87 @@ function renderPanel() {
   }
   tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
 
-  var evList = SEASON_EVENTS[selectedYear] || [];
-  var cc = findCurrentAndNext(getNow());
-  var schedCat = (cc.current && cc.current.category) || (cc.next && cc.next.category);
+  const evList = SEASON_EVENTS[selectedYear] || [];
 
-  // ROW 1: Szezon + helyszín + 3 logó gomb — teljes szélesség
-  var row1 = '<div style="display:flex;align-items:stretch;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);">';
+  // Get logo URLs for all 3 categories
+  function catLogo(cat) { return getLogoUrl(cat) || ''; }
 
-  // Szezon + helyszín bal oldalon
-  row1 += '<div style="display:flex;flex-direction:column;gap:0;flex-shrink:0;border-right:1px solid var(--border);">';
-  row1 += '<select onchange="switchYear(this.value)" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--red);border:none;border-bottom:1px solid var(--border);padding:4px 6px;cursor:pointer;width:90px;">';
-  SEASONS.forEach(function(y) {
-    row1 += '<option value="' + y + '"' + (y === selectedYear ? ' selected' : '') + '>' + y + '</option>';
-  });
-  row1 += '</select>';
-  row1 += '<select onchange="switchEventCode(this.value)" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--off-white);border:none;padding:4px 6px;cursor:pointer;width:90px;flex:1;">';
-  evList.forEach(function(e) {
-    row1 += '<option value="' + e.code + '"' + (e.code === selectedEventCode ? ' selected' : '') + '>' + e.name + '</option>';
-  });
-  row1 += '</select>';
-  row1 += '</div>';
+  // Active category from schedule
+  const { current, next } = findCurrentAndNext(getNow());
+  const schedCat = (current && current.category) || (next && next.category);
+  const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
 
-  // 3 kategória logó gomb jobb oldalon — flex:1 hogy kitöltsék a maradékot
-  MOTOGP_CATEGORIES.forEach(function(cat) {
-    var active = cat === selectedCat;
-    var isAuto = MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
-    var logo = getLogoUrl(cat) || '';
-    var border = active ? '2px solid rgba(29,185,84,0.7)' : '2px solid transparent';
-    var bg = active ? 'rgba(29,185,84,0.1)' : 'transparent';
-    row1 += '<button onclick="switchCat('' + cat + '')" style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);border-right:none;border-top:none;border-bottom:none;background:' + bg + ';padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;outline:' + border + ';outline-offset:-2px;">';
-    if (isAuto) row1 += '<span style="position:absolute;top:3px;left:5px;color:var(--green);font-size:9px;">●</span>';
-    if (logo) {
-      row1 += '<img src="' + logo + '" style="max-height:28px;max-width:90%;object-fit:contain;opacity:' + (active ? '1' : '0.55') + ';" onerror="this.style.display='none'">';
-    } else {
-      row1 += '<span style="font-family:Oswald,sans-serif;font-size:9px;color:' + (active ? 'var(--green)' : 'var(--text-mid)') + '">' + cat + '</span>';
-    }
-    row1 += '</button>';
-  });
-  row1 += '</div>';
+  tp.innerHTML = `
+    <!-- ROW 1: Szezon + helyszín + 3 logó -->
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <!-- Szezon + helyszín -->
+      <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
+        <select onchange="switchYear(this.value)"
+          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);
+          border:1px solid var(--red);padding:2px 4px;cursor:pointer;border-radius:2px;width:60px;">
+          ${SEASONS.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
+        </select>
+        <select onchange="switchEventCode(this.value)"
+          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--off-white);
+          border:1px solid rgba(255,255,255,0.3);padding:2px 4px;cursor:pointer;border-radius:2px;width:120px;">
+          ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
+        </select>
+      </div>
 
-  // ROW 2: Session gombok — teljes szélesség, magasabb
-  var sessList = getSessionTypes().concat(['STANDINGS']);
-  var row2 = '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
-  sessList.forEach(function(sess) {
-    var active = sess === selectedSession;
-    var isStd = sess === 'STANDINGS';
-    var bg = active ? (isStd ? 'rgba(29,185,84,0.2)' : 'rgba(245,196,0,0.2)') : 'transparent';
-    var color = active ? (isStd ? 'var(--green)' : 'var(--yellow)') : 'var(--text-dim)';
-    var borderBottom = active ? ('3px solid ' + (isStd ? 'var(--green)' : 'var(--yellow)')) : '3px solid transparent';
-    var label = sess === 'STANDINGS' ? 'STD' : sess;
-    row2 += '<button onclick="switchSession('' + sess + '')" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:1px;padding:8px 2px;cursor:pointer;text-transform:uppercase;border:none;border-bottom:' + borderBottom + ';background:' + bg + ';color:' + color + ';">' + label + '</button>';
-  });
-  row2 += '</div>';
+      <!-- 3 kategória logó mint választó -->
+      <div style="display:flex;flex:1;gap:4px;justify-content:flex-end;">
+        ${MOTOGP_CATEGORIES.map(cat => {
+          const active = cat === selectedCat;
+          const auto = isAuto(cat);
+          const logo = catLogo(cat);
+          return `<button onclick="switchCat('${cat}')"
+            style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;
+            background:${active?'rgba(29,185,84,0.2)':'rgba(255,255,255,0.03)'};
+            border-color:${active?'var(--green)':'rgba(255,255,255,0.15)'};
+            position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
+            ${auto?`<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>`:''}
+            ${logo
+              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);\'>${cat}</span>'">`
+              : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'};">${cat}</span>`
+            }
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
 
-  // ROW 3: Results
-  var row3 = '<div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;"><div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div></div>';
+    <!-- ROW 2: Session gombok -->
+    <div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">
+      ${getSessionTypes().map(sess => {
+        const active = sess === selectedSession;
+        return `<button onclick="switchSession('${sess}')"
+          style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+          padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
+          background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
+          border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};
+          color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
+      }).join('')}
+      <button onclick="switchSession('STANDINGS')"
+        style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+        padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
+        background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
+        border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
+        color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STD</button>
+    </div>
 
-  tp.innerHTML = row1 + row2 + row3;
+    <!-- ROW 3: Eredmény -->
+    <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
+      <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
+    </div>
+  `;
 }
+
 
 async function doFetch() {
   if (isFetching) return;
-  var tp = document.getElementById('timingPanel');
-  if (!tp || tp.style.display === 'none') return;
   isFetching = true;
-  var rd = document.getElementById('timingResults');
-  if (rd) rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
+  const rd = document.getElementById('timingResults');
+  if (!rd) { isFetching = false; return; }
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
   try {
     if (selectedSession === 'STANDINGS') {
       await doStandings(rd);
@@ -1835,17 +1859,17 @@ async function doFetch() {
       await doResults(rd);
     }
   } catch(e) {
-    if (rd) rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">&#10007; ' + e.message + '</div>';
+    rd.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
   } finally {
     isFetching = false;
   }
 }
 
 async function apiGet(path) {
-  var ctrl = new AbortController();
-  var t = setTimeout(function() { ctrl.abort(); }, 8000);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
   try {
-    var r = await fetch(PROXY + path, { signal: ctrl.signal });
+    const r = await fetch(PROXY + path, { signal: ctrl.signal });
     clearTimeout(t);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return await r.json();
@@ -1856,165 +1880,169 @@ async function apiGet(path) {
 }
 
 async function doResults(rd) {
-  var seasonUuid = SEASON_UUIDS[selectedYear];
+  const seasonUuid = SEASON_UUIDS[selectedYear];
   if (!seasonUuid) throw new Error('Ismeretlen szezon');
 
-  // Live timing only for current year
+  // Try live timing first (only for current year)
   if (selectedYear === '2026') {
     try {
-      var live = await apiGet('timing-gateway/livetiming-lite');
+      const live = await apiGet('timing-gateway/livetiming-lite');
       if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
-        var liveCat = (live.head.category || '').replace('™','');
+        const liveCat = (live.head.category || '').replace('™','');
         if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
             selectedCat.toLowerCase().includes(liveCat.toLowerCase())) {
           showLive(rd, live);
           return;
         }
       }
-    } catch(e) {}
+    } catch(e) { /* no live */ }
   }
 
-  var events = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=true');
-  var races = events.filter(function(e) { return !e.test; });
+  // Get events
+  const events = await apiGet(`events?seasonUuid=${seasonUuid}&isFinished=true`);
+  const races = events.filter(e => !e.test);
   if (!races.length) throw new Error('Nincs befejezett futam');
-  var ev = races.find(function(e) {
-    return (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
-           (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase();
-  }) || races[races.length - 1];
+  const ev = races.find(e =>
+    (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
+    (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase()
+  ) || races[races.length - 1];
 
-  var sessions = await apiGet('sessions?eventUuid=' + ev.id + '&categoryUuid=' + CAT_UUIDS[selectedCat]);
+  const sessions = await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   if (!sessions.length) throw new Error('Nincs session');
 
-  var sessTypeMap = {
-    FP1:['FP','FP1','P1'], FP2:['FP2','P2'], PR:['PR','P'],
-    Q1:['Q1'], Q2:['Q2','Q'], SPR:['SPR','S'],
-    WUP:['WUP','WU','W'], RAC:['RAC','R']
+  // Map session type
+  const sessTypeMap = {
+    'FP1':['FP','FP1','P1'],'FP2':['FP2','P2'],'PR':['PR','P'],
+    'Q1':['Q1'],'Q2':['Q2','Q'],'SPR':['SPR','S'],
+    'WUP':['WUP','WU','W'],'RAC':['RAC','R']
   };
-  var typeCodes = sessTypeMap[selectedSession] || [selectedSession];
-  var sess = sessions.find(function(s) {
-    return typeCodes.some(function(code) {
-      return (s.type||'').toUpperCase() === code.toUpperCase();
-    });
-  });
+  const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
+  let sess = sessions.find(s => typeCodes.some(code =>
+    (s.type||'').toUpperCase() === code.toUpperCase()
+  ));
   if (!sess) {
-    var fpSessions = sessions.filter(function(s) { return (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P'; });
-    var qSessions  = sessions.filter(function(s) { return (s.type||'').toUpperCase().includes('Q'); });
+    const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
     if (selectedSession === 'FP1') sess = fpSessions[0];
     else if (selectedSession === 'FP2') sess = fpSessions[1] || fpSessions[0];
-    else if (selectedSession === 'Q1') sess = qSessions[0];
+    const qSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('Q'));
+    if (selectedSession === 'Q1') sess = qSessions[0];
     else if (selectedSession === 'Q2') sess = qSessions[1] || qSessions[0];
   }
   if (!sess) {
-    var finished = sessions.filter(function(s) { return s.status === 'Finished'; });
+    const finished = sessions.filter(s => s.status === 'Finished');
     sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
   }
 
-  var cls = await apiGet('session/' + sess.id + '/classification?test=false');
-  var riders = cls.classification || cls;
+  const cls = await apiGet(`session/${sess.id}/classification?test=false`);
+  const riders = cls.classification || cls;
   showResults(rd, riders, ev.name || ev.short_name, sess.type || sess.name, selectedCat);
 }
 
 async function doStandings(rd) {
-  var seasonUuid = SEASON_UUIDS[selectedYear];
+  const seasonUuid = SEASON_UUIDS[selectedYear];
   if (!seasonUuid) throw new Error('Ismeretlen szezon');
+
+  // Try XML worldstanding first
   try {
-    var xmlUrl = 'https://resources.motogp.com/files/results/' + selectedYear + '/' + selectedEventCode + '/' + selectedCat + '/RAC/worldstanding.XML';
-    var r = await fetch(xmlUrl);
+    const xmlUrl = `https://resources.motogp.com/files/results/${selectedYear}/${selectedEventCode}/${selectedCat}/RAC/worldstanding.XML`;
+    const r = await fetch(xmlUrl);
     if (r.ok) {
-      var xml = await r.text();
-      var parser = new DOMParser();
-      var doc = parser.parseFromString(xml, 'text/xml');
+      const xml = await r.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
       showStandingsXml(rd, doc);
       return;
     }
   } catch(e) {}
-  var data = await apiGet('standings?seasonUuid=' + seasonUuid + '&categoryUuid=' + CAT_UUIDS[selectedCat]);
-  var riders = data.classification || data;
+
+  // Fallback: API standings
+  const data = await apiGet(`standings?seasonUuid=${seasonUuid}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
+  const riders = data.classification || data;
   if (!riders || !riders.length) throw new Error('Nincs pontállás');
   showStandings(rd, riders);
 }
 
 function showLive(el, data) {
-  var h = data.head;
-  var riders = Object.values(data.rider).filter(function(r) { return r.pos > 0; }).sort(function(a,b) { return a.pos - b.pos; });
-  var status = h.session_status_id === 'R' ? '&#128308; LIVE' : '&#127937; ' + (h.session_shortname || '');
-  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">'
-    + '<span style="color:var(--green);">' + h.category + ' &middot; ' + h.session_name + '</span>'
-    + '<span>' + status + '</span></div>';
+  const h = data.head;
+  const riders = Object.values(data.rider).filter(r => r.pos > 0).sort((a,b) => a.pos - b.pos);
+  const status = h.session_status_id === 'R' ? '🔴 LIVE' : '🏁 ' + (h.session_shortname || '');
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">
+    <span style="color:var(--green);">${h.category} · ${h.session_name}</span>
+    <span>${status}</span></div>`;
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach(function(r,i) {
-    var pc = r.pos===1?'#f5c400':r.pos===2?'#aaa':r.pos===3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
-      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + r.rider_number + '</td>'
-      + '<td style="padding:2px 3px;color:' + (r.trac_status==='T'?'var(--green)':'var(--white)') + '">' + r.rider_surname + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">' + (r.gap_first>0?'+'+r.gap_first:'—') + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.lap_time + '</td>'
-      + '</tr>';
+  riders.slice(0,20).forEach((r,i) => {
+    const pc = r.pos===1?'#f5c400':r.pos===2?'#aaa':r.pos===3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${r.pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider_number}</td>
+      <td style="padding:2px 3px;color:${r.trac_status==='T'?'var(--green)':'var(--white)'}">${r.rider_surname}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap_first>0?'+'+r.gap_first:'—'}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.lap_time}</td>
+    </tr>`;
   });
   el.innerHTML = html + '</table>';
 }
 
 function showResults(el, riders, evName, sessType, cat) {
   if (!riders || !riders.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>'; return; }
-  var sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'||sessType==='Q2'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
-  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--green);">' + cat + '</span> &middot; ' + evName + ' &middot; ' + sl + '</div>';
+  const sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'||sessType==='Q2'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
+    <span style="color:var(--green);">${cat}</span> · ${evName} · ${sl}</div>`;
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach(function(r,i) {
-    var pos = r.position||(i+1);
-    var pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
-      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + ((r.rider&&r.rider.number)||'') + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + ((r.rider&&(r.rider.full_name||r.rider.surname))||r.name||'—') + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">' + ((r.gap&&r.gap.first)||r.gap||'') + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + ((r.best_lap&&r.best_lap.time)||r.time||'') + '</td>'
-      + '</tr>';
+  riders.slice(0,20).forEach((r,i) => {
+    const pos = r.position||(i+1);
+    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
+      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap?.first||r.gap||''}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.best_lap?.time||r.time||''}</td>
+    </tr>`;
   });
   el.innerHTML = html + '</table>';
 }
 
 function showStandings(el, riders) {
-  var leader = riders[0] ? (riders[0].points||0) : 0;
-  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--yellow);">' + selectedCat + '</span> &middot; ' + selectedYear + ' STANDINGS</div>';
+  const leader = riders[0]?.points || 0;
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
+    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach(function(r,i) {
-    var pos = r.position||(i+1);
-    var pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
-      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + ((r.rider&&r.rider.number)||'') + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + ((r.rider&&(r.rider.full_name||r.rider.surname))||r.name||'—') + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:' + (pos===1?'#f5c400':'var(--green)') + ';font-weight:bold;">' + (r.points||0) + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + (i===0?'—':'-'+(leader-(r.points||0))) + '</td>'
-      + '</tr>';
+  riders.slice(0,20).forEach((r,i) => {
+    const pos = r.position||(i+1);
+    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
+      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
+      <td style="padding:2px 3px;text-align:right;color:${pos===1?'#f5c400':'var(--green)'};font-weight:bold;">${r.points||0}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${i===0?'—':'-'+(leader-(r.points||0))}</td>
+    </tr>`;
   });
   el.innerHTML = html + '</table>';
 }
 
 function showStandingsXml(el, doc) {
-  var entries = Array.from(doc.querySelectorAll('Standing, ClassificationEntry, Entry, Rider'));
+  const entries = Array.from(doc.querySelectorAll('Standing, ClassificationEntry, Entry, Rider'));
   if (!entries.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>'; return; }
-  var leader = parseFloat(entries[0].getAttribute('Points') || entries[0].getAttribute('points') || 0);
-  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--yellow);">' + selectedCat + '</span> &middot; ' + selectedYear + ' STANDINGS</div>';
+  const leader = parseFloat(entries[0]?.getAttribute('Points') || entries[0]?.getAttribute('points') || 0);
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
+    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  entries.slice(0,20).forEach(function(e,i) {
-    var pos = e.getAttribute('Position') || e.getAttribute('position') || (i+1);
-    var num = e.getAttribute('RacingNumber') || e.getAttribute('Number') || '';
-    var name = e.getAttribute('Rider') || e.getAttribute('RiderName') || e.getAttribute('name') || '—';
-    var pts = parseFloat(e.getAttribute('Points') || e.getAttribute('points') || 0);
-    var gap = i===0 ? '—' : '-' + (leader-pts).toFixed(1);
-    var pc = pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
-      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + num + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + name + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:' + (pos==1?'#f5c400':'var(--green)') + ';font-weight:bold;">' + pts + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
-      + '</tr>';
+  entries.slice(0,20).forEach((e,i) => {
+    const pos = e.getAttribute('Position') || e.getAttribute('position') || (i+1);
+    const num = e.getAttribute('RacingNumber') || e.getAttribute('Number') || '';
+    const name = e.getAttribute('Rider') || e.getAttribute('RiderName') || e.getAttribute('name') || '—';
+    const pts = parseFloat(e.getAttribute('Points') || e.getAttribute('points') || 0);
+    const gap = i===0?'—':`-${(leader-pts).toFixed(1)}`;
+    const pc = pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${num}</td>
+      <td style="padding:2px 3px;color:var(--white)">${name}</td>
+      <td style="padding:2px 3px;text-align:right;color:${pos==1?'#f5c400':'var(--green)'};font-weight:bold;">${pts}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${gap}</td>
+    </tr>`;
   });
   el.innerHTML = html + '</table>';
 }
