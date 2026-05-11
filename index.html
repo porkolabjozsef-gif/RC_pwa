@@ -1081,22 +1081,11 @@ body::after {
         <div class="next-time" id="nextTimePill">—</div>
       </div>
 
-      <div id="circuitInfoPanel" style="border-top:1px solid var(--border);padding:8px 10px;font-size:9px;color:var(--text-mid);">
-        <div id="circuitInfoContent" style="color:var(--text-dim);">—</div>
-      </div>
     </div><!-- /col-mid -->
 
-    <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
+    <!-- 4. PANEL: EREDMÉNYEK -->
     <div class="col-logo" id="logoPanel" style="position:relative;">
-      <button onclick="toggleTiming()" id="timingToggleBtn"
-        style="position:absolute; top:6px; right:8px; z-index:10;
-               font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
-               padding:3px 8px; cursor:pointer; text-transform:uppercase;
-               background:rgba(29,185,84,0.1); border:1px solid rgba(29,185,84,0.4);
-               color:rgba(29,185,84,0.8);">
-        ⏱ TIMING
-      </button>
-      <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
+      <div class="logo-placeholder" id="logoPlaceholder" style="display:none;">—</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
 
@@ -1627,125 +1616,236 @@ function loadNewSchedule(parsed) {
 }
 
 // ============================================================
-// 4. PANEL — LIVE TIMING / RESULTS (via Cloudflare Proxy)
+// 4. PANEL — EREDMÉNYEK (automatikus, gomb nélkül)
 // ============================================================
 const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
 const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
-const SEASON_UUID = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e';
+const WSBK_CATEGORIES = ['WorldSBK', 'WorldSSP', 'WorldWCR', 'R3', 'WorldSPB'];
+const SEASON_UUIDS = {
+  '2026': 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e',
+  '2025': 'ae6c6f0d-c652-44f8-94aa-420fc5b3dab4',
+  '2024': 'dd12382e-1d9f-46ee-a5f7-c5104db28e43',
+  '2023': 'db8dc197-c7b2-4c1b-b3a4-6dc534c023ef'
+};
 const CAT_UUIDS = {
   'MotoGP': 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942',
   'Moto2':  '549640b8-fd9c-4245-acfd-60e4bc38b25c',
   'Moto3':  '954f7e65-2ef2-4423-b949-4961cc603e45'
 };
+const SEASONS = ['2026','2025','2024','2023'];
+const SEASON_EVENTS = {
+  '2026': [
+    {code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},
+    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
+    {code:'CAT',name:'Catalonia'},{code:'ITA',name:'Italy'},{code:'HUN',name:'Hungary'},
+    {code:'CZE',name:'Czech Republic'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
+    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},
+    {code:'AUT',name:'Austria'},{code:'JPN',name:'Japan'},{code:'INA',name:'Indonesia'},
+    {code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},
+    {code:'VAL',name:'Valencia'}
+  ],
+  '2025': [
+    {code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
+    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
+    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'ITA',name:'Italy'},
+    {code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},{code:'CZE',name:'Czech Republic'},
+    {code:'AUT',name:'Austria'},{code:'HUN',name:'Hungary'},{code:'RSM',name:'San Marino'},
+    {code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},
+    {code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},{code:'VAL',name:'Valencia'}
+  ],
+  '2024': [
+    {code:'QAT',name:'Qatar'},{code:'POR',name:'Portugal'},{code:'USA',name:'USA'},
+    {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
+    {code:'CAT',name:'Catalonia'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
+    {code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'ARA',name:'Aragon'},
+    {code:'RSM',name:'San Marino'},{code:'EMI',name:'Emilia Romagna'},{code:'INA',name:'Indonesia'},
+    {code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},
+    {code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}
+  ],
+  '2023': [
+    {code:'POR',name:'Portugal'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
+    {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
+    {code:'GER',name:'Germany'},{code:'NED',name:'Netherlands'},{code:'GBR',name:'Great Britain'},
+    {code:'AUT',name:'Austria'},{code:'CAT',name:'Catalonia'},{code:'RSM',name:'San Marino'},
+    {code:'IND',name:'India'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},
+    {code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},{code:'MAL',name:'Malaysia'},
+    {code:'VAL',name:'Valencia'}
+  ]
+};
 
-let timingMode = false;
 let timingInterval = null;
-let timingAutoTimer = null;
+let autoTimer = null;
 let selectedCat = 'MotoGP';
 let autoCat = 'MotoGP';
-let viewMode = 'results';
+let selectedYear = '2026';
+let selectedEventCode = 'FRA';
+let selectedSession = 'RAC';
 let isFetching = false;
 
-function toggleTiming() {
-  timingMode = !timingMode;
-  const btn = document.getElementById('timingToggleBtn');
-  if (timingMode) {
-    btn.style.background = 'rgba(29,185,84,0.3)';
-    btn.style.borderColor = 'var(--green)';
-    btn.style.color = 'var(--green)';
-    btn.textContent = '🏁 LOGÓ';
-    showTimingPanel();
-  } else {
-    btn.style.background = 'rgba(29,185,84,0.1)';
-    btn.style.borderColor = 'rgba(29,185,84,0.4)';
-    btn.style.color = 'rgba(29,185,84,0.8)';
-    btn.textContent = '⏱ TIMING';
-    clearInterval(timingInterval);
-    clearTimeout(timingAutoTimer);
-    showLogoPanel();
-  }
+const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
+const SESSION_TYPES_OTHER  = ['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
+function getSessionTypes() {
+  return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER;
 }
 
-function showLogoPanel() {
-  const tp = document.getElementById('timingPanel');
-  if (tp) tp.style.display = 'none';
-  document.getElementById('logoPanelImg').style.display = 'block';
-  document.getElementById('logoPlaceholder').style.display = 'none';
-  currentBgCategory = null;
-  const { current, next } = findCurrentAndNext(getNow());
-  const activeCategory = (current && current.category) || (next && next.category) || null;
-  updateBgLogo(activeCategory);
-}
-
-function showTimingPanel() {
-  document.getElementById('logoPanelImg').style.display = 'none';
-  document.getElementById('logoPlaceholder').style.display = 'none';
-  let tp = document.getElementById('timingPanel');
-  if (!tp) {
-    tp = document.createElement('div');
-    tp.id = 'timingPanel';
-    tp.style.cssText = 'width:100%;height:100%;overflow:auto;padding:6px 10px;box-sizing:border-box;';
-    document.getElementById('logoPanel').appendChild(tp);
-  }
-  tp.style.display = 'block';
+function initResultsPanel() {
   const { current, next } = findCurrentAndNext(getNow());
   const activeCat = (current && current.category) || (next && next.category);
-  autoCat = MOTOGP_CATEGORIES.includes(activeCat) ? activeCat : 'MotoGP';
-  selectedCat = autoCat;
+  if (MOTOGP_CATEGORIES.includes(activeCat)) {
+    autoCat = activeCat;
+    selectedCat = activeCat;
+  }
+  selectedYear = '2026';
+  const evs = SEASON_EVENTS['2026'] || [];
+  selectedEventCode = evs[evs.length - 1].code;
+  renderPanel();
   doFetch();
   timingInterval = setInterval(doFetch, 30000);
-  updateCircuitInfo(selectedEventCode, selectedCat);
 }
 
-function buildButtons() {
-  // Row 1: category buttons
-  let html = '<div style="display:flex;gap:4px;margin-bottom:3px;flex-wrap:wrap;">';
-  MOTOGP_CATEGORIES.forEach(cat => {
-    const active = cat === selectedCat;
-    const isAuto = cat === autoCat;
-    html += `<button onclick="switchCat('${cat}')"
-      style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 8px;cursor:pointer;text-transform:uppercase;border:1px ${isAuto&&!active?'dashed':'solid'};
-      background:${active?'rgba(29,185,84,0.3)':'rgba(255,255,255,0.05)'};
-      border-color:${active?'var(--green)':'rgba(255,255,255,0.2)'};
-      color:${active?'var(--green)':'var(--text-mid)'};">
-      ${cat}${isAuto?' ●':''}
-    </button>`;
-  });
-  html += '</div>';
-  // Row 2: view toggle buttons
-  html += `<div style="display:flex;gap:2px;margin-bottom:4px;">
-    <button onclick="switchView('results')" style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;border:1px solid;text-transform:uppercase;
-      background:${viewMode==='results'?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-      border-color:${viewMode==='results'?'var(--yellow)':'rgba(255,255,255,0.2)'};
-      color:${viewMode==='results'?'var(--yellow)':'var(--text-mid)'};">RESULTS</button>
-    <button onclick="switchView('standings')" style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;border:1px solid;text-transform:uppercase;
-      background:${viewMode==='standings'?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-      border-color:${viewMode==='standings'?'var(--yellow)':'rgba(255,255,255,0.2)'};
-      color:${viewMode==='standings'?'var(--yellow)':'var(--text-mid)'};">STANDINGS</button>
-  </div><div id="timingResults"></div>`;
-  return html;
+function resetAutoTimer() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(function() {
+    var cc = findCurrentAndNext(getNow());
+    var activeCat = (cc.current && cc.current.category) || (cc.next && cc.next.category);
+    if (MOTOGP_CATEGORIES.includes(activeCat)) selectedCat = activeCat;
+    else selectedCat = autoCat;
+    selectedSession = 'RAC';
+    renderPanel();
+    doFetch();
+  }, 30000);
+}
+
+function switchYear(year) {
+  selectedYear = year;
+  var evs = SEASON_EVENTS[year] || [];
+  selectedEventCode = evs.length ? evs[evs.length-1].code : '';
+  resetAutoTimer();
+  renderPanel();
+  doFetch();
+}
+
+function switchEventCode(code) {
+  selectedEventCode = code;
+  resetAutoTimer();
+  doFetch();
 }
 
 function switchCat(cat) {
   selectedCat = cat;
-  updateCircuitInfo(selectedEventCode, selectedCat);
-  clearTimeout(timingAutoTimer);
-  timingAutoTimer = setTimeout(() => { selectedCat = autoCat; viewMode = 'results'; doFetch(); }, 30000);
+  if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
+  resetAutoTimer();
+  renderPanel();
   doFetch();
 }
 
-function switchView(mode) {
-  viewMode = mode;
-  clearTimeout(timingAutoTimer);
-  timingAutoTimer = setTimeout(() => { selectedCat = autoCat; viewMode = 'results'; doFetch(); }, 30000);
+function switchSession(sess) {
+  selectedSession = sess;
+  resetAutoTimer();
+  renderPanel();
   doFetch();
+}
+
+function renderPanel() {
+  var panel = document.getElementById('logoPanel');
+  if (!panel) return;
+  var img = document.getElementById('logoPanelImg');
+  var ph  = document.getElementById('logoPlaceholder');
+  if (img) img.style.display = 'none';
+  if (ph)  ph.style.display  = 'none';
+
+  var tp = document.getElementById('timingPanel');
+  if (!tp) {
+    tp = document.createElement('div');
+    tp.id = 'timingPanel';
+    panel.appendChild(tp);
+  }
+  tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
+
+  var evList = SEASON_EVENTS[selectedYear] || [];
+  var cc = findCurrentAndNext(getNow());
+  var schedCat = (cc.current && cc.current.category) || (cc.next && cc.next.category);
+
+  // ROW 1: Szezon + helyszín + 3 logó gomb — teljes szélesség
+  var row1 = '<div style="display:flex;align-items:stretch;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);">';
+
+  // Szezon + helyszín bal oldalon
+  row1 += '<div style="display:flex;flex-direction:column;gap:0;flex-shrink:0;border-right:1px solid var(--border);">';
+  row1 += '<select onchange="switchYear(this.value)" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--red);border:none;border-bottom:1px solid var(--border);padding:4px 6px;cursor:pointer;width:90px;">';
+  SEASONS.forEach(function(y) {
+    row1 += '<option value="' + y + '"' + (y === selectedYear ? ' selected' : '') + '>' + y + '</option>';
+  });
+  row1 += '</select>';
+  row1 += '<select onchange="switchEventCode(this.value)" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--off-white);border:none;padding:4px 6px;cursor:pointer;width:90px;flex:1;">';
+  evList.forEach(function(e) {
+    row1 += '<option value="' + e.code + '"' + (e.code === selectedEventCode ? ' selected' : '') + '>' + e.name + '</option>';
+  });
+  row1 += '</select>';
+  row1 += '</div>';
+
+  // 3 kategória logó gomb jobb oldalon — flex:1 hogy kitöltsék a maradékot
+  MOTOGP_CATEGORIES.forEach(function(cat) {
+    var active = cat === selectedCat;
+    var isAuto = MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
+    var logo = getLogoUrl(cat) || '';
+    var border = active ? '2px solid rgba(29,185,84,0.7)' : '2px solid transparent';
+    var bg = active ? 'rgba(29,185,84,0.1)' : 'transparent';
+    row1 += '<button onclick="switchCat('' + cat + '')" style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);border-right:none;border-top:none;border-bottom:none;background:' + bg + ';padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;outline:' + border + ';outline-offset:-2px;">';
+    if (isAuto) row1 += '<span style="position:absolute;top:3px;left:5px;color:var(--green);font-size:9px;">●</span>';
+    if (logo) {
+      row1 += '<img src="' + logo + '" style="max-height:28px;max-width:90%;object-fit:contain;opacity:' + (active ? '1' : '0.55') + ';" onerror="this.style.display='none'">';
+    } else {
+      row1 += '<span style="font-family:Oswald,sans-serif;font-size:9px;color:' + (active ? 'var(--green)' : 'var(--text-mid)') + '">' + cat + '</span>';
+    }
+    row1 += '</button>';
+  });
+  row1 += '</div>';
+
+  // ROW 2: Session gombok — teljes szélesség, magasabb
+  var sessList = getSessionTypes().concat(['STANDINGS']);
+  var row2 = '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
+  sessList.forEach(function(sess) {
+    var active = sess === selectedSession;
+    var isStd = sess === 'STANDINGS';
+    var bg = active ? (isStd ? 'rgba(29,185,84,0.2)' : 'rgba(245,196,0,0.2)') : 'transparent';
+    var color = active ? (isStd ? 'var(--green)' : 'var(--yellow)') : 'var(--text-dim)';
+    var borderBottom = active ? ('3px solid ' + (isStd ? 'var(--green)' : 'var(--yellow)')) : '3px solid transparent';
+    var label = sess === 'STANDINGS' ? 'STD' : sess;
+    row2 += '<button onclick="switchSession('' + sess + '')" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:1px;padding:8px 2px;cursor:pointer;text-transform:uppercase;border:none;border-bottom:' + borderBottom + ';background:' + bg + ';color:' + color + ';">' + label + '</button>';
+  });
+  row2 += '</div>';
+
+  // ROW 3: Results
+  var row3 = '<div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;"><div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div></div>';
+
+  tp.innerHTML = row1 + row2 + row3;
+}
+
+async function doFetch() {
+  if (isFetching) return;
+  var tp = document.getElementById('timingPanel');
+  if (!tp || tp.style.display === 'none') return;
+  isFetching = true;
+  var rd = document.getElementById('timingResults');
+  if (rd) rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
+  try {
+    if (selectedSession === 'STANDINGS') {
+      await doStandings(rd);
+    } else {
+      await doResults(rd);
+    }
+  } catch(e) {
+    if (rd) rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">&#10007; ' + e.message + '</div>';
+  } finally {
+    isFetching = false;
+  }
 }
 
 async function apiGet(path) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 8000);
+  var ctrl = new AbortController();
+  var t = setTimeout(function() { ctrl.abort(); }, 8000);
   try {
-    const r = await fetch(PROXY + path, { signal: ctrl.signal });
+    var r = await fetch(PROXY + path, { signal: ctrl.signal });
     clearTimeout(t);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return await r.json();
@@ -1755,126 +1855,166 @@ async function apiGet(path) {
   }
 }
 
-async function doFetch() {
-  if (isFetching) return;
-  const tp = document.getElementById('timingPanel');
-  if (!tp || tp.style.display === 'none') return;
-  isFetching = true;
-  tp.innerHTML = buildButtons();
-  const rd = document.getElementById('timingResults');
-  if (rd) rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
-  try {
-    if (viewMode === 'standings') {
-      await doStandings();
-    } else {
-      await doResults();
-    }
-  } catch(e) {
-    const rd2 = document.getElementById('timingResults');
-    if (rd2) rd2.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
-  } finally {
-    isFetching = false;
-  }
-}
+async function doResults(rd) {
+  var seasonUuid = SEASON_UUIDS[selectedYear];
+  if (!seasonUuid) throw new Error('Ismeretlen szezon');
 
-async function doResults() {
-  const rd = document.getElementById('timingResults');
-  if (!rd) return;
-
-  // Try live timing first
-  try {
-    const live = await apiGet('timing-gateway/livetiming-lite');
-    if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
-      const liveCat = (live.head.category || '').replace('™','');
-      if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
-          selectedCat.toLowerCase().includes(liveCat.toLowerCase())) {
-        showLive(rd, live);
-        return;
+  // Live timing only for current year
+  if (selectedYear === '2026') {
+    try {
+      var live = await apiGet('timing-gateway/livetiming-lite');
+      if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
+        var liveCat = (live.head.category || '').replace('™','');
+        if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
+            selectedCat.toLowerCase().includes(liveCat.toLowerCase())) {
+          showLive(rd, live);
+          return;
+        }
       }
-    }
-  } catch(e) { /* fallback */ }
+    } catch(e) {}
+  }
 
-  // Latest results
-  const events = await apiGet(`events?seasonUuid=${SEASON_UUID}&isFinished=true`);
-  const races = events.filter(e => !e.test);
+  var events = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=true');
+  var races = events.filter(function(e) { return !e.test; });
   if (!races.length) throw new Error('Nincs befejezett futam');
-  const ev = races[races.length - 1];
+  var ev = races.find(function(e) {
+    return (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
+           (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase();
+  }) || races[races.length - 1];
 
-  const sessions = await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
+  var sessions = await apiGet('sessions?eventUuid=' + ev.id + '&categoryUuid=' + CAT_UUIDS[selectedCat]);
   if (!sessions.length) throw new Error('Nincs session');
-  const finished = sessions.filter(s => s.status === 'Finished' || s.type === 'RAC' || s.type === 'SPR');
-  const sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
 
-  const cls = await apiGet(`session/${sess.id}/classification?test=false`);
-  const riders = cls.classification || cls;
+  var sessTypeMap = {
+    FP1:['FP','FP1','P1'], FP2:['FP2','P2'], PR:['PR','P'],
+    Q1:['Q1'], Q2:['Q2','Q'], SPR:['SPR','S'],
+    WUP:['WUP','WU','W'], RAC:['RAC','R']
+  };
+  var typeCodes = sessTypeMap[selectedSession] || [selectedSession];
+  var sess = sessions.find(function(s) {
+    return typeCodes.some(function(code) {
+      return (s.type||'').toUpperCase() === code.toUpperCase();
+    });
+  });
+  if (!sess) {
+    var fpSessions = sessions.filter(function(s) { return (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P'; });
+    var qSessions  = sessions.filter(function(s) { return (s.type||'').toUpperCase().includes('Q'); });
+    if (selectedSession === 'FP1') sess = fpSessions[0];
+    else if (selectedSession === 'FP2') sess = fpSessions[1] || fpSessions[0];
+    else if (selectedSession === 'Q1') sess = qSessions[0];
+    else if (selectedSession === 'Q2') sess = qSessions[1] || qSessions[0];
+  }
+  if (!sess) {
+    var finished = sessions.filter(function(s) { return s.status === 'Finished'; });
+    sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
+  }
+
+  var cls = await apiGet('session/' + sess.id + '/classification?test=false');
+  var riders = cls.classification || cls;
   showResults(rd, riders, ev.name || ev.short_name, sess.type || sess.name, selectedCat);
 }
 
-async function doStandings() {
-  const rd = document.getElementById('timingResults');
-  if (!rd) return;
-  const data = await apiGet(`standings?seasonUuid=${SEASON_UUID}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
-  const riders = data.classification || data;
+async function doStandings(rd) {
+  var seasonUuid = SEASON_UUIDS[selectedYear];
+  if (!seasonUuid) throw new Error('Ismeretlen szezon');
+  try {
+    var xmlUrl = 'https://resources.motogp.com/files/results/' + selectedYear + '/' + selectedEventCode + '/' + selectedCat + '/RAC/worldstanding.XML';
+    var r = await fetch(xmlUrl);
+    if (r.ok) {
+      var xml = await r.text();
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(xml, 'text/xml');
+      showStandingsXml(rd, doc);
+      return;
+    }
+  } catch(e) {}
+  var data = await apiGet('standings?seasonUuid=' + seasonUuid + '&categoryUuid=' + CAT_UUIDS[selectedCat]);
+  var riders = data.classification || data;
   if (!riders || !riders.length) throw new Error('Nincs pontállás');
-  showStandings(rd, riders, selectedCat);
+  showStandings(rd, riders);
 }
 
 function showLive(el, data) {
-  const h = data.head;
-  const riders = Object.values(data.rider).filter(r => r.pos > 0).sort((a,b) => a.pos - b.pos);
-  const status = h.session_status_id === 'R' ? '🔴 LIVE' : '🏁 ' + (h.session_shortname || '');
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">
-    <span style="color:var(--green);">${h.category} · ${h.session_name}</span>
-    <span>${status}</span></div>`;
+  var h = data.head;
+  var riders = Object.values(data.rider).filter(function(r) { return r.pos > 0; }).sort(function(a,b) { return a.pos - b.pos; });
+  var status = h.session_status_id === 'R' ? '&#128308; LIVE' : '&#127937; ' + (h.session_shortname || '');
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">'
+    + '<span style="color:var(--green);">' + h.category + ' &middot; ' + h.session_name + '</span>'
+    + '<span>' + status + '</span></div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i) => {
-    const pc = r.pos===1?'#f5c400':r.pos===2?'#aaa':r.pos===3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${r.pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider_number}</td>
-      <td style="padding:2px 3px;color:${r.trac_status==='T'?'var(--green)':'var(--white)'}">${r.rider_surname}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap_first>0?'+'+r.gap_first:'—'}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.lap_time}</td>
-    </tr>`;
+  riders.slice(0,20).forEach(function(r,i) {
+    var pc = r.pos===1?'#f5c400':r.pos===2?'#aaa':r.pos===3?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + r.rider_number + '</td>'
+      + '<td style="padding:2px 3px;color:' + (r.trac_status==='T'?'var(--green)':'var(--white)') + '">' + r.rider_surname + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">' + (r.gap_first>0?'+'+r.gap_first:'—') + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.lap_time + '</td>'
+      + '</tr>';
   });
   el.innerHTML = html + '</table>';
 }
 
 function showResults(el, riders, evName, sessType, cat) {
   if (!riders || !riders.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>'; return; }
-  const sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--green);">${cat}</span> · ${evName} · ${sl}</div>`;
+  var sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'||sessType==='Q2'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--green);">' + cat + '</span> &middot; ' + evName + ' &middot; ' + sl + '</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i) => {
-    const pos = r.position||(i+1);
-    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
-      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap?.first||r.gap||''}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.best_lap?.time||r.time||''}</td>
-    </tr>`;
+  riders.slice(0,20).forEach(function(r,i) {
+    var pos = r.position||(i+1);
+    var pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + ((r.rider&&r.rider.number)||'') + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + ((r.rider&&(r.rider.full_name||r.rider.surname))||r.name||'—') + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">' + ((r.gap&&r.gap.first)||r.gap||'') + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + ((r.best_lap&&r.best_lap.time)||r.time||'') + '</td>'
+      + '</tr>';
   });
   el.innerHTML = html + '</table>';
 }
 
-function showStandings(el, riders, cat) {
-  const leader = riders[0]?.points || 0;
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--yellow);">${cat}</span> · 2026 STANDINGS</div>`;
+function showStandings(el, riders) {
+  var leader = riders[0] ? (riders[0].points||0) : 0;
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">' + selectedCat + '</span> &middot; ' + selectedYear + ' STANDINGS</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i) => {
-    const pos = r.position||(i+1);
-    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
-      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
-      <td style="padding:2px 3px;text-align:right;color:${pos===1?'#f5c400':'var(--green)'};font-weight:bold;">${r.points||0}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${i===0?'—':'-'+(leader-(r.points||0))}</td>
-    </tr>`;
+  riders.slice(0,20).forEach(function(r,i) {
+    var pos = r.position||(i+1);
+    var pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + ((r.rider&&r.rider.number)||'') + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + ((r.rider&&(r.rider.full_name||r.rider.surname))||r.name||'—') + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:' + (pos===1?'#f5c400':'var(--green)') + ';font-weight:bold;">' + (r.points||0) + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + (i===0?'—':'-'+(leader-(r.points||0))) + '</td>'
+      + '</tr>';
+  });
+  el.innerHTML = html + '</table>';
+}
+
+function showStandingsXml(el, doc) {
+  var entries = Array.from(doc.querySelectorAll('Standing, ClassificationEntry, Entry, Rider'));
+  if (!entries.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>'; return; }
+  var leader = parseFloat(entries[0].getAttribute('Points') || entries[0].getAttribute('points') || 0);
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">' + selectedCat + '</span> &middot; ' + selectedYear + ' STANDINGS</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  entries.slice(0,20).forEach(function(e,i) {
+    var pos = e.getAttribute('Position') || e.getAttribute('position') || (i+1);
+    var num = e.getAttribute('RacingNumber') || e.getAttribute('Number') || '';
+    var name = e.getAttribute('Rider') || e.getAttribute('RiderName') || e.getAttribute('name') || '—';
+    var pts = parseFloat(e.getAttribute('Points') || e.getAttribute('points') || 0);
+    var gap = i===0 ? '—' : '-' + (leader-pts).toFixed(1);
+    var pc = pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + num + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + name + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:' + (pos==1?'#f5c400':'var(--green)') + ';font-weight:bold;">' + pts + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
+      + '</tr>';
   });
   el.innerHTML = html + '</table>';
 }
@@ -2455,6 +2595,7 @@ updateClock();
 updateDashboard();
 buildSchedule();
 initScrollTracking();
+initResultsPanel();
 
 setInterval(updateClock, 1000);
 setInterval(updateDashboard, 1000);
@@ -2468,52 +2609,6 @@ if ('serviceWorker' in navigator) {
     .then(() => console.log('Service Worker aktív'))
     .catch(err => console.warn('SW hiba:', err));
 }
-
-// ============================================================
-// CIRCUIT INFO PANEL - kör rekordok
-// ============================================================
-var CIRCUIT_DATA = {
-  FRA:  { name:'Le Mans',               length:'4.185 km', corners:14, rec:{ MotoGP:{r:'Bagnaia',    t:'1:31.198', y:2023}, Moto2:{r:'Arbolino',    t:'1:36.769', y:2022}, Moto3:{r:'Foggia',      t:'1:42.309', y:2022} } },
-  THA:  { name:'Chang Int. Circuit',    length:'4.554 km', corners:12, rec:{ MotoGP:{r:'J. Martin',  t:'1:30.177', y:2024}, Moto2:{r:'Chantra',     t:'1:36.533', y:2023}, Moto3:{r:'Sasaki',      t:'1:43.218', y:2023} } },
-  BRA:  { name:'Ayrton Senna Circuit',  length:'3.806 km', corners:11, rec:{ MotoGP:{r:'—',          t:'—',        y:2026}, Moto2:{r:'—',           t:'—',        y:2026}, Moto3:{r:'—',           t:'—',        y:2026} } },
-  USA:  { name:'Circuit of the Americas',length:'5.513 km',corners:20, rec:{ MotoGP:{r:'M. Marquez', t:'2:02.369', y:2015}, Moto2:{r:'Roberts',     t:'2:09.916', y:2021}, Moto3:{r:'Foggia',      t:'2:18.888', y:2021} } },
-  QAT:  { name:'Lusail Int. Circuit',   length:'5.380 km', corners:16, rec:{ MotoGP:{r:'Bagnaia',    t:'1:52.988', y:2024}, Moto2:{r:'Ogura',       t:'1:59.303', y:2023}, Moto3:{r:'Masia',       t:'2:06.005', y:2023} } },
-  SPA:  { name:'Circuito de Jerez',     length:'4.423 km', corners:13, rec:{ MotoGP:{r:'M. Marquez', t:'1:36.635', y:2019}, Moto2:{r:'Fernandez',   t:'1:42.048', y:2022}, Moto3:{r:'Guevara',     t:'1:47.035', y:2022} } },
-  CAT:  { name:'Barcelona-Catalunya',   length:'4.657 km', corners:16, rec:{ MotoGP:{r:'J. Martin',  t:'1:38.798', y:2024}, Moto2:{r:'Vietti',      t:'1:45.264', y:2022}, Moto3:{r:'S. Garcia',   t:'1:52.562', y:2021} } },
-  ITA:  { name:'Autodromo del Mugello', length:'5.245 km', corners:15, rec:{ MotoGP:{r:'J. Martin',  t:'1:45.519', y:2023}, Moto2:{r:'Canet',       t:'1:52.830', y:2022}, Moto3:{r:'McPhee',      t:'2:01.812', y:2018} } },
-  HUN:  { name:'Balaton Park Circuit',  length:'4.381 km', corners:16, rec:{ MotoGP:{r:'M. Marquez', t:'1:33.901', y:2025}, Moto2:{r:'Vietti',      t:'1:40.112', y:2025}, Moto3:{r:'Suzuki',      t:'1:46.884', y:2025} } },
-  CZE:  { name:'Automotodrom Brno',     length:'5.403 km', corners:14, rec:{ MotoGP:{r:'M. Marquez', t:'1:55.797', y:2019}, Moto2:{r:'Fernandez',   t:'2:03.915', y:2022}, Moto3:{r:'Fenati',      t:'2:13.651', y:2016} } },
-  NED:  { name:'TT Circuit Assen',      length:'4.542 km', corners:18, rec:{ MotoGP:{r:'Bagnaia',    t:'1:32.567', y:2022}, Moto2:{r:'Schrotter',   t:'1:38.456', y:2021}, Moto3:{r:'Sasaki',      t:'1:45.383', y:2022} } },
-  GER:  { name:'Sachsenring',           length:'3.671 km', corners:13, rec:{ MotoGP:{r:'M. Marquez', t:'1:20.269', y:2019}, Moto2:{r:'Fernandez',   t:'1:25.964', y:2022}, Moto3:{r:'Fenati',      t:'1:31.250', y:2016} } },
-  GBR:  { name:'Silverstone Circuit',   length:'5.900 km', corners:18, rec:{ MotoGP:{r:'J. Martin',  t:'1:58.279', y:2023}, Moto2:{r:'Aldeguer',    t:'2:06.502', y:2024}, Moto3:{r:'Masia',       t:'2:15.448', y:2023} } },
-  ARA:  { name:'MotorLand Aragon',      length:'5.078 km', corners:17, rec:{ MotoGP:{r:'M. Marquez', t:'1:46.635', y:2019}, Moto2:{r:'Fernandez',   t:'1:53.757', y:2021}, Moto3:{r:'McPhee',      t:'2:02.265', y:2019} } },
-  RSM:  { name:'Misano World Circuit',  length:'4.226 km', corners:16, rec:{ MotoGP:{r:'Bagnaia',    t:'1:31.679', y:2023}, Moto2:{r:'Arbolino',    t:'1:37.904', y:2021}, Moto3:{r:'Fenati',      t:'1:43.659', y:2016} } },
-  AUT:  { name:'Red Bull Ring',         length:'4.318 km', corners:10, rec:{ MotoGP:{r:'Bagnaia',    t:'1:29.506', y:2022}, Moto2:{r:'Bendsneyder', t:'1:34.820', y:2022}, Moto3:{r:'Masia',       t:'1:38.785', y:2021} } },
-  JPN:  { name:'Twin Ring Motegi',      length:'4.801 km', corners:14, rec:{ MotoGP:{r:'M. Marquez', t:'1:44.874', y:2019}, Moto2:{r:'Chantra',     t:'1:51.847', y:2022}, Moto3:{r:'Sasaki',      t:'1:59.650', y:2022} } },
-  INA:  { name:'Pertamina Mandalika',   length:'4.301 km', corners:17, rec:{ MotoGP:{r:'Bagnaia',    t:'1:31.069', y:2023}, Moto2:{r:'Vietti',      t:'1:37.588', y:2023}, Moto3:{r:'Sasaki',      t:'1:44.876', y:2022} } },
-  AUS:  { name:'Phillip Island',        length:'4.448 km', corners:12, rec:{ MotoGP:{r:'J. Martin',  t:'1:27.257', y:2023}, Moto2:{r:'Dixon',       t:'1:32.853', y:2022}, Moto3:{r:'Masia',       t:'1:38.869', y:2022} } },
-  MAL:  { name:'Sepang Int. Circuit',   length:'5.543 km', corners:15, rec:{ MotoGP:{r:'Bagnaia',    t:'1:57.899', y:2024}, Moto2:{r:'Arbolino',    t:'2:05.197', y:2022}, Moto3:{r:'Sasaki',      t:'2:13.437', y:2023} } },
-  POR:  { name:'Portimao',              length:'4.592 km', corners:15, rec:{ MotoGP:{r:'J. Martin',  t:'1:38.742', y:2023}, Moto2:{r:'Ogura',       t:'1:45.267', y:2023}, Moto3:{r:'Holgado',     t:'1:52.881', y:2023} } },
-  VAL:  { name:'Circuit Ricardo Tormo', length:'4.005 km', corners:14, rec:{ MotoGP:{r:'J. Martin',  t:'1:29.577', y:2024}, Moto2:{r:'Aldeguer',    t:'1:35.448', y:2024}, Moto3:{r:'Munoz',       t:'1:42.337', y:2023} } }
-};
-
-function updateCircuitInfo(eventCode, cat) {
-  var el = document.getElementById('circuitInfoContent');
-  if (!el) return;
-  var code = (eventCode || '').toUpperCase();
-  var c = CIRCUIT_DATA[code];
-  if (!c) { el.innerHTML = '—'; return; }
-  var recCat = cat && c.rec[cat] ? cat : 'MotoGP';
-  var rec = c.rec[recCat] || c.rec.MotoGP;
-  el.innerHTML =
-    '<span style="color:var(--green);font-family:Oswald,sans-serif;font-size:10px;letter-spacing:1px;">' + c.name + '</span>' +
-    ' &nbsp; ' + c.length + ' &nbsp; ' + c.corners + ' kanyar' +
-    '<br><span style="color:var(--yellow);font-size:8px;">' + recCat + ' REC:</span>' +
-    ' <span style="color:var(--off-white);">' + rec.r + '</span>' +
-    ' <span style="color:var(--green);font-weight:bold;">' + rec.t + '</span>' +
-    ' <span style="color:var(--text-dim);font-size:8px;">(' + rec.y + ')</span>';
-}
-
 </script>
 </body>
 </html>
