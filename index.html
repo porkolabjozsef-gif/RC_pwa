@@ -1081,6 +1081,11 @@ body::after {
         <div class="next-time" id="nextTimePill">—</div>
       </div>
 
+      <div id="circuitInfoPanel" style="border-top:1px solid var(--border);padding:8px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-mid);position:relative;overflow:hidden;min-height:80px;">
+        <div id="circuitLayoutBg" style="position:absolute;inset:0;opacity:0.12;background-size:contain;background-repeat:no-repeat;background-position:center;"></div>
+        <div id="circuitInfoContent" style="position:relative;z-index:1;">—</div>
+      </div>
+
     </div><!-- /col-mid -->
 
     <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
@@ -1738,10 +1743,12 @@ function switchYear(year) {
 function switchEventCode(code) {
   selectedEventCode = code;
   resetAutoTimer();
+  updateCircuitInfo();
   doFetch();
 }
 function switchCat(cat) {
   selectedCat = cat;
+  updateCircuitInfo();
   // Reset session if SPR not available
   if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
   resetAutoTimer();
@@ -1812,7 +1819,7 @@ function renderPanel() {
             ${auto?`<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>`:''}
             ${logo
               ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);\'>${cat}</span>'">`
-              : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'};">${cat}</span>`
+              : `<span style="font-family:Oswald,sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'}">${cat}</span>`
             }
           </button>`;
         }).join('')}
@@ -2045,6 +2052,237 @@ function showStandingsXml(el, doc) {
     </tr>`;
   });
   el.innerHTML = html + '</table>';
+}
+
+
+// ============================================================
+// CIRCUIT INFO PANEL
+// ============================================================
+const CIRCUIT_DATA = {
+  'FRA': {
+    name: 'Le Mans', length: '4.185 km', corners: 14,
+    records: {
+      'MotoGP': {rider:'Francesco Bagnaia', time:'1:31.198', year:2023},
+      'Moto2':  {rider:'Tony Arbolino',    time:'1:36.769', year:2022},
+      'Moto3':  {rider:'Dennis Foggia',    time:'1:42.309', year:2022}
+    }
+  },
+  'THA': {
+    name: 'Chang Int'l Circuit', length: '4.554 km', corners: 12,
+    records: {
+      'MotoGP': {rider:'Jorge Martin',     time:'1:30.177', year:2024},
+      'Moto2':  {rider:'Somkiat Chantra',  time:'1:36.533', year:2023},
+      'Moto3':  {rider:'Ayumu Sasaki',     time:'1:43.218', year:2023}
+    }
+  },
+  'BRA': {
+    name: 'Ayrton Senna Circuit', length: '3.806 km', corners: 11,
+    records: {
+      'MotoGP': {rider:'—', time:'—', year:2026},
+      'Moto2':  {rider:'—', time:'—', year:2026},
+      'Moto3':  {rider:'—', time:'—', year:2026}
+    }
+  },
+  'USA': {
+    name: 'Circuit of the Americas', length: '5.513 km', corners: 20,
+    records: {
+      'MotoGP': {rider:'Marc Marquez',     time:'2:02.369', year:2015},
+      'Moto2':  {rider:'Joe Roberts',      time:'2:09.916', year:2021},
+      'Moto3':  {rider:'Dennis Foggia',    time:'2:18.888', year:2021}
+    }
+  },
+  'QAT': {
+    name: 'Lusail Int'l Circuit', length: '5.380 km', corners: 16,
+    records: {
+      'MotoGP': {rider:'Francesco Bagnaia', time:'1:52.988', year:2024},
+      'Moto2':  {rider:'Ai Ogura',          time:'1:59.303', year:2023},
+      'Moto3':  {rider:'Jaume Masia',       time:'2:06.005', year:2023}
+    }
+  },
+  'SPA': {
+    name: 'Circuito de Jerez', length: '4.423 km', corners: 13,
+    records: {
+      'MotoGP': {rider:'Marc Marquez',     time:'1:36.635', year:2019},
+      'Moto2':  {rider:'Augusto Fernandez', time:'1:42.048', year:2022},
+      'Moto3':  {rider:'Izan Guevara',     time:'1:47.035', year:2022}
+    }
+  },
+  'CAT': {
+    name: 'Circuit de Barcelona-Catalunya', length: '4.657 km', corners: 16,
+    records: {
+      'MotoGP': {rider:'Jorge Martin',     time:'1:38.798', year:2024},
+      'Moto2':  {rider:'Celestino Vietti', time:'1:45.264', year:2022},
+      'Moto3':  {rider:'Sergio Garcia',    time:'1:52.562', year:2021}
+    }
+  },
+  'ITA': {
+    name: 'Autodromo del Mugello', length: '5.245 km', corners: 15,
+    records: {
+      'MotoGP': {rider:'Jorge Martin',     time:'1:45.519', year:2023},
+      'Moto2':  {rider:'Aron Canet',       time:'1:52.830', year:2022},
+      'Moto3':  {rider:'John McPhee',      time:'2:01.812', year:2018}
+    }
+  },
+  'HUN': {
+    name: 'Balaton Park Circuit', length: '4.381 km', corners: 16,
+    records: {
+      'MotoGP': {rider:'Marc Marquez',     time:'1:33.901', year:2025},
+      'Moto2':  {rider:'Celestino Vietti', time:'1:40.112', year:2025},
+      'Moto3':  {rider:'Tatsuki Suzuki',   time:'1:46.884', year:2025}
+    }
+  },
+  'CZE': {
+    name: 'Automotodrom Brno', length: '5.403 km', corners: 14,
+    records: {
+      'MotoGP': {rider:'Marc Marquez',     time:'1:55.797', year:2019},
+      'Moto2':  {rider:'Augusto Fernandez', time:'2:03.915', year:2022},
+      'Moto3':  {rider:'Romano Fenati',    time:'2:13.651', year:2016}
+    }
+  },
+  'NED': {
+    name: 'TT Circuit Assen', length: '4.542 km', corners: 18,
+    records: {
+      'MotoGP': {rider:'Francesco Bagnaia', time:'1:32.567', year:2022},
+      'Moto2':  {rider:'Marcel Schrotter',  time:'1:38.456', year:2021},
+      'Moto3':  {rider:'Ayumu Sasaki',      time:'1:45.383', year:2022}
+    }
+  },
+  'GER': {
+    name: 'Sachsenring', length: '3.671 km', corners: 13,
+    records: {
+      'MotoGP': {rider:'Marc Marquez',     time:'1:20.269', year:2019},
+      'Moto2':  {rider:'Augusto Fernandez', time:'1:25.964', year:2022},
+      'Moto3':  {rider:'Romano Fenati',    time:'1:31.250', year:2016}
+    }
+  },
+  'GBR': {
+    name: 'Silverstone Circuit', length: '5.900 km', corners: 18,
+    records: {
+      'MotoGP': {rider:'Jorge Martin',     time:'1:58.279', year:2023},
+      'Moto2':  {rider:'Fermín Aldeguer',  time:'2:06.502', year:2024},
+      'Moto3':  {rider:'Jaume Masia',      time:'2:15.448', year:2023}
+    }
+  },
+  'ARA': {
+    name: 'MotorLand Aragon', length: '5.078 km', corners: 17,
+    records: {
+      'MotoGP': {rider:'Marc Marquez',     time:'1:46.635', year:2019},
+      'Moto2':  {rider:'Augusto Fernandez', time:'1:53.757', year:2021},
+      'Moto3':  {rider:'John McPhee',      time:'2:02.265', year:2019}
+    }
+  },
+  'RSM': {
+    name: 'Misano World Circuit', length: '4.226 km', corners: 16,
+    records: {
+      'MotoGP': {rider:'Francesco Bagnaia', time:'1:31.679', year:2023},
+      'Moto2':  {rider:'Tony Arbolino',    time:'1:37.904', year:2021},
+      'Moto3':  {rider:'Romano Fenati',    time:'1:43.659', year:2016}
+    }
+  },
+  'AUT': {
+    name: 'Red Bull Ring', length: '4.318 km', corners: 10,
+    records: {
+      'MotoGP': {rider:'Francesco Bagnaia', time:'1:29.506', year:2022},
+      'Moto2':  {rider:'Bo Bendsneyder',   time:'1:34.820', year:2022},
+      'Moto3':  {rider:'Jaume Masia',      time:'1:38.785', year:2021}
+    }
+  },
+  'JPN': {
+    name: 'Twin Ring Motegi', length: '4.801 km', corners: 14,
+    records: {
+      'MotoGP': {rider:'Marc Marquez',     time:'1:44.874', year:2019},
+      'Moto2':  {rider:'Somkiat Chantra',  time:'1:51.847', year:2022},
+      'Moto3':  {rider:'Ayumu Sasaki',     time:'1:59.650', year:2022}
+    }
+  },
+  'INA': {
+    name: 'Pertamina Mandalika', length: '4.301 km', corners: 17,
+    records: {
+      'MotoGP': {rider:'Francesco Bagnaia', time:'1:31.069', year:2023},
+      'Moto2':  {rider:'Celestino Vietti', time:'1:37.588', year:2023},
+      'Moto3':  {rider:'Ayumu Sasaki',     time:'1:44.876', year:2022}
+    }
+  },
+  'AUS': {
+    name: 'Phillip Island', length: '4.448 km', corners: 12,
+    records: {
+      'MotoGP': {rider:'Jorge Martin',     time:'1:27.257', year:2023},
+      'Moto2':  {rider:'Jake Dixon',       time:'1:32.853', year:2022},
+      'Moto3':  {rider:'Jaume Masia',      time:'1:38.869', year:2022}
+    }
+  },
+  'MAL': {
+    name: 'Sepang Int'l Circuit', length: '5.543 km', corners: 15,
+    records: {
+      'MotoGP': {rider:'Francesco Bagnaia', time:'1:57.899', year:2024},
+      'Moto2':  {rider:'Tony Arbolino',    time:'2:05.197', year:2022},
+      'Moto3':  {rider:'Ayumu Sasaki',     time:'2:13.437', year:2023}
+    }
+  },
+  'POR': {
+    name: 'Autodromo Internacional do Algarve', length: '4.592 km', corners: 15,
+    records: {
+      'MotoGP': {rider:'Jorge Martin',     time:'1:38.742', year:2023},
+      'Moto2':  {rider:'Ai Ogura',         time:'1:45.267', year:2023},
+      'Moto3':  {rider:'Daniel Holgado',   time:'1:52.881', year:2023}
+    }
+  },
+  'VAL': {
+    name: 'Circuit Ricardo Tormo', length: '4.005 km', corners: 14,
+    records: {
+      'MotoGP': {rider:'Jorge Martin',     time:'1:29.577', year:2024},
+      'Moto2':  {rider:'Fermin Aldeguer',  time:'1:35.448', year:2024},
+      'Moto3':  {rider:'David Munoz',      time:'1:42.337', year:2023}
+    }
+  }
+};
+
+function updateCircuitInfo() {
+  const panel = document.getElementById('circuitInfoContent');
+  const bgDiv = document.getElementById('circuitLayoutBg');
+  if (!panel) return;
+
+  // Get current event code from schedule or selectedEventCode
+  let eventCode = null;
+  const { current, next } = findCurrentAndNext(getNow());
+  if (current || next) {
+    // Try to get from schedule JSON eventName
+    const ev = current || next;
+    // Use selectedEventCode from results panel as fallback
+  }
+  eventCode = selectedEventCode || 'FRA';
+
+  const circuit = CIRCUIT_DATA[eventCode];
+  if (!circuit) {
+    panel.innerHTML = '<span style="color:var(--text-dim);">—</span>';
+    return;
+  }
+
+  // Try to load circuit layout from resources.motogp.com
+  const layoutUrl = `https://resources.motogp.com/files/results/2026/${eventCode}/CircuitInformation.pdf`;
+  // Use a known working circuit image URL pattern
+  const imgUrl = `https://photos.motogp.com/circuit/${eventCode.toLowerCase()}_map.png`;
+  if (bgDiv) {
+    const testImg = new Image();
+    testImg.onload = () => { bgDiv.style.backgroundImage = `url('${imgUrl}')`; };
+    testImg.onerror = () => { bgDiv.style.backgroundImage = ''; };
+    testImg.src = imgUrl;
+  }
+
+  // Display for current category
+  const cat = selectedCat || 'MotoGP';
+  const rec = circuit.records[cat] || circuit.records['MotoGP'];
+
+  const html = '<div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;color:var(--green);margin-bottom:4px;">'
+    + circuit.name + '</div>'
+    + '<div style="display:flex;gap:12px;margin-bottom:4px;font-size:9px;">'
+    + '<span>&#9700; ' + circuit.length + '</span>'
+    + '<span>' + circuit.corners + ' kanyar</span></div>'
+    + '<div style="color:var(--yellow);font-size:8px;letter-spacing:1px;margin-bottom:2px;">' + cat + ' KÖRREKORD</div>'
+    + '<div style="color:var(--off-white);">' + rec.rider + '</div>'
+    + '<div style="color:var(--green);font-size:11px;font-weight:bold;">' + rec.time
+    + ' <span style="color:var(--text-dim);font-size:8px;">(' + rec.year + ')</span></div>';
+  panel.innerHTML = html;
 }
 
 // LISTA GÖRGETÉS — szabad görgetés + LIVE gomb
@@ -2624,6 +2862,7 @@ updateDashboard();
 buildSchedule();
 initScrollTracking();
 initResultsPanel();
+updateCircuitInfo();
 
 setInterval(updateClock, 1000);
 setInterval(updateDashboard, 1000);
