@@ -9,17 +9,67 @@ var WSBK_SERIES_LABELS = {
   R3: 'R3 Cup', SPB: 'WorldSPB'
 };
 
-var WSBK_SESSIONS = [
-  {code:'L1A', label:'FP1', sub:'CLA', file:'Results.pdf'},
-  {code:'L2A', label:'FP2', sub:'CLA', file:'Results.pdf'},
-  {code:'L3A', label:'FP3', sub:'CLA', file:'Results.pdf'},
-  {code:'Q1A', label:'SUP', sub:'CLA', file:'Results.pdf'},
-  {code:'W1A', label:'WUP', sub:'CLA', file:'Results.pdf'},
-  {code:'001', label:'R1',  sub:'CLA', file:'Results.pdf'},
-  {code:'002', label:'SPR', sub:'CLA', file:'Results.pdf'},
-  {code:'003', label:'R2',  sub:'CLA', file:'Results.pdf'},
-  {code:'001', label:'STD', sub:'STD', file:'ChampionshipStandings.pdf'}
-];
+// Session listak sorozatonkent
+// SBK: FP1, FP2, FP3, SUP, WUP, R1, SPR, R2
+// SSP: FP, SUP, WUP, R1, R2
+// WCR: FP, SUP, WUP, R1, R2
+// SPB: FP, SUP, WUP, R1, R2  
+// R3:  R1, R2
+var WSBK_SESSIONS_BY_SERIES = {
+  SBK: [
+    {code:'L1A',label:'FP1',sub:'CLA',file:'Results.pdf'},
+    {code:'L2A',label:'FP2',sub:'CLA',file:'Results.pdf'},
+    {code:'L3A',label:'FP3',sub:'CLA',file:'Results.pdf'},
+    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
+    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
+    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
+    {code:'002',label:'SPR',sub:'CLA',file:'Results.pdf'},
+    {code:'003',label:'R2', sub:'CLA',file:'Results.pdf'},
+    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
+  ],
+  SSP: [
+    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
+    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
+    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
+    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
+    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
+    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
+  ],
+  WCR: [
+    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
+    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
+    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
+    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
+    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
+    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
+  ],
+  SPB: [
+    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
+    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
+    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
+    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
+    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
+    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
+  ],
+  R3: [
+    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
+    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
+    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
+    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
+    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
+  ]
+};
+function getWsbkSessions() {
+  return WSBK_SESSIONS_BY_SERIES[wsbkSeries] || WSBK_SESSIONS_BY_SERIES.SBK;
+}
+
+// Map display series code to URL series code
+var WSBK_SERIES_URL_CODE = {
+  SBK: 'SBK', SSP: 'SSP', WCR: 'WCR', SPB: 'SPB', R3: 'YR3EC'
+};
+function getWsbkSeriesUrlCode() {
+  return WSBK_SERIES_URL_CODE[wsbkSeries] || wsbkSeries;
+}
 
 var WSBK_EVENTS = {
   '2026': [
@@ -129,7 +179,7 @@ function renderWsbkPanel(panelEl) {
   html += '</div>';
 
   // Row 2: Session gombok
-  var mainSessions = WSBK_SESSIONS.filter(function(s) { return s.label !== 'STD'; });
+  var mainSessions = getWsbkSessions().filter(function(s) { return s.label !== 'STD'; });
   html += '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
   mainSessions.forEach(function(sess) {
     var active = sess.label === wsbkSessionLabel;
@@ -172,7 +222,7 @@ function loadWsbkPdf(panelEl) {
     return;
   }
 
-  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/' + wsbkYear + '/' + wsbkEvent + '/' + wsbkSeries
+  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/' + wsbkYear + '/' + wsbkEvent + '/' + getWsbkSeriesUrlCode()
     + '/' + wsbkSession + '/' + wsbkSessionSub + '/' + wsbkSessionFile;
 
   if (typeof pdfjsLib === 'undefined') {
@@ -210,7 +260,7 @@ function parseWsbkPdf(rd, text) {
 function loadWsbkStandings(rd) {
   rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Pontallas betoltese...</div>';
 
-  var seriesMap = {SBK:'sbk', SSP:'ssp', WCR:'wcr', SPB:'spb', R3:'r3'};
+  var seriesMap = {SBK:'sbk', SSP:'ssp', WCR:'wcr', SPB:'spb', R3:'sbk'};
   var cat = seriesMap[wsbkSeries] || 'sbk';
   var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-standings/' + cat.toUpperCase() + '/' + wsbkYear;
 
@@ -225,71 +275,104 @@ function loadWsbkStandings(rd) {
 }
 
 function parseWsbkStandingsHtml(rd, html) {
-  // Parse the standings table from worldsbk.com HTML
-  // Table rows contain: rider name | pos | points | poles | races | podiums | wins...
   var riders = [];
 
-  // Find table rows with rider data
-  var rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  var cellRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-  var linkRe = />([^<]+)<\/a>/;
-  var row;
-
-  while ((row = rowRe.exec(html)) !== null) {
-    var rowHtml = row[1];
-    var cells = [];
-    var cell;
-    cellRe.lastIndex = 0;
-    while ((cell = cellRe.exec(rowHtml)) !== null) {
-      // Strip HTML tags
-      var text = cell[1].replace(/<[^>]+>/g, '').trim();
-      // Try to get link text if available
-      var linkMatch = linkRe.exec(cell[1]);
-      if (linkMatch) text = linkMatch[1].trim();
-      cells.push(text);
+  // Extract rider rows from the stats table
+  // Pattern: rider link + position + points
+  var riderRe = /rider\/([^"]+)"[^>]*>\s*([A-Z][A-Z\s]+?)\s*<\/a>/g;
+  var m;
+  var names = [];
+  while ((m = riderRe.exec(html)) !== null) {
+    var name = m[2].trim();
+    if (name.length > 2 && names.indexOf(name) === -1) {
+      names.push(name);
     }
-    // Valid rider row: cells[0]=name, cells[1]=pos, cells[2]=points
-    if (cells.length >= 3) {
-      var pos = parseInt(cells[1]);
-      var pts = parseInt(cells[2]);
-      var name = cells[0].replace(/\s+/g, ' ').trim();
-      if (pos >= 1 && pos <= 50 && pts >= 0 && name.length > 2 && /[A-Za-z]/.test(name)) {
-        riders.push({pos: pos, name: name, pts: pts});
+  }
+
+  // Extract numbers from table cells - pos and points
+  // Find the main stats table
+  var tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  var tableMatch;
+  var bestTable = '';
+  while ((tableMatch = tableRe.exec(html)) !== null) {
+    if (tableMatch[1].indexOf('POINTS') > -1 || tableMatch[1].indexOf('POS') > -1) {
+      if (tableMatch[1].length > bestTable.length) {
+        bestTable = tableMatch[1];
       }
     }
   }
 
-  // Sort by position
+  if (bestTable && names.length) {
+    // Extract all numbers from td cells in order
+    var numRe = /<td[^>]*>\s*(\d+)\s*<\/td>/g;
+    var nums = [];
+    var nm;
+    while ((nm = numRe.exec(bestTable)) !== null) {
+      nums.push(parseInt(nm[1]));
+    }
+    
+    // Pattern: pos, points, poles, races, podiums, wins, 2nd, 3rd, flaps
+    // Every 9 numbers = one rider
+    // But links give us the name order
+    names.forEach(function(name, i) {
+      var base = i * 9;
+      if (base < nums.length) {
+        var pos = nums[base] || (i+1);
+        var pts = nums[base+1] || 0;
+        riders.push({pos: pos, name: name, pts: pts});
+      }
+    });
+  }
+
+  // Fallback: simpler extraction
+  if (!riders.length && names.length) {
+    // Find all numbers that could be points (large enough, not year etc)
+    var allNums = [];
+    var anRe = />\s*(\d{1,3})\s*</g;
+    var an;
+    while ((an = anRe.exec(html)) !== null) {
+      var n = parseInt(an[1]);
+      if (n >= 0 && n <= 500) allNums.push(n);
+    }
+    
+    names.forEach(function(name, i) {
+      riders.push({pos: i+1, name: name, pts: 0});
+    });
+    
+    // Try to match points - find sequences matching standings
+    // The first big number sequence should be points
+    var ptsSeq = allNums.filter(function(n) { return n <= 500; }).slice(0, names.length * 2);
+    // Take every other one (pos, pts pattern)
+    names.forEach(function(name, i) {
+      var pos = i + 1;
+      var pts = ptsSeq[i * 2 + 1] || ptsSeq[i] || 0;
+      riders[i] = {pos: pos, name: name, pts: pts};
+    });
+  }
+
   riders.sort(function(a,b) { return a.pos - b.pos; });
-  // Deduplicate
-  var seen = {};
-  riders = riders.filter(function(r) {
-    if (seen[r.pos]) return false;
-    seen[r.pos] = true;
-    return true;
-  });
 
   if (!riders.length) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Nem sikerult parse-olni</div>';
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba</div>';
     return;
   }
 
   var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
   var leader = riders[0] ? riders[0].pts : 0;
-  var html2 = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+  var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
     + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear + '</div>';
-  html2 += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.slice(0,25).forEach(function(r, i) {
     var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
     var gap = i===0 ? '' : '-'+(leader-r.pts);
-    html2 += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+    out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white);overflow:hidden;max-width:120px;">' + r.name + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
       + '</tr>';
   });
-  rd.innerHTML = html2 + '</table>';
+  rd.innerHTML = out + '</table>';
 }
 
 function parseWsbkResults(rd, text) {
