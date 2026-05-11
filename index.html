@@ -364,9 +364,7 @@ body::after {
   border-right: 2px solid var(--border);
   grid-column: 2;
   grid-row: 1;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
+  align-self: start;
 }
 
 .col-right {
@@ -739,7 +737,6 @@ body::after {
 
 /* NEXT EVENT */
 .next-panel {
-  flex: 1;
   background: var(--bg2);
   border-left: 3px solid var(--yellow);
   padding: 8px 14px;
@@ -946,6 +943,7 @@ body::after {
 }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="wsbk.js"></script>
 </head>
 <body>
 
@@ -1085,7 +1083,6 @@ body::after {
         <div class="next-time" id="nextTimePill">—</div>
       </div>
 
-      <div id="ciPanel" style="border-top:1px solid var(--border);padding:8px 10px;flex-shrink:0;"></div>
     </div><!-- /col-mid -->
 
     <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
@@ -1641,28 +1638,14 @@ const CAT_UUIDS = {
 const SEASONS = ['2026', '2025', '2024', '2023'];
 const SEASON_EVENTS = {
   '2026': [
-    {code:'THA',name:'Thailand',      date:'2026-03-01',dateEnd:'2026-03-01'},
-    {code:'BRA',name:'Brazil',        date:'2026-03-20',dateEnd:'2026-03-22'},
-    {code:'USA',name:'USA',           date:'2026-03-27',dateEnd:'2026-03-29'},
-    {code:'SPA',name:'Spain',         date:'2026-04-24',dateEnd:'2026-04-26'},
-    {code:'FRA',name:'France',        date:'2026-05-08',dateEnd:'2026-05-10'},
-    {code:'CAT',name:'Catalonia',     date:'2026-05-15',dateEnd:'2026-05-17'},
-    {code:'ITA',name:'Italy',         date:'2026-05-29',dateEnd:'2026-05-31'},
-    {code:'HUN',name:'Hungary',       date:'2026-06-05',dateEnd:'2026-06-07'},
-    {code:'CZE',name:'Czech Republic',date:'2026-06-19',dateEnd:'2026-06-21'},
-    {code:'NED',name:'Netherlands',   date:'2026-06-26',dateEnd:'2026-06-28'},
-    {code:'GER',name:'Germany',       date:'2026-07-10',dateEnd:'2026-07-12'},
-    {code:'GBR',name:'Great Britain', date:'2026-08-07',dateEnd:'2026-08-09'},
-    {code:'ARA',name:'Aragon',        date:'2026-08-28',dateEnd:'2026-08-30'},
-    {code:'RSM',name:'San Marino',    date:'2026-09-11',dateEnd:'2026-09-13'},
-    {code:'AUT',name:'Austria',       date:'2026-09-18',dateEnd:'2026-09-20'},
-    {code:'JPN',name:'Japan',         date:'2026-10-02',dateEnd:'2026-10-04'},
-    {code:'INA',name:'Indonesia',     date:'2026-10-09',dateEnd:'2026-10-11'},
-    {code:'AUS',name:'Australia',     date:'2026-10-23',dateEnd:'2026-10-25'},
-    {code:'MAL',name:'Malaysia',      date:'2026-10-30',dateEnd:'2026-11-01'},
-    {code:'QAT',name:'Qatar',         date:'2026-11-06',dateEnd:'2026-11-08'},
-    {code:'POR',name:'Portugal',      date:'2026-11-20',dateEnd:'2026-11-22'},
-    {code:'VAL',name:'Valencia',      date:'2026-11-27',dateEnd:'2026-11-29'}
+    {code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},
+    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
+    {code:'CAT',name:'Catalonia'},{code:'ITA',name:'Italy'},{code:'HUN',name:'Hungary'},
+    {code:'CZE',name:'Czech Republic'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
+    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},
+    {code:'AUT',name:'Austria'},{code:'JPN',name:'Japan'},{code:'INA',name:'Indonesia'},
+    {code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},
+    {code:'VAL',name:'Valencia'}
   ],
   '2025': [
     {code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
@@ -1709,22 +1692,6 @@ function getSessionTypes() {
 }
 
 // Panel inicializálás — oldalbetöltéskor automatikusan indul
-// MotoGP / WSBK váltó
-var activeChampionship = 'motogp'; // 'motogp' or 'wsbk'
-
-function switchChampionship(champ) {
-  activeChampionship = champ;
-  var tp = document.getElementById('timingPanel');
-  if (!tp) return;
-  if (champ === 'wsbk') {
-    initWsbkPanel(tp);
-  } else {
-    renderPanel();
-    doFetch();
-  }
-}
-
-
 function initResultsPanel() {
   // Auto kategória a menetrendből
   const { current, next } = findCurrentAndNext(getNow());
@@ -1732,9 +1699,6 @@ function initResultsPanel() {
   if (MOTOGP_CATEGORIES.includes(activeCat)) {
     autoCat = activeCat;
     selectedCat = activeCat;
-    activeChampionship = 'motogp';
-  } else if (WSBK_CATEGORIES && WSBK_CATEGORIES.includes(activeCat)) {
-    activeChampionship = 'wsbk';
   }
   // Automatikusan az aktuális szezon és legutóbbi futam
   selectedYear = '2026';
@@ -1746,7 +1710,6 @@ function initResultsPanel() {
   renderPanel();
   doFetch();
   fetchInterval = setInterval(doFetch, 30000);
-  setTimeout(function(){showCI(selectedEventCode, selectedCat);}, 100);
 }
 
 function resetAutoTimer() {
@@ -1776,13 +1739,11 @@ function switchYear(year) {
 }
 function switchEventCode(code) {
   selectedEventCode = code;
-  showCI(selectedEventCode, selectedCat);
   resetAutoTimer();
   doFetch();
 }
 function switchCat(cat) {
   selectedCat = cat;
-  showCI(selectedEventCode, selectedCat);
   // Reset session if SPR not available
   if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
   resetAutoTimer();
@@ -1822,7 +1783,13 @@ function renderPanel() {
   const schedCat = (current && current.category) || (next && next.category);
   const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
 
-  tp.innerHTML = `
+  // ROW 0: MotoGP / WSBK valto
+  var champRow = '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
+  champRow += '<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--green);background:rgba(29,185,84,0.15);color:var(--green);">MotoGP</button>';
+  champRow += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">WSBK</button>';
+  champRow += '</div>';
+  tp.innerHTML = champRow;
+  tp.insertAdjacentHTML('beforeend', `
     <!-- ROW 1: Szezon + helyszín + 3 logó -->
     <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
       <!-- Szezon + helyszín -->
@@ -1883,7 +1850,7 @@ function renderPanel() {
     <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
       <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
     </div>
-  `;
+  `);
 }
 
 
@@ -1921,24 +1888,6 @@ async function apiGet(path) {
 }
 
 async function doResults(rd) {
-  // Check if event is in the future
-  const evList = SEASON_EVENTS[selectedYear] || [];
-  const evInfo = evList.find(function(e) { return e.code === selectedEventCode; });
-  if (evInfo && evInfo.date) {
-    const evDate = new Date(evInfo.date);
-    evDate.setHours(23, 59, 59);
-    if (evDate > new Date()) {
-      var d1 = evInfo.date ? evInfo.date.replace(/-/g,'.') : '';
-      var d2 = evInfo.dateEnd ? evInfo.dateEnd.replace(/-/g,'.') : d1;
-      var dateStr = d1 === d2 ? d1 : d1 + ' — ' + d2;
-      rd.innerHTML = '<div style="text-align:center;padding:16px;">'
-        + '<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">' + evInfo.name.toUpperCase() + '</div>'
-        + '<div style="font-family:Oswald,sans-serif;font-size:16px;color:var(--yellow);letter-spacing:2px;">' + dateStr + '</div>'
-        + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px;">MÉG NEM ZAJLOTT LE</div>'
-        + '</div>';
-      return;
-    }
-  }
   const seasonUuid = SEASON_UUIDS[selectedYear];
   if (!seasonUuid) throw new Error('Ismeretlen szezon');
 
@@ -1972,18 +1921,19 @@ async function doResults(rd) {
   // Map session type
   const sessTypeMap = {
     'FP1':['FP','FP1','P1'],'FP2':['FP2','P2'],'PR':['PR','P'],
-    'SPR':['SPR','S'],'WUP':['WUP','WU','W'],'RAC':['RAC','R']
+    'Q1':['Q1'],'Q2':['Q2','Q'],'SPR':['SPR','S'],
+    'WUP':['WUP','WU','W'],'RAC':['RAC','R']
   };
-  const typeCodes = sessTypeMap[selectedSession] || [];
-  let sess = typeCodes.length ? sessions.find(s => typeCodes.some(code =>
+  const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
+  let sess = sessions.find(s => typeCodes.some(code =>
     (s.type||'').toUpperCase() === code.toUpperCase()
-  )) : null;
+  ));
   if (!sess) {
     const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
-    const qSessions  = sessions.filter(s => (s.type||'').toUpperCase().includes('Q'));
     if (selectedSession === 'FP1') sess = fpSessions[0];
     else if (selectedSession === 'FP2') sess = fpSessions[1] || fpSessions[0];
-    else if (selectedSession === 'Q1') sess = qSessions[0];
+    const qSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('Q'));
+    if (selectedSession === 'Q1') sess = qSessions[0];
     else if (selectedSession === 'Q2') sess = qSessions[1] || qSessions[0];
   }
   if (!sess) {
@@ -2696,302 +2646,5 @@ if ('serviceWorker' in navigator) {
     .catch(err => console.warn('SW hiba:', err));
 }
 </script>
-
-<script>
-var CI = {
-  THA:{n:'Chang Int. Circuit',    l:'4.554 km',c:12,r:{MotoGP:{r:'J. Martin',  t:'1:30.177',y:2024},Moto2:{r:'Chantra',    t:'1:36.533',y:2023},Moto3:{r:'Sasaki',     t:'1:43.218',y:2023}}},
-  BRA:{n:'Ayrton Senna Circuit',  l:'3.806 km',c:11,r:{MotoGP:{r:'—',          t:'—',       y:2026},Moto2:{r:'—',          t:'—',       y:2026},Moto3:{r:'—',          t:'—',       y:2026}}},
-  USA:{n:'Circuit of the Americas',l:'5.513 km',c:20,r:{MotoGP:{r:'M. Marquez',t:'2:02.369',y:2015},Moto2:{r:'Roberts',    t:'2:09.916',y:2021},Moto3:{r:'Foggia',     t:'2:18.888',y:2021}}},
-  QAT:{n:'Lusail Int. Circuit',   l:'5.380 km',c:16,r:{MotoGP:{r:'Bagnaia',    t:'1:52.988',y:2024},Moto2:{r:'Ogura',      t:'1:59.303',y:2023},Moto3:{r:'Masia',      t:'2:06.005',y:2023}}},
-  SPA:{n:'Circuito de Jerez',     l:'4.423 km',c:13,r:{MotoGP:{r:'M. Marquez',t:'1:36.635',y:2019},Moto2:{r:'Fernandez',  t:'1:42.048',y:2022},Moto3:{r:'Guevara',    t:'1:47.035',y:2022}}},
-  ESP:{n:'Circuito de Jerez',     l:'4.423 km',c:13,r:{MotoGP:{r:'M. Marquez',t:'1:36.635',y:2019},Moto2:{r:'Fernandez',  t:'1:42.048',y:2022},Moto3:{r:'Guevara',    t:'1:47.035',y:2022}}},
-  FRA:{n:'Le Mans',               l:'4.185 km',c:14,r:{MotoGP:{r:'Bagnaia',    t:'1:31.198',y:2023},Moto2:{r:'Arbolino',   t:'1:36.769',y:2022},Moto3:{r:'Foggia',     t:'1:42.309',y:2022}}},
-  CAT:{n:'Barcelona-Catalunya',   l:'4.657 km',c:16,r:{MotoGP:{r:'J. Martin',  t:'1:38.798',y:2024},Moto2:{r:'Vietti',     t:'1:45.264',y:2022},Moto3:{r:'S. Garcia',  t:'1:52.562',y:2021}}},
-  ITA:{n:'Mugello',               l:'5.245 km',c:15,r:{MotoGP:{r:'J. Martin',  t:'1:45.519',y:2023},Moto2:{r:'Canet',      t:'1:52.830',y:2022},Moto3:{r:'McPhee',     t:'2:01.812',y:2018}}},
-  HUN:{n:'Balaton Park Circuit',  l:'4.08 km',c:18,r:{MotoGP:{r:'M. Marquez',t:'1:33.901',y:2025},Moto2:{r:'Vietti',     t:'1:40.112',y:2025},Moto3:{r:'Suzuki',     t:'1:46.884',y:2025}}},
-  CZE:{n:'Automotodrom Brno',     l:'5.403 km',c:14,r:{MotoGP:{r:'M. Marquez',t:'1:55.797',y:2019},Moto2:{r:'Fernandez',  t:'2:03.915',y:2022},Moto3:{r:'Fenati',     t:'2:13.651',y:2016}}},
-  NED:{n:'TT Circuit Assen',      l:'4.542 km',c:18,r:{MotoGP:{r:'Bagnaia',    t:'1:32.567',y:2022},Moto2:{r:'Schrotter',  t:'1:38.456',y:2021},Moto3:{r:'Sasaki',     t:'1:45.383',y:2022}}},
-  GER:{n:'Sachsenring',           l:'3.671 km',c:13,r:{MotoGP:{r:'M. Marquez',t:'1:20.269',y:2019},Moto2:{r:'Fernandez',  t:'1:25.964',y:2022},Moto3:{r:'Fenati',     t:'1:31.250',y:2016}}},
-  GBR:{n:'Silverstone',           l:'5.900 km',c:18,r:{MotoGP:{r:'J. Martin',  t:'1:58.279',y:2023},Moto2:{r:'Aldeguer',   t:'2:06.502',y:2024},Moto3:{r:'Masia',      t:'2:15.448',y:2023}}},
-  ARA:{n:'MotorLand Aragon',      l:'5.078 km',c:17,r:{MotoGP:{r:'M. Marquez',t:'1:46.635',y:2019},Moto2:{r:'Fernandez',  t:'1:53.757',y:2021},Moto3:{r:'McPhee',     t:'2:02.265',y:2019}}},
-  RSM:{n:'Misano World Circuit',  l:'4.226 km',c:16,r:{MotoGP:{r:'Bagnaia',    t:'1:31.679',y:2023},Moto2:{r:'Arbolino',   t:'1:37.904',y:2021},Moto3:{r:'Fenati',     t:'1:43.659',y:2016}}},
-  AUT:{n:'Red Bull Ring',         l:'4.318 km',c:10,r:{MotoGP:{r:'Bagnaia',    t:'1:29.506',y:2022},Moto2:{r:'Bendsneyder',t:'1:34.820',y:2022},Moto3:{r:'Masia',      t:'1:38.785',y:2021}}},
-  JPN:{n:'Twin Ring Motegi',      l:'4.801 km',c:14,r:{MotoGP:{r:'M. Marquez',t:'1:44.874',y:2019},Moto2:{r:'Chantra',    t:'1:51.847',y:2022},Moto3:{r:'Sasaki',     t:'1:59.650',y:2022}}},
-  INA:{n:'Pertamina Mandalika',   l:'4.301 km',c:17,r:{MotoGP:{r:'Bagnaia',    t:'1:31.069',y:2023},Moto2:{r:'Vietti',     t:'1:37.588',y:2023},Moto3:{r:'Sasaki',     t:'1:44.876',y:2022}}},
-  AUS:{n:'Phillip Island',        l:'4.448 km',c:12,r:{MotoGP:{r:'J. Martin',  t:'1:27.257',y:2023},Moto2:{r:'Dixon',      t:'1:32.853',y:2022},Moto3:{r:'Masia',      t:'1:38.869',y:2022}}},
-  MAL:{n:'Sepang Int. Circuit',   l:'5.543 km',c:15,r:{MotoGP:{r:'Bagnaia',    t:'1:57.899',y:2024},Moto2:{r:'Arbolino',   t:'2:05.197',y:2022},Moto3:{r:'Sasaki',     t:'2:13.437',y:2023}}},
-  POR:{n:'Portimao',              l:'4.592 km',c:15,r:{MotoGP:{r:'J. Martin',  t:'1:38.742',y:2023},Moto2:{r:'Ogura',      t:'1:45.267',y:2023},Moto3:{r:'Holgado',    t:'1:52.881',y:2023}}},
-  VAL:{n:'Circuit Ricardo Tormo', l:'4.005 km',c:14,r:{MotoGP:{r:'J. Martin',  t:'1:29.577',y:2024},Moto2:{r:'Aldeguer',   t:'1:35.448',y:2024},Moto3:{r:'Munoz',      t:'1:42.337',y:2023}}}
-};
-function renderCI(name, length, corners, cat, rec) {
-  var el = document.getElementById('ciPanel');
-  if (!el) return;
-  var rc = (cat && rec && rec[cat]) ? cat : 'MotoGP';
-  var r = rec ? (rec[rc] || rec['MotoGP']) : null;
-  el.innerHTML =
-    '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--green);letter-spacing:1px;margin-bottom:3px;">' + name + '</div>' +
-    '<div style="font-size:9px;color:var(--text-mid);margin-bottom:5px;">' + length + ' &nbsp;|&nbsp; ' + corners + ' kanyar</div>' +
-    (r ? '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--yellow);letter-spacing:1px;margin-bottom:2px;">' + rc + ' KORREKORD</div>' +
-    '<div style="font-size:9px;color:var(--off-white);">' + r.r + '</div>' +
-    '<div style="font-size:13px;font-weight:bold;color:var(--green);">' + r.t + ' <span style="font-size:8px;color:var(--text-dim);">(' + r.y + ')</span></div>' : '');
-}
-
-function showCI(code, cat) {
-  var el = document.getElementById('ciPanel');
-  if (!el) return;
-  var upper = (code||'').toUpperCase();
-  var d = CI[upper];
-
-  // Show static data immediately
-  if (d) renderCI(d.n, d.l, d.c, cat, d.r);
-
-  // Then try to get official data from MotoGP API via Worker
-  var proxy = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
-  var seasonUuid = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e';
-  fetch(proxy + 'events?seasonUuid=' + seasonUuid + '&isFinished=true')
-    .then(function(r) { return r.json(); })
-    .then(function(events) {
-      var ev = events.find(function(e) {
-        return (e.short_name||'').toUpperCase() === upper ||
-               (e.additional_name||'').toUpperCase() === upper;
-      });
-      if (!ev || !ev.circuit) return;
-      var c = ev.circuit;
-      var name = c.name || (d && d.n) || upper;
-      var length = c.length ? (c.length + ' km') : (d && d.l) || '—';
-      var corners = c.corners || (d && d.c) || '—';
-      renderCI(name, length, corners, cat, d ? d.r : null);
-    })
-    .catch(function() {});
-}
-</script>
-
-<script>
-// ============================================================
-// WSBK PANEL
-// ============================================================
-if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
-
-var WSBK_PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk/';
-var WSBK_SERIES_ALL = ['SBK','SSP','WCR','SPB','R3'];
-var WSBK_SERIES_LABELS = {SBK:'WorldSBK', SSP:'WorldSSP', WCR:'WorldWCR', R3:'R3 Cup', SPB:'WorldSPB'};
-
-function getWsbkSeries() {
-  var evList = WSBK_EVENTS[wsbkYear] || [];
-  var ev = evList.find(function(e) { return e.code === wsbkEvent; });
-  return ev && ev.series ? ev.series : WSBK_SERIES_ALL;
-}
-var WSBK_SESSIONS = [
-  {code:'L1A', label:'FP1'},
-  {code:'L2A', label:'FP2'},
-  {code:'Q1A', label:'SUP'},
-  {code:'001', label:'R1'},
-  {code:'002', label:'SPR'},
-  {code:'003', label:'R2'}
-];
-
-var WSBK_EVENTS = {
-  '2026': [
-    {code:'AUS', name:'Australia',      date:'2026-02-20',dateEnd:'2026-02-22', series:['SBK','SSP']},
-    {code:'POR', name:'Portugal',       date:'2026-03-27',dateEnd:'2026-03-29', series:['SBK','SSP','WCR','SPB']},
-    {code:'NED', name:'Netherlands',    date:'2026-04-17',dateEnd:'2026-04-19', series:['SBK','SSP','WCR','SPB']},
-    {code:'HUN', name:'Hungary',        date:'2026-05-01',dateEnd:'2026-05-03', series:['SBK','SSP','WCR','R3']},
-    {code:'MOS', name:'Czech Republic', date:'2026-05-15',dateEnd:'2026-05-17', series:['SBK','SSP','SPB']},
-    {code:'ARA', name:'Aragon',         date:'2026-05-29',dateEnd:'2026-05-31', series:['SBK','SSP','SPB','R3']},
-    {code:'RSM', name:'Misano',         date:'2026-06-12',dateEnd:'2026-06-14', series:['SBK','SSP','WCR','SPB']},
-    {code:'GBR', name:'Great Britain',  date:'2026-07-10',dateEnd:'2026-07-12', series:['SBK','SSP','WCR','R3']},
-    {code:'FRA', name:'France',         date:'2026-09-04',dateEnd:'2026-09-06', series:['SBK','SSP','WCR','SPB','R3']},
-    {code:'ITA', name:'Cremona',        date:'2026-09-18',dateEnd:'2026-09-20', series:['SBK','SSP','SPB','R3']},
-    {code:'EST', name:'Estoril',        date:'2026-10-09',dateEnd:'2026-10-11', series:['SBK','SSP','WCR','SPB','R3']},
-    {code:'ESP', name:'Jerez',          date:'2026-10-16',dateEnd:'2026-10-18', series:['SBK','SSP','WCR','SPB']}
-  ],
-  '2025': [
-    {code:'AUS', name:'Australia',      date:'2025-02-21',dateEnd:'2025-02-23', series:['SBK','SSP','R3']},
-    {code:'POR', name:'Portugal',       date:'2025-03-28',dateEnd:'2025-03-30', series:['SBK','SSP','R3']},
-    {code:'NED', name:'Netherlands',    date:'2025-04-11',dateEnd:'2025-04-13', series:['SBK','SSP','WCR','R3']},
-    {code:'ITA', name:'Italy',          date:'2025-05-02',dateEnd:'2025-05-04', series:['SBK','SSP','WCR','R3']},
-    {code:'MOS', name:'Czech Republic', date:'2025-05-16',dateEnd:'2025-05-18', series:['SBK','SSP','R3']},
-    {code:'RSM', name:'Emilia Romagna', date:'2025-06-13',dateEnd:'2025-06-15', series:['SBK','SSP','WCR','R3']},
-    {code:'GBR', name:'Great Britain',  date:'2025-07-11',dateEnd:'2025-07-13', series:['SBK','SSP','WCR','R3']},
-    {code:'HUN', name:'Hungary',        date:'2025-07-25',dateEnd:'2025-07-27', series:['SBK','SSP','WCR','R3']},
-    {code:'FRA', name:'France',         date:'2025-09-05',dateEnd:'2025-09-07', series:['SBK','SSP','WCR','R3']},
-    {code:'ARA', name:'Aragon',         date:'2025-09-26',dateEnd:'2025-09-28', series:['SBK','SSP','R3']},
-    {code:'EST', name:'Estoril',        date:'2025-10-10',dateEnd:'2025-10-12', series:['SBK','SSP','R3']},
-    {code:'ESP', name:'Jerez',          date:'2025-10-17',dateEnd:'2025-10-19', series:['SBK','SSP','WCR','R3']}
-  ]
-};
-var wsbkYear = '2026';
-var WSBK_EVENTS_2026 = WSBK_EVENTS['2026'];
-
-var wsbkSeries = 'SBK';
-var wsbkEvent = 'HUN';
-var wsbkSession = '001';
-
-function initWsbkPanel(panelEl) {
-  renderWsbkPanel(panelEl);
-  loadWsbkPdf(panelEl);
-}
-
-function renderWsbkPanel(panelEl) {
-  var evList = WSBK_EVENTS[wsbkYear] || WSBK_EVENTS['2026'];
-  var html = '';
-
-  // Row 1: Year + Event + Series logos
-  // ROW 0: MotoGP / WSBK váltó
-  var wsbkActive = activeChampionship === 'wsbk';
-  html += '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
-  html += '<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">MotoGP</button>';
-  html += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--red);background:rgba(255,50,50,0.15);color:var(--red);">WSBK</button>';
-  html += '</div>';
-
-  // Row 1: Year + Event + Series logos
-  html += '<div style="display:flex;align-items:stretch;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);">';
-  
-  // Year + Event selectors
-  html += '<div style="display:flex;flex-direction:column;gap:0;flex-shrink:0;border-right:1px solid var(--border);">';
-  html += '<select onchange="wsbkYear=this.value;renderWsbkPanel(document.getElementById('timingPanel'));loadWsbkPdf(document.getElementById('timingPanel'));" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--red);border:none;border-bottom:1px solid var(--border);padding:4px 6px;cursor:pointer;width:90px;">';
-  html += '<option value="2026">2026</option>';
-  html += '<option value="2025">2025</option>';
-  html += '</select>';
-  html += '<select onchange="wsbkEvent=this.value;if(!getWsbkSeries().includes(wsbkSeries))wsbkSeries=getWsbkSeries()[0];renderWsbkPanel(document.getElementById('timingPanel'));loadWsbkPdf(document.getElementById('timingPanel'));" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--off-white);border:none;padding:4px 6px;cursor:pointer;width:90px;flex:1;">';
-  evList.forEach(function(e) {
-    html += '<option value="' + e.code + '"' + (e.code === wsbkEvent ? ' selected' : '') + '>' + e.name + '</option>';
-  });
-  html += '</select>';
-  html += '</div>';
-
-  // Series buttons (logókkal)
-  getWsbkSeries().forEach(function(s) {
-    var active = s === wsbkSeries;
-    var logo = getLogoUrl(WSBK_SERIES_LABELS[s]) || '';
-    var border = active ? '2px solid rgba(29,185,84,0.7)' : '2px solid transparent';
-    var bg = active ? 'rgba(29,185,84,0.1)' : 'transparent';
-    html += '<button onclick="wsbkSeries='' + s + '';renderWsbkPanel(document.getElementById('timingPanel'));loadWsbkPdf(document.getElementById('timingPanel'));" style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);background:' + bg + ';padding:4px 2px;display:flex;align-items:center;justify-content:center;outline:' + border + ';outline-offset:-2px;">';
-    if (logo) {
-      html += '<img src="' + logo + '" style="max-height:24px;max-width:90%;object-fit:contain;opacity:' + (active?'1':'0.5') + ';" onerror="this.style.display='none'">';
-    } else {
-      html += '<span style="font-family:Oswald,sans-serif;font-size:8px;color:' + (active?'var(--green)':'var(--text-mid)') + '">' + s + '</span>';
-    }
-    html += '</button>';
-  });
-  html += '</div>';
-
-  // Row 2: Session buttons
-  html += '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
-  WSBK_SESSIONS.forEach(function(sess) {
-    var active = sess.code === wsbkSession;
-    var bg = active ? 'rgba(245,196,0,0.2)' : 'transparent';
-    var color = active ? 'var(--yellow)' : 'var(--text-dim)';
-    var borderBottom = active ? '3px solid var(--yellow)' : '3px solid transparent';
-    html += '<button onclick="wsbkSession='' + sess.code + '';loadWsbkPdf(document.getElementById('timingPanel'));" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;text-transform:uppercase;border:none;border-bottom:' + borderBottom + ';background:' + bg + ';color:' + color + ';">' + sess.label + '</button>';
-  });
-  html += '</div>';
-
-  // Results area
-  html += '<div id="wsbkResults" style="flex:1;overflow:auto;padding:4px 8px;"><div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div></div>';
-
-  panelEl.innerHTML = html;
-}
-
-async function loadWsbkPdf(panelEl) {
-  var rd = document.getElementById('wsbkResults');
-  if (!rd) return;
-  
-  // Check if future event
-  var evInfo = (WSBK_EVENTS[wsbkYear]||[]).find(function(e) { return e.code === wsbkEvent; });
-  if (evInfo && evInfo.dateEnd) {
-    var evDate = new Date(evInfo.dateEnd);
-    evDate.setHours(23,59,59);
-    if (evDate > new Date()) {
-      var d1 = evInfo.date.replace(/-/g,'.');
-      var d2 = evInfo.dateEnd.replace(/-/g,'.');
-      rd.innerHTML = '<div style="text-align:center;padding:16px;">'
-        + '<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">' + evInfo.name.toUpperCase() + '</div>'
-        + '<div style="font-family:Oswald,sans-serif;font-size:16px;color:var(--yellow);">' + d1 + ' — ' + d2 + '</div>'
-        + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px;">MÉG NEM ZAJLOTT LE</div>'
-        + '</div>';
-      return;
-    }
-  }
-
-  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ PDF betöltése...</div>';
-  
-  var url = WSBK_PROXY + wsbkYear + '/' + wsbkEvent + '/' + wsbkSeries + '/' + wsbkSession + '/CLA/Results.pdf';
-  
-  try {
-    if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js nem elérhető');
-    
-    var pdf = await pdfjsLib.getDocument(url).promise;
-    var text = '';
-    for (var i = 1; i <= Math.min(pdf.numPages, 2); i++) {
-      var page = await pdf.getPage(i);
-      var content = await page.getTextContent();
-      text += content.items.map(function(item) { return item.str; }).join(' ') + '
-';
-    }
-    
-    parseWsbkText(rd, text);
-  } catch(e) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">&#10007; ' + e.message + '</div>';
-  }
-}
-
-function parseWsbkText(rd, text) {
-  // Parse the PDF text into riders
-  var lines = text.split(/
-|
-/).filter(function(l) { return l.trim(); });
-  var riders = [];
-  
-  // Look for lines with position numbers at start
-  var posPattern = /^\s*(\d+)\s+(\d+)\s+([A-Z])\s+([A-Z\s]+?)\s+([A-Z]{3})\s+/;
-  
-  lines.forEach(function(line) {
-    // Try to find rider entries: pos, num, flag, name, nation...
-    var parts = line.trim().split(/\s+/);
-    if (parts.length >= 5 && /^\d+$/.test(parts[0]) && parseInt(parts[0]) <= 50) {
-      var pos = parts[0];
-      var num = parts[1];
-      // Find time pattern
-      var timeMatch = line.match(/(\d+m\s*\d+\.\d+s|\d+'\d+\.\d+|\d+:\d+\.\d+|\d{1,2}\.\d{3})/);
-      var time = timeMatch ? timeMatch[0] : '';
-      // Name is between num and time
-      var nameStart = line.indexOf(num) + num.length;
-      var namePart = line.substring(nameStart, timeMatch ? line.indexOf(timeMatch[0]) : nameStart + 30).trim();
-      // Clean name - remove single chars (flags)
-      namePart = namePart.replace(/[A-Z]/g, '').trim();
-      
-      if (pos && num && namePart) {
-        riders.push({pos:pos, num:num, name:namePart, time:time});
-      }
-    }
-  });
-
-  if (!riders.length) {
-    // Fallback: show raw text
-    rd.innerHTML = '<div style="font-size:8px;color:var(--text-mid);padding:4px;white-space:pre-wrap;">' + text.substring(0,500) + '</div>';
-    return;
-  }
-
-  var sessLabel = WSBK_SESSIONS.find(function(s) { return s.code === wsbkSession; });
-  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--green);">' + WSBK_SERIES_LABELS[wsbkSeries] + '</span>'
-    + ' &middot; ' + wsbkEvent + ' &middot; ' + (sessLabel ? sessLabel.label : wsbkSession) + '</div>';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,25).forEach(function(r,i) {
-    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
-      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + r.num + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.time + '</td>'
-      + '</tr>';
-  });
-  rd.innerHTML = html + '</table>';
-}
-</script>
-
 </body>
 </html>
