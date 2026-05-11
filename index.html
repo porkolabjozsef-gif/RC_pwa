@@ -1714,7 +1714,7 @@ function initResultsPanel() {
   renderPanel();
   doFetch();
   fetchInterval = setInterval(doFetch, 30000);
-}
+  updateCircuitInfo(selectedEventCode, selectedCat);
 
 function resetAutoTimer() {
   clearTimeout(autoTimer);
