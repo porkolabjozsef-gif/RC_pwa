@@ -117,7 +117,7 @@ function renderWsbkPanel(panelEl) {
 
   seriesList.forEach(function(s) {
     var active = s === wsbkSeries;
-    var logo = typeof getLogoUrl === 'function' ? (getLogoUrl(WSBK_SERIES_LABELS[s]) || '') : '';
+    var logo = typeof getLogoUrl === 'function' ? (getLogoUrl(s) || getLogoUrl(WSBK_SERIES_LABELS[s]) || '') : '';
     html += '<button onclick="wsbkSeries=\'' + s + '\';var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);loadWsbkPdf(tp);" style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);background:' + (active ? 'rgba(29,185,84,0.1)' : 'transparent') + ';padding:4px 2px;display:flex;align-items:center;justify-content:center;outline:' + (active ? '2px solid rgba(29,185,84,0.7)' : '2px solid transparent') + ';outline-offset:-2px;">';
     if (logo) {
       html += '<img src="' + logo + '" style="max-height:24px;max-width:90%;object-fit:contain;opacity:' + (active ? '1' : '0.5') + ';" onerror="this.style.display=\'none\'">';
@@ -193,26 +193,62 @@ function loadWsbkPdf(panelEl) {
 
 function parseWsbkPdf(rd, text) {
   var riders = [];
-  // Match patterns like: "1 19 ITA N BULEGA Aruba.it Racing Ducati Panigale V4R ITA 21 20 ... 1'33.901"
-  var regex = /(\d{1,2})\s+(\d{1,3})\s+[A-Z]{3}\s+[A-Z]\s+([A-Z][A-Z\s]+?)\s+(?:[A-Z][a-z]|\d)/g;
-  var match;
-  while ((match = regex.exec(text)) !== null) {
-    var pos = parseInt(match[1]);
-    if (pos >= 1 && pos <= 30) {
-      var timeMatch = text.slice(match.index).match(/\d+'\d+\.\d+|\d+:\d+\.\d+/);
-      riders.push({
-        pos: pos,
-        num: match[2],
-        name: match[3].trim(),
-        time: timeMatch ? timeMatch[0] : ''
-      });
+
+  // WSBK PDF structure: "1 19 ITA N BULEGA Aruba Racing... 21 1'33.901 ... 1'33.901"
+  // Split text into lines by multiple spaces or newlines
+  var lines = text.split(/\s{3,}|\n/).filter(function(l) { return l.trim(); });
+  
+  lines.forEach(function(line) {
+    line = line.trim();
+    // Match: position (1-2 digits) + number (1-3 digits) + 3-letter nation + content + time
+    var m = line.match(/^(\d{1,2})\s+(\d{1,3})\s+[A-Z]{3}\s+(.+?)\s+(\d+'\d+\.\d{3}|\d+:\d+\.\d{3})/);
+    if (m) {
+      var pos = parseInt(m[1]);
+      if (pos >= 1 && pos <= 30) {
+        // Clean name - remove single letters (flag), nation codes, team names
+        var rawName = m[3].trim();
+        // Take first 2-3 words as name
+        var nameParts = rawName.split(/\s+/).slice(0, 3);
+        // Remove single char entries (flag letter)
+        nameParts = nameParts.filter(function(p) { return p.length > 1; });
+        riders.push({pos: pos, num: m[2], name: nameParts.join(' '), time: m[4]});
+      }
     }
-    if (riders.length >= 25) break;
+  });
+
+  // If regex failed, try token-based approach
+  if (!riders.length) {
+    var tokens = text.replace(/\s+/g, ' ').split(' ');
+    for (var i = 0; i < tokens.length - 8; i++) {
+      var pos = parseInt(tokens[i]);
+      if (pos >= 1 && pos <= 30 && /^\d{1,2}$/.test(tokens[i])) {
+        var num = tokens[i+1];
+        if (/^\d{1,3}$/.test(num)) {
+          // Skip nation (3 letters) and flag letter
+          var ni = i + 2;
+          if (/^[A-Z]{3}$/.test(tokens[ni])) ni++;
+          if (/^[A-Z]$/.test(tokens[ni])) ni++;
+          // Collect name (2 words)
+          var name = '';
+          if (tokens[ni] && tokens[ni+1]) {
+            name = tokens[ni] + ' ' + tokens[ni+1];
+          }
+          // Find time near this position
+          var slice = tokens.slice(i, i+20).join(' ');
+          var tm = slice.match(/\d+'\d+\.\d{3}/);
+          if (name && tm) {
+            riders.push({pos: pos, num: num, name: name, time: tm[0]});
+            i = ni + 2;
+          }
+        }
+      }
+    }
   }
 
   if (!riders.length) {
-    // Raw text fallback
-    rd.innerHTML = '<div style="font-size:8px;color:var(--text-mid);padding:4px;white-space:pre-wrap;">' + text.substring(0, 500) + '</div>';
+    // Show first 600 chars raw for debugging
+    rd.innerHTML = '<div style="font-size:8px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;">'
+      + text.substring(0, 600).replace(/</g,'&lt;') + '</div>';
     return;
   }
 
