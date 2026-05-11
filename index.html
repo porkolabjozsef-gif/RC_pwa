@@ -1090,16 +1090,6 @@ body::after {
 
     <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
     <div class="col-logo" id="logoPanel" style="position:relative;">
-      <div style="position:absolute;top:4px;right:4px;z-index:10;display:flex;gap:2px;">
-        <button id="champBtnMotogp" onclick="switchChampionship('motogp')"
-          style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:1px;padding:2px 6px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(29,185,84,0.2);color:var(--green);border-color:var(--green);">
-          MotoGP
-        </button>
-        <button id="champBtnWsbk" onclick="switchChampionship('wsbk')"
-          style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:1px;padding:2px 6px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--text-mid);">
-          WSBK
-        </button>
-      </div>
       <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
@@ -1724,28 +1714,36 @@ var activeChampionship = 'motogp'; // 'motogp' or 'wsbk'
 
 function switchChampionship(champ) {
   activeChampionship = champ;
+  var panel = document.getElementById('logoPanel');
+  if (!panel) return;
+  
+  // Ensure timingPanel exists
   var tp = document.getElementById('timingPanel');
-  if (!tp) return;
+  if (!tp) {
+    tp = document.createElement('div');
+    tp.id = 'timingPanel';
+    panel.appendChild(tp);
+  }
+  tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
+  
+  // Hide logo elements
+  var img = document.getElementById('logoPanelImg');
+  var ph = document.getElementById('logoPlaceholder');
+  if (img) img.style.display = 'none';
+  if (ph) ph.style.display = 'none';
+
   if (champ === 'wsbk') {
-    initWsbkPanel(tp);
+    if (typeof initWsbkPanel === 'function') {
+      initWsbkPanel(tp);
+    } else {
+      tp.innerHTML = '<div style="color:var(--red);padding:10px;">WSBK modul nem töltődött be</div>';
+    }
   } else {
     renderPanel();
     doFetch();
   }
-  updateChampButtons();
 }
 
-function updateChampButtons() {
-  var mgpBtn = document.getElementById('champBtnMotogp');
-  var wsbkBtn = document.getElementById('champBtnWsbk');
-  if (!mgpBtn || !wsbkBtn) return;
-  mgpBtn.style.background = activeChampionship==='motogp' ? 'rgba(29,185,84,0.2)' : 'transparent';
-  mgpBtn.style.borderColor = activeChampionship==='motogp' ? 'var(--green)' : 'rgba(255,255,255,0.2)';
-  mgpBtn.style.color = activeChampionship==='motogp' ? 'var(--green)' : 'var(--text-mid)';
-  wsbkBtn.style.background = activeChampionship==='wsbk' ? 'rgba(255,50,50,0.2)' : 'transparent';
-  wsbkBtn.style.borderColor = activeChampionship==='wsbk' ? 'var(--red)' : 'rgba(255,255,255,0.2)';
-  wsbkBtn.style.color = activeChampionship==='wsbk' ? 'var(--red)' : 'var(--text-mid)';
-}
 
 function initResultsPanel() {
   // Auto kategória a menetrendből
@@ -1845,6 +1843,11 @@ function renderPanel() {
   const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
 
   tp.innerHTML = `
+    <!-- ROW 0: MotoGP / WSBK váltó -->
+    <div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">
+      <button onclick="switchChampionship('motogp')" style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--green);background:rgba(29,185,84,0.15);color:var(--green);">MotoGP</button>
+      <button onclick="switchChampionship('wsbk')" style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">WSBK</button>
+    </div>
     <!-- ROW 1: Szezon + helyszín + 3 logó -->
     <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
       <!-- Szezon + helyszín -->
@@ -2859,6 +2862,14 @@ function initWsbkPanel(panelEl) {
 function renderWsbkPanel(panelEl) {
   var evList = WSBK_EVENTS[wsbkYear] || WSBK_EVENTS['2026'];
   var html = '';
+
+  // Row 1: Year + Event + Series logos
+  // ROW 0: MotoGP / WSBK váltó
+  var wsbkActive = activeChampionship === 'wsbk';
+  html += '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
+  html += '<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">MotoGP</button>';
+  html += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--red);background:rgba(255,50,50,0.15);color:var(--red);">WSBK</button>';
+  html += '</div>';
 
   // Row 1: Year + Event + Series logos
   html += '<div style="display:flex;align-items:stretch;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);">';
