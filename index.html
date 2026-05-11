@@ -364,7 +364,9 @@ body::after {
   border-right: 2px solid var(--border);
   grid-column: 2;
   grid-row: 1;
-  align-self: start;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
 }
 
 .col-right {
@@ -737,6 +739,7 @@ body::after {
 
 /* NEXT EVENT */
 .next-panel {
+  flex: 1;
   background: var(--bg2);
   border-left: 3px solid var(--yellow);
   padding: 8px 14px;
@@ -1081,6 +1084,9 @@ body::after {
         <div class="next-time" id="nextTimePill">—</div>
       </div>
 
+      <div id="circuitInfoPanel" style="border-top:1px solid var(--border);padding:8px 10px;flex:1;">
+        <div id="circuitInfoContent" style="color:var(--text-dim);font-size:9px;">—</div>
+      </div>
     </div><!-- /col-mid -->
 
     <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
@@ -1737,11 +1743,13 @@ function switchYear(year) {
 }
 function switchEventCode(code) {
   selectedEventCode = code;
+  updateCircuitInfo(selectedEventCode, selectedCat);
   resetAutoTimer();
   doFetch();
 }
 function switchCat(cat) {
   selectedCat = cat;
+  updateCircuitInfo(selectedEventCode, selectedCat);
   // Reset session if SPR not available
   if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
   resetAutoTimer();
@@ -2637,6 +2645,51 @@ if ('serviceWorker' in navigator) {
     .then(() => console.log('Service Worker aktív'))
     .catch(err => console.warn('SW hiba:', err));
 }
+
+// ============================================================
+// CIRCUIT INFO - pálya adatok és körrekordok
+// ============================================================
+var CIRCUIT_INFO = {
+  THA: {name:'Chang Int. Circuit',    len:'4.554 km', cor:12, rec:{MotoGP:{r:'J. Martin',  t:'1:30.177',y:2024},Moto2:{r:'Chantra',    t:'1:36.533',y:2023},Moto3:{r:'Sasaki',     t:'1:43.218',y:2023}}},
+  BRA: {name:'Ayrton Senna Circuit',  len:'3.806 km', cor:11, rec:{MotoGP:{r:'—',          t:'—',       y:2026},Moto2:{r:'—',          t:'—',       y:2026},Moto3:{r:'—',          t:'—',       y:2026}}},
+  USA: {name:'Circuit of the Americas',len:'5.513 km',cor:20, rec:{MotoGP:{r:'M. Marquez', t:'2:02.369',y:2015},Moto2:{r:'Roberts',    t:'2:09.916',y:2021},Moto3:{r:'Foggia',     t:'2:18.888',y:2021}}},
+  QAT: {name:'Lusail Int. Circuit',   len:'5.380 km', cor:16, rec:{MotoGP:{r:'Bagnaia',    t:'1:52.988',y:2024},Moto2:{r:'Ogura',      t:'1:59.303',y:2023},Moto3:{r:'Masia',      t:'2:06.005',y:2023}}},
+  SPA: {name:'Circuito de Jerez',     len:'4.423 km', cor:13, rec:{MotoGP:{r:'M. Marquez', t:'1:36.635',y:2019},Moto2:{r:'Fernandez',  t:'1:42.048',y:2022},Moto3:{r:'Guevara',    t:'1:47.035',y:2022}}},
+  ESP: {name:'Circuito de Jerez',     len:'4.423 km', cor:13, rec:{MotoGP:{r:'M. Marquez', t:'1:36.635',y:2019},Moto2:{r:'Fernandez',  t:'1:42.048',y:2022},Moto3:{r:'Guevara',    t:'1:47.035',y:2022}}},
+  FRA: {name:'Le Mans',               len:'4.185 km', cor:14, rec:{MotoGP:{r:'Bagnaia',    t:'1:31.198',y:2023},Moto2:{r:'Arbolino',   t:'1:36.769',y:2022},Moto3:{r:'Foggia',     t:'1:42.309',y:2022}}},
+  CAT: {name:'Barcelona-Catalunya',   len:'4.657 km', cor:16, rec:{MotoGP:{r:'J. Martin',  t:'1:38.798',y:2024},Moto2:{r:'Vietti',     t:'1:45.264',y:2022},Moto3:{r:'S. Garcia',  t:'1:52.562',y:2021}}},
+  ITA: {name:'Autodromo del Mugello', len:'5.245 km', cor:15, rec:{MotoGP:{r:'J. Martin',  t:'1:45.519',y:2023},Moto2:{r:'Canet',      t:'1:52.830',y:2022},Moto3:{r:'McPhee',     t:'2:01.812',y:2018}}},
+  HUN: {name:'Balaton Park Circuit',  len:'4.381 km', cor:16, rec:{MotoGP:{r:'M. Marquez', t:'1:33.901',y:2025},Moto2:{r:'Vietti',     t:'1:40.112',y:2025},Moto3:{r:'Suzuki',     t:'1:46.884',y:2025}}},
+  CZE: {name:'Automotodrom Brno',     len:'5.403 km', cor:14, rec:{MotoGP:{r:'M. Marquez', t:'1:55.797',y:2019},Moto2:{r:'Fernandez',  t:'2:03.915',y:2022},Moto3:{r:'Fenati',     t:'2:13.651',y:2016}}},
+  NED: {name:'TT Circuit Assen',      len:'4.542 km', cor:18, rec:{MotoGP:{r:'Bagnaia',    t:'1:32.567',y:2022},Moto2:{r:'Schrotter',  t:'1:38.456',y:2021},Moto3:{r:'Sasaki',     t:'1:45.383',y:2022}}},
+  GER: {name:'Sachsenring',           len:'3.671 km', cor:13, rec:{MotoGP:{r:'M. Marquez', t:'1:20.269',y:2019},Moto2:{r:'Fernandez',  t:'1:25.964',y:2022},Moto3:{r:'Fenati',     t:'1:31.250',y:2016}}},
+  GBR: {name:'Silverstone Circuit',   len:'5.900 km', cor:18, rec:{MotoGP:{r:'J. Martin',  t:'1:58.279',y:2023},Moto2:{r:'Aldeguer',   t:'2:06.502',y:2024},Moto3:{r:'Masia',      t:'2:15.448',y:2023}}},
+  ARA: {name:'MotorLand Aragon',      len:'5.078 km', cor:17, rec:{MotoGP:{r:'M. Marquez', t:'1:46.635',y:2019},Moto2:{r:'Fernandez',  t:'1:53.757',y:2021},Moto3:{r:'McPhee',     t:'2:02.265',y:2019}}},
+  RSM: {name:'Misano World Circuit',  len:'4.226 km', cor:16, rec:{MotoGP:{r:'Bagnaia',    t:'1:31.679',y:2023},Moto2:{r:'Arbolino',   t:'1:37.904',y:2021},Moto3:{r:'Fenati',     t:'1:43.659',y:2016}}},
+  AUT: {name:'Red Bull Ring',         len:'4.318 km', cor:10, rec:{MotoGP:{r:'Bagnaia',    t:'1:29.506',y:2022},Moto2:{r:'Bendsneyder',t:'1:34.820',y:2022},Moto3:{r:'Masia',      t:'1:38.785',y:2021}}},
+  JPN: {name:'Twin Ring Motegi',      len:'4.801 km', cor:14, rec:{MotoGP:{r:'M. Marquez', t:'1:44.874',y:2019},Moto2:{r:'Chantra',    t:'1:51.847',y:2022},Moto3:{r:'Sasaki',     t:'1:59.650',y:2022}}},
+  INA: {name:'Pertamina Mandalika',   len:'4.301 km', cor:17, rec:{MotoGP:{r:'Bagnaia',    t:'1:31.069',y:2023},Moto2:{r:'Vietti',     t:'1:37.588',y:2023},Moto3:{r:'Sasaki',     t:'1:44.876',y:2022}}},
+  AUS: {name:'Phillip Island',        len:'4.448 km', cor:12, rec:{MotoGP:{r:'J. Martin',  t:'1:27.257',y:2023},Moto2:{r:'Dixon',      t:'1:32.853',y:2022},Moto3:{r:'Masia',      t:'1:38.869',y:2022}}},
+  MAL: {name:'Sepang Int. Circuit',   len:'5.543 km', cor:15, rec:{MotoGP:{r:'Bagnaia',    t:'1:57.899',y:2024},Moto2:{r:'Arbolino',   t:'2:05.197',y:2022},Moto3:{r:'Sasaki',     t:'2:13.437',y:2023}}},
+  POR: {name:'Portimao',              len:'4.592 km', cor:15, rec:{MotoGP:{r:'J. Martin',  t:'1:38.742',y:2023},Moto2:{r:'Ogura',      t:'1:45.267',y:2023},Moto3:{r:'Holgado',    t:'1:52.881',y:2023}}},
+  VAL: {name:'Circuit Ricardo Tormo', len:'4.005 km', cor:14, rec:{MotoGP:{r:'J. Martin',  t:'1:29.577',y:2024},Moto2:{r:'Aldeguer',   t:'1:35.448',y:2024},Moto3:{r:'Munoz',      t:'1:42.337',y:2023}}}
+};
+
+function updateCircuitInfo(eventCode, cat) {
+  var el = document.getElementById('circuitInfoContent');
+  if (!el) return;
+  var c = CIRCUIT_INFO[(eventCode||'').toUpperCase()];
+  if (!c) { el.innerHTML = '<span style="color:var(--text-dim);">—</span>'; return; }
+  var recCat = (cat && c.rec[cat]) ? cat : 'MotoGP';
+  var rec = c.rec[recCat];
+  el.innerHTML =
+    '<div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:1px;color:var(--green);margin-bottom:4px;">' + c.name + '</div>' +
+    '<div style="margin-bottom:6px;color:var(--text-mid);">' + c.len + ' &nbsp;|&nbsp; ' + c.cor + ' kanyar</div>' +
+    '<div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:1px;color:var(--yellow);margin-bottom:2px;">' + recCat + ' K&Ouml;RREKORD</div>' +
+    '<div style="color:var(--off-white);margin-bottom:1px;">' + rec.r + '</div>' +
+    '<div style="color:var(--green);font-size:13px;font-weight:bold;">' + rec.t + ' <span style="color:var(--text-dim);font-size:9px;">(' + rec.y + ')</span></div>';
+}
+
 </script>
 </body>
 </html>
