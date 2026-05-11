@@ -1751,14 +1751,13 @@ function switchCat(cat) {
 function switchSession(sess) {
   selectedSession = sess;
   resetAutoTimer();
+  renderPanel(); // újrarajzol hogy a gomb kiemelés frissüljön
   doFetch();
 }
 
 function renderPanel() {
   const panel = document.getElementById('logoPanel');
   if (!panel) return;
-
-  // Logo img és placeholder elrejtése — a panel maga tartalmaz mindent
   const img = document.getElementById('logoPanelImg');
   const ph  = document.getElementById('logoPlaceholder');
   if (img) img.style.display = 'none';
@@ -1770,70 +1769,82 @@ function renderPanel() {
     tp.id = 'timingPanel';
     panel.appendChild(tp);
   }
-  tp.style.cssText = 'width:100%;height:100%;overflow:auto;box-sizing:border-box;display:flex;flex-direction:column;';
+  tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
 
   const evList = SEASON_EVENTS[selectedYear] || [];
-  const logoUrl = getLogoUrl(selectedCat);
+
+  // Get logo URLs for all 3 categories
+  function catLogo(cat) { return getLogoUrl(cat) || ''; }
+
+  // Active category from schedule
+  const { current, next } = findCurrentAndNext(getNow());
+  const schedCat = (current && current.category) || (next && next.category);
+  const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
 
   tp.innerHTML = `
-    <!-- Logó kis méretben felül -->
-    <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      ${logoUrl ? `<img src="${logoUrl}" style="height:28px;object-fit:contain;opacity:0.9;" onerror="this.style.display='none'">` : ''}
-      <div style="flex:1;display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-        <!-- Szezon + futam -->
+    <!-- ROW 1: Szezon + helyszín + 3 logó -->
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <!-- Szezon + helyszín -->
+      <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
         <select onchange="switchYear(this.value)"
-          style="font-family:'Oswald',sans-serif;font-size:9px;background:#2a2a2a;color:var(--red);
-          border:1px solid var(--red);padding:2px 3px;cursor:pointer;border-radius:2px;">
+          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);
+          border:1px solid var(--red);padding:2px 4px;cursor:pointer;border-radius:2px;width:60px;">
           ${SEASONS.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
         </select>
         <select onchange="switchEventCode(this.value)"
-          style="font-family:'Oswald',sans-serif;font-size:9px;background:#2a2a2a;color:var(--off-white);
-          border:1px solid rgba(255,255,255,0.3);padding:2px 3px;cursor:pointer;border-radius:2px;max-width:110px;">
+          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--off-white);
+          border:1px solid rgba(255,255,255,0.3);padding:2px 4px;cursor:pointer;border-radius:2px;width:120px;">
           ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
         </select>
       </div>
+
+      <!-- 3 kategória logó mint választó -->
+      <div style="display:flex;flex:1;gap:4px;justify-content:flex-end;">
+        ${MOTOGP_CATEGORIES.map(cat => {
+          const active = cat === selectedCat;
+          const auto = isAuto(cat);
+          const logo = catLogo(cat);
+          return `<button onclick="switchCat('${cat}')"
+            style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;
+            background:${active?'rgba(29,185,84,0.2)':'rgba(255,255,255,0.03)'};
+            border-color:${active?'var(--green)':'rgba(255,255,255,0.15)'};
+            position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
+            ${auto?`<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>`:''}
+            ${logo
+              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);\'>${cat}</span>'">`
+              : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'};">${cat}</span>`
+            }
+          </button>`;
+        }).join('')}
+      </div>
     </div>
 
-    <!-- Kategória gombok -->
-    <div style="display:flex;gap:3px;padding:3px 8px;flex-shrink:0;">
-      ${MOTOGP_CATEGORIES.map(cat => {
-        const active = cat === selectedCat;
-        const isAuto = cat === autoCat;
-        return `<button onclick="switchCat('${cat}')"
-          style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;text-transform:uppercase;
-          border:1px ${isAuto&&!active?'dashed':'solid'};
-          background:${active?'rgba(29,185,84,0.3)':'rgba(255,255,255,0.05)'};
-          border-color:${active?'var(--green)':'rgba(255,255,255,0.2)'};
-          color:${active?'var(--green)':'var(--text-mid)'};">
-          ${cat}${isAuto?' ●':''}
-        </button>`;
-      }).join('')}
-    </div>
-
-    <!-- Session gombok -->
-    <div style="display:flex;gap:3px;padding:2px 8px;flex-shrink:0;flex-wrap:wrap;">
+    <!-- ROW 2: Session gombok -->
+    <div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">
       ${getSessionTypes().map(sess => {
         const active = sess === selectedSession;
         return `<button onclick="switchSession('${sess}')"
-          style="font-family:'Oswald',sans-serif;font-size:9px;padding:2px 5px;cursor:pointer;
-          border:1px solid;
+          style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+          padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
           background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-          border-color:${active?'var(--yellow)':'rgba(255,255,255,0.2)'};
+          border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};
           color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
       }).join('')}
       <button onclick="switchSession('STANDINGS')"
-        style="font-family:'Oswald',sans-serif;font-size:9px;padding:2px 5px;cursor:pointer;border:1px solid;
+        style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+        padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
         background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
-        border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.2)'};
-        color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STANDINGS</button>
+        border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
+        color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STD</button>
     </div>
 
-    <!-- Eredmény terület -->
+    <!-- ROW 3: Eredmény -->
     <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
       <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
     </div>
   `;
 }
+
 
 async function doFetch() {
   if (isFetching) return;
