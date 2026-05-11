@@ -1126,14 +1126,7 @@ body::after {
 </div><!-- /app -->
 
 
-
-
-
-
-
-
 <script>
-
 // ============================================================
 // FULL SCHEDULE DATA — Superbike of Hungary 2026
 // Dates: 2026-04-29 to 2026-05-03
@@ -1721,30 +1714,10 @@ var activeChampionship = 'motogp'; // 'motogp' or 'wsbk'
 
 function switchChampionship(champ) {
   activeChampionship = champ;
-  var panel = document.getElementById('logoPanel');
-  if (!panel) return;
-  
-  // Ensure timingPanel exists
   var tp = document.getElementById('timingPanel');
-  if (!tp) {
-    tp = document.createElement('div');
-    tp.id = 'timingPanel';
-    panel.appendChild(tp);
-  }
-  tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
-  
-  // Hide logo elements
-  var img = document.getElementById('logoPanelImg');
-  var ph = document.getElementById('logoPlaceholder');
-  if (img) img.style.display = 'none';
-  if (ph) ph.style.display = 'none';
-
+  if (!tp) return;
   if (champ === 'wsbk') {
-    if (typeof initWsbkPanel === 'function') {
-      initWsbkPanel(tp);
-    } else {
-      tp.innerHTML = '<div style="color:var(--red);padding:10px;">WSBK modul nem töltődött be</div>';
-    }
+    initWsbkPanel(tp);
   } else {
     renderPanel();
     doFetch();
@@ -1850,11 +1823,6 @@ function renderPanel() {
   const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
 
   tp.innerHTML = `
-    <!-- ROW 0: MotoGP / WSBK váltó -->
-    <div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">
-      <button onclick="switchChampionship('motogp')" style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--green);background:rgba(29,185,84,0.15);color:var(--green);">MotoGP</button>
-      <button onclick="switchChampionship('wsbk')" style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">WSBK</button>
-    </div>
     <!-- ROW 1: Szezon + helyszín + 3 logó -->
     <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
       <!-- Szezon + helyszín -->
@@ -2727,11 +2695,12 @@ if ('serviceWorker' in navigator) {
     .then(() => console.log('Service Worker aktív'))
     .catch(err => console.warn('SW hiba:', err));
 }
+</script>
 
-
+<script>
 var CI = {
   THA:{n:'Chang Int. Circuit',    l:'4.554 km',c:12,r:{MotoGP:{r:'J. Martin',  t:'1:30.177',y:2024},Moto2:{r:'Chantra',    t:'1:36.533',y:2023},Moto3:{r:'Sasaki',     t:'1:43.218',y:2023}}},
-  BRA:{n:'Ayrton Senna Circuit',  l:'3.806 km',c:11,r:{MotoGP:{r:'n/a',t:'n/a',y:2026},Moto2:{r:'n/a',t:'n/a',y:2026},Moto3:{r:'n/a',t:'n/a',y:2026}}},
+  BRA:{n:'Ayrton Senna Circuit',  l:'3.806 km',c:11,r:{MotoGP:{r:'—',          t:'—',       y:2026},Moto2:{r:'—',          t:'—',       y:2026},Moto3:{r:'—',          t:'—',       y:2026}}},
   USA:{n:'Circuit of the Americas',l:'5.513 km',c:20,r:{MotoGP:{r:'M. Marquez',t:'2:02.369',y:2015},Moto2:{r:'Roberts',    t:'2:09.916',y:2021},Moto3:{r:'Foggia',     t:'2:18.888',y:2021}}},
   QAT:{n:'Lusail Int. Circuit',   l:'5.380 km',c:16,r:{MotoGP:{r:'Bagnaia',    t:'1:52.988',y:2024},Moto2:{r:'Ogura',      t:'1:59.303',y:2023},Moto3:{r:'Masia',      t:'2:06.005',y:2023}}},
   SPA:{n:'Circuito de Jerez',     l:'4.423 km',c:13,r:{MotoGP:{r:'M. Marquez',t:'1:36.635',y:2019},Moto2:{r:'Fernandez',  t:'1:42.048',y:2022},Moto3:{r:'Guevara',    t:'1:47.035',y:2022}}},
@@ -2795,8 +2764,9 @@ function showCI(code, cat) {
     })
     .catch(function() {});
 }
+</script>
 
-
+<script>
 // ============================================================
 // WSBK PANEL
 // ============================================================
@@ -3021,8 +2991,7 @@ function parseWsbkText(rd, text) {
   });
   rd.innerHTML = html + '</table>';
 }
-
-
 </script>
+
 </body>
 </html>
