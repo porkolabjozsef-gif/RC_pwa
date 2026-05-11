@@ -266,34 +266,43 @@ function parseWsbkStandings(rd, text) {
 function parseWsbkResults(rd, text) {
   var riders = [];
 
-  // WSBK Results PDF structure:
-  // pos num NAT flag SURNAME Team Bike ... laps gap time
-  // Time format: 1'33.901 or 41'18.001
-  
+  // Known team name fragments to skip
+  var teamWords = ['GRT','PATA','ARUBA','BONOVO','GMT94','ROKiT','KLINT','PONS','AMPITO',
+    'CRESCENT','RACING','TEAM','MOTOCORSA','BARNI','PEDERCINI','ORELAC','MOTOIN',
+    'FIMLA','ITALIKA','EAB','MIE','WILLI','NOLAN','XBOW'];
+
   // Find all lap times
   var times = [];
   var tm;
-  var timeRe = /(\d{1,2}'\d{2}\.\d{3})/g;
+  var timeRe = /(\d{1,3}'\d{2}\.\d{3})/g;
   while ((tm = timeRe.exec(text)) !== null) {
     times.push({time: tm[1], index: tm.index});
   }
 
-  // Find rider surnames before bike brands
-  var brands = 'Yamaha|Ducati|Kawasaki|BMW|Honda|Triumph|Aprilia|Bimota';
-  var nameRe = new RegExp('([A-Z]{3,}(?:\\s[A-Z]{2,})?(?:\\s[A-Z]{2,})?)'
-    + '\\s+(?:' + brands + ')', 'g');
-  var pos = 1;
+  // Find names before bike brands
+  var brands = 'Yamaha|Ducati|Kawasaki|BMW|Honda|Triumph|Aprilia|Bimota|Panigale|YZF|CBR|ZX|S1000';
+  var nameRe = new RegExp('([A-Z]{2,}(?:\\s[A-Z]{2,}){0,2})\\s+(?:' + brands + ')', 'g');
   var nm;
+  var pos = 1;
   while ((nm = nameRe.exec(text)) !== null) {
-    var nearTime = times.find(function(t) {
-      return t.index > nm.index - 50 && t.index < nm.index + 200;
-    });
-    // Skip obvious non-names
     var name = nm[1].trim();
-    if (name.length < 3) continue;
-    if (['ITA','ESP','GBR','FRA','GER','NED','AUS','USA','BRA','THA','JPN','CHI','RSA','ARG','POR','BEL','SUI','CZE','NOR','FIN','DEN','SWE','POL','HUN','AUT','TUR','SLO','GRE','RUS','KAZ'].includes(name)) continue;
     
-    riders.push({pos: pos++, num: '', name: name, time: nearTime ? nearTime.time : ''});
+    // Skip if it's a team name fragment
+    var isTeam = false;
+    teamWords.forEach(function(tw) {
+      if (name.indexOf(tw) > -1) isTeam = true;
+    });
+    // Skip nation codes
+    if (/^[A-Z]{3}$/.test(name)) isTeam = true;
+    // Skip short fragments
+    if (name.length < 3) isTeam = true;
+    
+    if (!isTeam) {
+      var nearTime = times.find(function(t) {
+        return t.index > nm.index - 100 && t.index < nm.index + 300;
+      });
+      riders.push({pos: pos++, num: '', name: name, time: nearTime ? nearTime.time : ''});
+    }
     if (riders.length >= 25) break;
   }
 
