@@ -1085,14 +1085,6 @@ body::after {
 
     <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
     <div class="col-logo" id="logoPanel" style="position:relative;">
-      <button onclick="toggleTiming()" id="timingToggleBtn"
-        style="position:absolute; top:6px; right:8px; z-index:10;
-               font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
-               padding:3px 8px; cursor:pointer; text-transform:uppercase;
-               background:rgba(29,185,84,0.1); border:1px solid rgba(29,185,84,0.4);
-               color:rgba(29,185,84,0.8);">
-        ⏱ RESULTS
-      </button>
       <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
@@ -1625,81 +1617,22 @@ function loadNewSchedule(parsed) {
 
 // ============================================================
 // ============================================================
-// 4. PANEL — LIVE TIMING / RESULTS (via Cloudflare Proxy)
+// 4. PANEL — LOGÓ + EREDMÉNYEK (automatikus, gomb nélkül)
 // ============================================================
 const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
 const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
+const WSBK_CATEGORIES = ['WorldSBK', 'WorldSSP', 'WorldWCR', 'R3', 'WorldSPB'];
 const SEASON_UUIDS = {
   '2026': 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e',
   '2025': 'ae6c6f0d-c652-44f8-94aa-420fc5b3dab4',
   '2024': 'dd12382e-1d9f-46ee-a5f7-c5104db28e43',
   '2023': 'db8dc197-c7b2-4c1b-b3a4-6dc534c023ef'
 };
-const SEASON_UUID = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e'; // fallback
 const CAT_UUIDS = {
   'MotoGP': 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942',
   'Moto2':  '549640b8-fd9c-4245-acfd-60e4bc38b25c',
   'Moto3':  '954f7e65-2ef2-4423-b949-4961cc603e45'
 };
-
-let timingMode = false;
-let timingInterval = null;
-let timingAutoTimer = null;
-let selectedCat = 'MotoGP';
-let autoCat = 'MotoGP';
-let viewMode = 'results';
-let isFetching = false;
-
-function toggleTiming() {
-  timingMode = !timingMode;
-  const btn = document.getElementById('timingToggleBtn');
-  if (timingMode) {
-    btn.style.background = 'rgba(29,185,84,0.3)';
-    btn.style.borderColor = 'var(--green)';
-    btn.style.color = 'var(--green)';
-    btn.textContent = '🏁 LOGÓ';
-    showTimingPanel();
-  } else {
-    btn.style.background = 'rgba(29,185,84,0.1)';
-    btn.style.borderColor = 'rgba(29,185,84,0.4)';
-    btn.style.color = 'rgba(29,185,84,0.8)';
-    btn.textContent = '⏱ TIMING';
-    clearInterval(timingInterval);
-    clearTimeout(timingAutoTimer);
-    showLogoPanel();
-  }
-}
-
-function showLogoPanel() {
-  const tp = document.getElementById('timingPanel');
-  if (tp) tp.style.display = 'none';
-  document.getElementById('logoPanelImg').style.display = 'block';
-  document.getElementById('logoPlaceholder').style.display = 'none';
-  currentBgCategory = null;
-  const { current, next } = findCurrentAndNext(getNow());
-  const activeCategory = (current && current.category) || (next && next.category) || null;
-  updateBgLogo(activeCategory);
-}
-
-function showTimingPanel() {
-  document.getElementById('logoPanelImg').style.display = 'none';
-  document.getElementById('logoPlaceholder').style.display = 'none';
-  let tp = document.getElementById('timingPanel');
-  if (!tp) {
-    tp = document.createElement('div');
-    tp.id = 'timingPanel';
-    tp.style.cssText = 'width:100%;height:100%;overflow:auto;padding:6px 10px;box-sizing:border-box;';
-    document.getElementById('logoPanel').appendChild(tp);
-  }
-  tp.style.display = 'block';
-  const { current, next } = findCurrentAndNext(getNow());
-  const activeCat = (current && current.category) || (next && next.category);
-  autoCat = MOTOGP_CATEGORIES.includes(activeCat) ? activeCat : 'MotoGP';
-  selectedCat = autoCat;
-  doFetch();
-  timingInterval = setInterval(doFetch, 30000);
-}
-
 const SEASONS = ['2026', '2025', '2024', '2023'];
 const SEASON_EVENTS = {
   '2026': [
@@ -1740,97 +1673,185 @@ const SEASON_EVENTS = {
     {code:'VAL',name:'Valencia'}
   ]
 };
+
 let selectedYear = '2026';
 let selectedEventCode = 'FRA';
+let selectedCat = 'MotoGP';
+let autoCat = 'MotoGP';
 let selectedSession = 'RAC';
+let autoTimer = null;
+let fetchInterval = null;
+let isFetching = false;
+
 const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
-const SESSION_TYPES_OTHER = ['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
+const SESSION_TYPES_OTHER  = ['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
 function getSessionTypes() {
   return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER;
 }
 
-function switchSession(sess) {
-  selectedSession = sess;
+// Panel inicializálás — oldalbetöltéskor automatikusan indul
+function initResultsPanel() {
+  // Auto kategória a menetrendből
+  const { current, next } = findCurrentAndNext(getNow());
+  const activeCat = (current && current.category) || (next && next.category);
+  if (MOTOGP_CATEGORIES.includes(activeCat)) {
+    autoCat = activeCat;
+    selectedCat = activeCat;
+  }
+  // Automatikusan az aktuális szezon és legutóbbi futam
+  selectedYear = '2026';
+  const evs = SEASON_EVENTS['2026'] || [];
+  const now = new Date();
+  // Select latest event that has passed
+  selectedEventCode = evs[evs.length - 1].code; // fallback to last
+  
+  renderPanel();
   doFetch();
+  fetchInterval = setInterval(doFetch, 30000);
 }
+
+function resetAutoTimer() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    // Visszatér az aktív sorozathoz
+    const { current, next } = findCurrentAndNext(getNow());
+    const activeCat = (current && current.category) || (next && next.category);
+    if (MOTOGP_CATEGORIES.includes(activeCat)) {
+      selectedCat = activeCat;
+    } else {
+      selectedCat = autoCat;
+    }
+    selectedSession = 'RAC';
+    renderPanel();
+    doFetch();
+  }, 30000);
+}
+
 function switchYear(year) {
   selectedYear = year;
   const evs = SEASON_EVENTS[year] || [];
-  selectedEventCode = evs.length ? evs[evs.length-1].code : 'FRA';
+  selectedEventCode = evs.length ? evs[evs.length-1].code : '';
+  resetAutoTimer();
+  renderPanel();
   doFetch();
 }
 function switchEventCode(code) {
   selectedEventCode = code;
+  resetAutoTimer();
   doFetch();
 }
-
-function buildButtons() {
-  const evList = SEASON_EVENTS[selectedYear] || [];
-  // Row 0: season + event selectors
-  let html = '<div style="display:flex;gap:4px;margin-bottom:4px;align-items:center;">';
-  html += `<select onchange="switchYear(this.value)"
-    style="font-family:'Oswald',sans-serif;font-size:10px;background:#2a2a2a;color:var(--red);
-    border:1px solid var(--red);padding:3px 4px;cursor:pointer;border-radius:2px;min-width:52px;">
-    ${SEASONS.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
-  </select>`;
-  html += `<select onchange="switchEventCode(this.value)"
-    style="font-family:'Oswald',sans-serif;font-size:10px;background:#2a2a2a;color:var(--off-white);
-    border:1px solid rgba(255,255,255,0.3);padding:3px 4px;cursor:pointer;border-radius:2px;width:140px;max-width:140px;">
-    ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
-  </select>`;
-  html += '</div>';
-  // Row 1: category buttons
-  // Row 1b: session buttons
-  html += '<div style="display:flex;gap:3px;margin-bottom:3px;flex-wrap:wrap;">';
-  getSessionTypes().forEach(sess => {
-    const active = sess === selectedSession;
-    html += `<button onclick="switchSession('${sess}')"
-      style="font-family:'Oswald',sans-serif;font-size:9px;padding:2px 5px;cursor:pointer;border:1px solid;
-      background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-      border-color:${active?'var(--yellow)':'rgba(255,255,255,0.2)'};
-      color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
-  });
-  html += '</div>';
-  // Row 2: category buttons
-  html += '<div style="display:flex;gap:4px;margin-bottom:3px;flex-wrap:wrap;">';
-  MOTOGP_CATEGORIES.forEach(cat => {
-    const active = cat === selectedCat;
-    const isAuto = cat === autoCat;
-    html += `<button onclick="switchCat('${cat}')"
-      style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 8px;cursor:pointer;text-transform:uppercase;border:1px ${isAuto&&!active?'dashed':'solid'};
-      background:${active?'rgba(29,185,84,0.3)':'rgba(255,255,255,0.05)'};
-      border-color:${active?'var(--green)':'rgba(255,255,255,0.2)'};
-      color:${active?'var(--green)':'var(--text-mid)'};">
-      ${cat}${isAuto?' ●':''}
-    </button>`;
-  });
-  html += '</div>';
-  // Row 2: view toggle buttons
-  html += `<div style="display:flex;gap:2px;margin-bottom:4px;">
-    <button onclick="switchView('results')" style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;border:1px solid;text-transform:uppercase;
-      background:${viewMode==='results'?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-      border-color:${viewMode==='results'?'var(--yellow)':'rgba(255,255,255,0.2)'};
-      color:${viewMode==='results'?'var(--yellow)':'var(--text-mid)'};">RESULTS</button>
-    <button onclick="switchView('standings')" style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;border:1px solid;text-transform:uppercase;
-      background:${viewMode==='standings'?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-      border-color:${viewMode==='standings'?'var(--yellow)':'rgba(255,255,255,0.2)'};
-      color:${viewMode==='standings'?'var(--yellow)':'var(--text-mid)'};">STANDINGS</button>
-  </div><div id="timingResults"></div>`;
-  return html;
-}
-
 function switchCat(cat) {
   selectedCat = cat;
-  clearTimeout(timingAutoTimer);
-  timingAutoTimer = setTimeout(() => { selectedCat = autoCat; viewMode = 'results'; doFetch(); }, 30000);
+  // Reset session if SPR not available
+  if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
+  resetAutoTimer();
+  renderPanel();
+  doFetch();
+}
+function switchSession(sess) {
+  selectedSession = sess;
+  resetAutoTimer();
   doFetch();
 }
 
-function switchView(mode) {
-  viewMode = mode;
-  clearTimeout(timingAutoTimer);
-  timingAutoTimer = setTimeout(() => { selectedCat = autoCat; viewMode = 'results'; doFetch(); }, 30000);
-  doFetch();
+function renderPanel() {
+  const panel = document.getElementById('logoPanel');
+  if (!panel) return;
+
+  // Logo img és placeholder elrejtése — a panel maga tartalmaz mindent
+  const img = document.getElementById('logoPanelImg');
+  const ph  = document.getElementById('logoPlaceholder');
+  if (img) img.style.display = 'none';
+  if (ph)  ph.style.display  = 'none';
+
+  let tp = document.getElementById('timingPanel');
+  if (!tp) {
+    tp = document.createElement('div');
+    tp.id = 'timingPanel';
+    panel.appendChild(tp);
+  }
+  tp.style.cssText = 'width:100%;height:100%;overflow:auto;box-sizing:border-box;display:flex;flex-direction:column;';
+
+  const evList = SEASON_EVENTS[selectedYear] || [];
+  const logoUrl = getLogoUrl(selectedCat);
+
+  tp.innerHTML = `
+    <!-- Logó kis méretben felül -->
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      ${logoUrl ? `<img src="${logoUrl}" style="height:28px;object-fit:contain;opacity:0.9;" onerror="this.style.display='none'">` : ''}
+      <div style="flex:1;display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
+        <!-- Szezon + futam -->
+        <select onchange="switchYear(this.value)"
+          style="font-family:'Oswald',sans-serif;font-size:9px;background:#2a2a2a;color:var(--red);
+          border:1px solid var(--red);padding:2px 3px;cursor:pointer;border-radius:2px;">
+          ${SEASONS.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
+        </select>
+        <select onchange="switchEventCode(this.value)"
+          style="font-family:'Oswald',sans-serif;font-size:9px;background:#2a2a2a;color:var(--off-white);
+          border:1px solid rgba(255,255,255,0.3);padding:2px 3px;cursor:pointer;border-radius:2px;max-width:110px;">
+          ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <!-- Kategória gombok -->
+    <div style="display:flex;gap:3px;padding:3px 8px;flex-shrink:0;">
+      ${MOTOGP_CATEGORIES.map(cat => {
+        const active = cat === selectedCat;
+        const isAuto = cat === autoCat;
+        return `<button onclick="switchCat('${cat}')"
+          style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;text-transform:uppercase;
+          border:1px ${isAuto&&!active?'dashed':'solid'};
+          background:${active?'rgba(29,185,84,0.3)':'rgba(255,255,255,0.05)'};
+          border-color:${active?'var(--green)':'rgba(255,255,255,0.2)'};
+          color:${active?'var(--green)':'var(--text-mid)'};">
+          ${cat}${isAuto?' ●':''}
+        </button>`;
+      }).join('')}
+    </div>
+
+    <!-- Session gombok -->
+    <div style="display:flex;gap:3px;padding:2px 8px;flex-shrink:0;flex-wrap:wrap;">
+      ${getSessionTypes().map(sess => {
+        const active = sess === selectedSession;
+        return `<button onclick="switchSession('${sess}')"
+          style="font-family:'Oswald',sans-serif;font-size:9px;padding:2px 5px;cursor:pointer;
+          border:1px solid;
+          background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
+          border-color:${active?'var(--yellow)':'rgba(255,255,255,0.2)'};
+          color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
+      }).join('')}
+      <button onclick="switchSession('STANDINGS')"
+        style="font-family:'Oswald',sans-serif;font-size:9px;padding:2px 5px;cursor:pointer;border:1px solid;
+        background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
+        border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.2)'};
+        color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STANDINGS</button>
+    </div>
+
+    <!-- Eredmény terület -->
+    <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
+      <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
+    </div>
+  `;
+}
+
+async function doFetch() {
+  if (isFetching) return;
+  isFetching = true;
+  const rd = document.getElementById('timingResults');
+  if (!rd) { isFetching = false; return; }
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
+  try {
+    if (selectedSession === 'STANDINGS') {
+      await doStandings(rd);
+    } else {
+      await doResults(rd);
+    }
+  } catch(e) {
+    rd.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
+  } finally {
+    isFetching = false;
+  }
 }
 
 async function apiGet(path) {
@@ -1847,50 +1868,29 @@ async function apiGet(path) {
   }
 }
 
-async function doFetch() {
-  if (isFetching) return;
-  const tp = document.getElementById('timingPanel');
-  if (!tp || tp.style.display === 'none') return;
-  isFetching = true;
-  tp.innerHTML = buildButtons();
-  const rd = document.getElementById('timingResults');
-  if (rd) rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
-  try {
-    if (viewMode === 'standings') {
-      await doStandings();
-    } else {
-      await doResults();
-    }
-  } catch(e) {
-    const rd2 = document.getElementById('timingResults');
-    if (rd2) rd2.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
-  } finally {
-    isFetching = false;
-  }
-}
+async function doResults(rd) {
+  const seasonUuid = SEASON_UUIDS[selectedYear];
+  if (!seasonUuid) throw new Error('Ismeretlen szezon');
 
-async function doResults() {
-  const rd = document.getElementById('timingResults');
-  if (!rd) return;
-
-  // Try live timing first
-  try {
-    const live = await apiGet('timing-gateway/livetiming-lite');
-    if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
-      const liveCat = (live.head.category || '').replace('™','');
-      if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
-          selectedCat.toLowerCase().includes(liveCat.toLowerCase())) {
-        showLive(rd, live);
-        return;
+  // Try live timing first (only for current year)
+  if (selectedYear === '2026') {
+    try {
+      const live = await apiGet('timing-gateway/livetiming-lite');
+      if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
+        const liveCat = (live.head.category || '').replace('™','');
+        if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
+            selectedCat.toLowerCase().includes(liveCat.toLowerCase())) {
+          showLive(rd, live);
+          return;
+        }
       }
-    }
-  } catch(e) { /* fallback */ }
+    } catch(e) { /* no live */ }
+  }
 
-  // Latest results
-  const events = await apiGet(`events?seasonUuid=${SEASON_UUIDS[selectedYear]||SEASON_UUID}&isFinished=true`);
+  // Get events
+  const events = await apiGet(`events?seasonUuid=${seasonUuid}&isFinished=true`);
   const races = events.filter(e => !e.test);
   if (!races.length) throw new Error('Nincs befejezett futam');
-  // Match selectedEventCode
   const ev = races.find(e =>
     (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
     (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase()
@@ -1899,28 +1899,20 @@ async function doResults() {
   const sessions = await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   if (!sessions.length) throw new Error('Nincs session');
 
-  // Map button code to API session type
+  // Map session type
   const sessTypeMap = {
-    'FP1': ['FP','FP1','P1','FREE PRACTICE 1'],
-    'FP2': ['FP2','P2','FREE PRACTICE 2'],
-    'PR':  ['PR','P','PRACTICE'],
-    'Q1':  ['Q1','QUALIFYING 1','Q'],
-    'Q2':  ['Q2','QUALIFYING 2'],
-    'SPR': ['SPR','S','SPRINT'],
-    'WUP': ['WUP','WU','W','WARM UP'],
-    'RAC': ['RAC','R','RACE']
+    'FP1':['FP','FP1','P1'],'FP2':['FP2','P2'],'PR':['PR','P'],
+    'Q1':['Q1'],'Q2':['Q2','Q'],'SPR':['SPR','S'],
+    'WUP':['WUP','WU','W'],'RAC':['RAC','R']
   };
   const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
   let sess = sessions.find(s => typeCodes.some(code =>
-    (s.type||'').toUpperCase() === code.toUpperCase() ||
-    (s.shortname||s.short_name||'').toUpperCase() === code.toUpperCase()
+    (s.type||'').toUpperCase() === code.toUpperCase()
   ));
   if (!sess) {
-    // FP1/FP2 fallback: pick by index
     const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
     if (selectedSession === 'FP1') sess = fpSessions[0];
     else if (selectedSession === 'FP2') sess = fpSessions[1] || fpSessions[0];
-    // Q1/Q2 fallback: pick by number
     const qSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('Q'));
     if (selectedSession === 'Q1') sess = qSessions[0];
     else if (selectedSession === 'Q2') sess = qSessions[1] || qSessions[0];
@@ -1935,17 +1927,11 @@ async function doResults() {
   showResults(rd, riders, ev.name || ev.short_name, sess.type || sess.name, selectedCat);
 }
 
-async function doStandings() {
-  const rd = document.getElementById('timingResults');
-  if (!rd) return;
-  // Use XML worldstanding for latest event
-  const evts = await apiGet(`events?seasonUuid=${SEASON_UUIDS[selectedYear]||SEASON_UUID}&isFinished=true`);
-  const races = evts.filter(e => !e.test);
-  if (!races.length) throw new Error('Nincs befejezett futam');
-  const ev = races[races.length - 1];
-  const evCode = ev.short_name || ev.additional_name || 'FRA';
-  
-  // Try XML first
+async function doStandings(rd) {
+  const seasonUuid = SEASON_UUIDS[selectedYear];
+  if (!seasonUuid) throw new Error('Ismeretlen szezon');
+
+  // Try XML worldstanding first
   try {
     const xmlUrl = `https://resources.motogp.com/files/results/${selectedYear}/${selectedEventCode}/${selectedCat}/RAC/worldstanding.XML`;
     const r = await fetch(xmlUrl);
@@ -1953,41 +1939,16 @@ async function doStandings() {
       const xml = await r.text();
       const parser = new DOMParser();
       const doc = parser.parseFromString(xml, 'text/xml');
-      showStandingsXml(rd, doc, selectedCat, evCode);
+      showStandingsXml(rd, doc);
       return;
     }
   } catch(e) {}
-  
+
   // Fallback: API standings
-  const data = await apiGet(`standings?seasonUuid=${SEASON_UUIDS[selectedYear]||SEASON_UUID}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
+  const data = await apiGet(`standings?seasonUuid=${seasonUuid}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   const riders = data.classification || data;
   if (!riders || !riders.length) throw new Error('Nincs pontállás');
-  showStandings(rd, riders, selectedCat);
-}
-
-function showStandingsXml(el, doc, cat, evCode) {
-  const entries = Array.from(doc.querySelectorAll('Standing, ClassificationEntry, Entry, Rider'));
-  if (!entries.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>'; return; }
-  const leader = parseFloat(entries[0]?.getAttribute('Points') || entries[0]?.getAttribute('points') || 0);
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--yellow);">${cat}</span> · 2026 STANDINGS · ${evCode}</div>`;
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  entries.slice(0,25).forEach((e,i) => {
-    const pos = e.getAttribute('Position') || e.getAttribute('position') || (i+1);
-    const num = e.getAttribute('RacingNumber') || e.getAttribute('Number') || '';
-    const name = e.getAttribute('Rider') || e.getAttribute('RiderName') || e.getAttribute('name') || '—';
-    const pts = parseFloat(e.getAttribute('Points') || e.getAttribute('points') || 0);
-    const gap = i===0?'—':`-${(leader-pts).toFixed(1)}`;
-    const pc = pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${num}</td>
-      <td style="padding:2px 3px;color:var(--white);white-space:nowrap;overflow:hidden;max-width:90px;">${name}</td>
-      <td style="padding:2px 3px;text-align:right;color:${pos==1?'#f5c400':'var(--green)'};font-weight:bold;">${pts}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${gap}</td>
-    </tr>`;
-  });
-  el.innerHTML = html + '</table>';
+  showStandings(rd, riders);
 }
 
 function showLive(el, data) {
@@ -2013,7 +1974,7 @@ function showLive(el, data) {
 
 function showResults(el, riders, evName, sessType, cat) {
   if (!riders || !riders.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>'; return; }
-  const sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
+  const sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'||sessType==='Q2'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
   let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
     <span style="color:var(--green);">${cat}</span> · ${evName} · ${sl}</div>`;
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
@@ -2031,10 +1992,10 @@ function showResults(el, riders, evName, sessType, cat) {
   el.innerHTML = html + '</table>';
 }
 
-function showStandings(el, riders, cat) {
+function showStandings(el, riders) {
   const leader = riders[0]?.points || 0;
   let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--yellow);">${cat}</span> · 2026 STANDINGS</div>`;
+    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.slice(0,20).forEach((r,i) => {
     const pos = r.position||(i+1);
@@ -2045,6 +2006,31 @@ function showStandings(el, riders, cat) {
       <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
       <td style="padding:2px 3px;text-align:right;color:${pos===1?'#f5c400':'var(--green)'};font-weight:bold;">${r.points||0}</td>
       <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${i===0?'—':'-'+(leader-(r.points||0))}</td>
+    </tr>`;
+  });
+  el.innerHTML = html + '</table>';
+}
+
+function showStandingsXml(el, doc) {
+  const entries = Array.from(doc.querySelectorAll('Standing, ClassificationEntry, Entry, Rider'));
+  if (!entries.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>'; return; }
+  const leader = parseFloat(entries[0]?.getAttribute('Points') || entries[0]?.getAttribute('points') || 0);
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
+    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  entries.slice(0,20).forEach((e,i) => {
+    const pos = e.getAttribute('Position') || e.getAttribute('position') || (i+1);
+    const num = e.getAttribute('RacingNumber') || e.getAttribute('Number') || '';
+    const name = e.getAttribute('Rider') || e.getAttribute('RiderName') || e.getAttribute('name') || '—';
+    const pts = parseFloat(e.getAttribute('Points') || e.getAttribute('points') || 0);
+    const gap = i===0?'—':`-${(leader-pts).toFixed(1)}`;
+    const pc = pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${num}</td>
+      <td style="padding:2px 3px;color:var(--white)">${name}</td>
+      <td style="padding:2px 3px;text-align:right;color:${pos==1?'#f5c400':'var(--green)'};font-weight:bold;">${pts}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${gap}</td>
     </tr>`;
   });
   el.innerHTML = html + '</table>';
@@ -2626,6 +2612,7 @@ updateClock();
 updateDashboard();
 buildSchedule();
 initScrollTracking();
+initResultsPanel();
 
 setInterval(updateClock, 1000);
 setInterval(updateDashboard, 1000);
