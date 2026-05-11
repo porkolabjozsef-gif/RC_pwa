@@ -1640,14 +1640,28 @@ const CAT_UUIDS = {
 const SEASONS = ['2026', '2025', '2024', '2023'];
 const SEASON_EVENTS = {
   '2026': [
-    {code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},
-    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
-    {code:'CAT',name:'Catalonia'},{code:'ITA',name:'Italy'},{code:'HUN',name:'Hungary'},
-    {code:'CZE',name:'Czech Republic'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
-    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},
-    {code:'AUT',name:'Austria'},{code:'JPN',name:'Japan'},{code:'INA',name:'Indonesia'},
-    {code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},
-    {code:'VAL',name:'Valencia'}
+    {code:'THA',name:'Thailand',      date:'2026-03-01',dateEnd:'2026-03-01'},
+    {code:'BRA',name:'Brazil',        date:'2026-03-20',dateEnd:'2026-03-22'},
+    {code:'USA',name:'USA',           date:'2026-03-27',dateEnd:'2026-03-29'},
+    {code:'SPA',name:'Spain',         date:'2026-04-24',dateEnd:'2026-04-26'},
+    {code:'FRA',name:'France',        date:'2026-05-08',dateEnd:'2026-05-10'},
+    {code:'CAT',name:'Catalonia',     date:'2026-05-15',dateEnd:'2026-05-17'},
+    {code:'ITA',name:'Italy',         date:'2026-05-29',dateEnd:'2026-05-31'},
+    {code:'HUN',name:'Hungary',       date:'2026-06-05',dateEnd:'2026-06-07'},
+    {code:'CZE',name:'Czech Republic',date:'2026-06-19',dateEnd:'2026-06-21'},
+    {code:'NED',name:'Netherlands',   date:'2026-06-26',dateEnd:'2026-06-28'},
+    {code:'GER',name:'Germany',       date:'2026-07-10',dateEnd:'2026-07-12'},
+    {code:'GBR',name:'Great Britain', date:'2026-08-07',dateEnd:'2026-08-09'},
+    {code:'ARA',name:'Aragon',        date:'2026-08-28',dateEnd:'2026-08-30'},
+    {code:'RSM',name:'San Marino',    date:'2026-09-11',dateEnd:'2026-09-13'},
+    {code:'AUT',name:'Austria',       date:'2026-09-18',dateEnd:'2026-09-20'},
+    {code:'JPN',name:'Japan',         date:'2026-10-02',dateEnd:'2026-10-04'},
+    {code:'INA',name:'Indonesia',     date:'2026-10-09',dateEnd:'2026-10-11'},
+    {code:'AUS',name:'Australia',     date:'2026-10-23',dateEnd:'2026-10-25'},
+    {code:'MAL',name:'Malaysia',      date:'2026-10-30',dateEnd:'2026-11-01'},
+    {code:'QAT',name:'Qatar',         date:'2026-11-06',dateEnd:'2026-11-08'},
+    {code:'POR',name:'Portugal',      date:'2026-11-20',dateEnd:'2026-11-22'},
+    {code:'VAL',name:'Valencia',      date:'2026-11-27',dateEnd:'2026-11-29'}
   ],
   '2025': [
     {code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
@@ -1887,6 +1901,24 @@ async function apiGet(path) {
 }
 
 async function doResults(rd) {
+  // Check if event is in the future
+  const evList = SEASON_EVENTS[selectedYear] || [];
+  const evInfo = evList.find(function(e) { return e.code === selectedEventCode; });
+  if (evInfo && evInfo.date) {
+    const evDate = new Date(evInfo.date);
+    evDate.setHours(23, 59, 59);
+    if (evDate > new Date()) {
+      var d1 = evInfo.date ? evInfo.date.replace(/-/g,'.') : '';
+      var d2 = evInfo.dateEnd ? evInfo.dateEnd.replace(/-/g,'.') : d1;
+      var dateStr = d1 === d2 ? d1 : d1 + ' — ' + d2;
+      rd.innerHTML = '<div style="text-align:center;padding:16px;">'
+        + '<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">' + evInfo.name.toUpperCase() + '</div>'
+        + '<div style="font-family:Oswald,sans-serif;font-size:16px;color:var(--yellow);letter-spacing:2px;">' + dateStr + '</div>'
+        + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px;">MÉG NEM ZAJLOTT LE</div>'
+        + '</div>';
+      return;
+    }
+  }
   const seasonUuid = SEASON_UUIDS[selectedYear];
   if (!seasonUuid) throw new Error('Ismeretlen szezon');
 
