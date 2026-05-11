@@ -1779,77 +1779,68 @@ function renderPanel() {
   tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
 
   const evList = SEASON_EVENTS[selectedYear] || [];
-
-  // Get logo URLs for all 3 categories
-  function catLogo(cat) { return getLogoUrl(cat) || ''; }
-
-  // Active category from schedule
   const { current, next } = findCurrentAndNext(getNow());
   const schedCat = (current && current.category) || (next && next.category);
-  const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
 
-  tp.innerHTML = `
-    <!-- ROW 1: Szezon + helyszín + 3 logó -->
-    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <!-- Szezon + helyszín -->
-      <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
-        <select onchange="switchYear(this.value)"
-          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);
-          border:1px solid var(--red);padding:2px 4px;cursor:pointer;border-radius:2px;width:60px;">
-          ${SEASONS.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
-        </select>
-        <select onchange="switchEventCode(this.value)"
-          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--off-white);
-          border:1px solid rgba(255,255,255,0.3);padding:2px 4px;cursor:pointer;border-radius:2px;width:120px;">
-          ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
-        </select>
-      </div>
+  // ROW 1: Szezon + helyszín + 3 logó
+  let row1 = '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">';
 
-      <!-- 3 kategória logó mint választó -->
-      <div style="display:flex;flex:1;gap:4px;justify-content:flex-end;">
-        ${MOTOGP_CATEGORIES.map(cat => {
-          const active = cat === selectedCat;
-          const auto = isAuto(cat);
-          const logo = catLogo(cat);
-          return `<button onclick="switchCat('${cat}')"
-            style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;
-            background:${active?'rgba(29,185,84,0.2)':'rgba(255,255,255,0.03)'};
-            border-color:${active?'var(--green)':'rgba(255,255,255,0.15)'};
-            position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
-            ${auto?`<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>`:''}
-            ${logo
-              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);\'>${cat}</span>'">`
-              : `<span style="font-family:Oswald,sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'}">${cat}</span>`
-            }
-          </button>`;
-        }).join('')}
-      </div>
-    </div>
+  // Szezon select
+  row1 += '<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">';
+  row1 += '<select onchange="switchYear(this.value)" style="font-family:Oswald,sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);border:1px solid var(--red);padding:2px 4px;cursor:pointer;border-radius:2px;width:60px;">';
+  SEASONS.forEach(y => {
+    row1 += '<option value="' + y + '"' + (y === selectedYear ? ' selected' : '') + '>' + y + '</option>';
+  });
+  row1 += '</select>';
 
-    <!-- ROW 2: Session gombok -->
-    <div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">
-      ${getSessionTypes().map(sess => {
-        const active = sess === selectedSession;
-        return `<button onclick="switchSession('${sess}')"
-          style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
-          padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
-          background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-          border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};
-          color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
-      }).join('')}
-      <button onclick="switchSession('STANDINGS')"
-        style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
-        padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
-        background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
-        border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
-        color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STD</button>
-    </div>
+  // Event select
+  row1 += '<select onchange="switchEventCode(this.value)" style="font-family:Oswald,sans-serif;font-size:10px;background:#1e1e1e;color:var(--off-white);border:1px solid rgba(255,255,255,0.3);padding:2px 4px;cursor:pointer;border-radius:2px;width:120px;">';
+  evList.forEach(e => {
+    row1 += '<option value="' + e.code + '"' + (e.code === selectedEventCode ? ' selected' : '') + '>' + e.name + '</option>';
+  });
+  row1 += '</select>';
+  row1 += '</div>';
 
-    <!-- ROW 3: Eredmény -->
-    <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
-      <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
-    </div>
-  `;
+  // 3 kategória logó gomb
+  row1 += '<div style="display:flex;flex:1;gap:4px;justify-content:flex-end;">';
+  MOTOGP_CATEGORIES.forEach(function(cat) {
+    const active = cat === selectedCat;
+    const isAuto = MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
+    const logo = getLogoUrl(cat) || '';
+    const bg = active ? 'rgba(29,185,84,0.2)' : 'rgba(255,255,255,0.03)';
+    const border = active ? 'var(--green)' : 'rgba(255,255,255,0.15)';
+    row1 += '<button onclick="switchCat('' + cat + '')" style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid ' + border + ';border-radius:3px;background:' + bg + ';position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">';
+    if (isAuto) row1 += '<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>';
+    if (logo) {
+      row1 += '<img src="' + logo + '" style="max-height:24px;max-width:100%;object-fit:contain;opacity:' + (active?'1':'0.5') + ';" onerror="this.style.display='none'">';
+    } else {
+      row1 += '<span style="font-family:Oswald,sans-serif;font-size:9px;color:' + (active?'var(--green)':'var(--text-mid)') + '">' + cat + '</span>';
+    }
+    row1 += '</button>';
+  });
+  row1 += '</div></div>';
+
+  // ROW 2: Session gombok
+  let row2 = '<div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">';
+  getSessionTypes().forEach(function(sess) {
+    const active = sess === selectedSession;
+    const bg = active ? 'rgba(245,196,0,0.25)' : 'rgba(255,255,255,0.05)';
+    const border = active ? 'var(--yellow)' : 'rgba(255,255,255,0.15)';
+    const color = active ? 'var(--yellow)' : 'var(--text-mid)';
+    row2 += '<button onclick="switchSession('' + sess + '')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid ' + border + ';border-radius:2px;background:' + bg + ';color:' + color + ';">' + sess + '</button>';
+  });
+  // STANDINGS gomb
+  const stdActive = selectedSession === 'STANDINGS';
+  const stdBg = stdActive ? 'rgba(29,185,84,0.25)' : 'rgba(255,255,255,0.05)';
+  const stdBorder = stdActive ? 'var(--green)' : 'rgba(255,255,255,0.15)';
+  const stdColor = stdActive ? 'var(--green)' : 'var(--text-mid)';
+  row2 += '<button onclick="switchSession('STANDINGS')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid ' + stdBorder + ';border-radius:2px;background:' + stdBg + ';color:' + stdColor + ';">STD</button>';
+  row2 += '</div>';
+
+  // ROW 3: Results area
+  const row3 = '<div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;"><div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div></div>';
+
+  tp.innerHTML = row1 + row2 + row3;
 }
 
 
