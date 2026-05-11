@@ -194,61 +194,79 @@ function loadWsbkPdf(panelEl) {
 function parseWsbkPdf(rd, text) {
   var riders = [];
 
-  // WSBK PDF structure: "1 19 ITA N BULEGA Aruba Racing... 21 1'33.901 ... 1'33.901"
-  // Split text into lines by multiple spaces or newlines
-  var lines = text.split(/\s{3,}|\n/).filter(function(l) { return l.trim(); });
-  
-  lines.forEach(function(line) {
-    line = line.trim();
-    // Match: position (1-2 digits) + number (1-3 digits) + 3-letter nation + content + time
-    var m = line.match(/^(\d{1,2})\s+(\d{1,3})\s+[A-Z]{3}\s+(.+?)\s+(\d+'\d+\.\d{3}|\d+:\d+\.\d{3})/);
-    if (m) {
-      var pos = parseInt(m[1]);
-      if (pos >= 1 && pos <= 30) {
-        // Clean name - remove single letters (flag), nation codes, team names
-        var rawName = m[3].trim();
-        // Take first 2-3 words as name
-        var nameParts = rawName.split(/\s+/).slice(0, 3);
-        // Remove single char entries (flag letter)
-        nameParts = nameParts.filter(function(p) { return p.length > 1; });
-        riders.push({pos: pos, num: m[2], name: nameParts.join(' '), time: m[4]});
-      }
-    }
-  });
+  // WSBK PDF text structure (from actual PDF):
+  // "...NEILA Yamaha YZF-R7 0.952 ITA 4 Klint Racing Team 96 R. 128.851 0.952 1'53.852 2..."
+  // Time format: 1'33.901 or 41'18.001
+  // Find all times and work backwards to find rider info
 
-  // If regex failed, try token-based approach
-  if (!riders.length) {
-    var tokens = text.replace(/\s+/g, ' ').split(' ');
-    for (var i = 0; i < tokens.length - 8; i++) {
-      var pos = parseInt(tokens[i]);
-      if (pos >= 1 && pos <= 30 && /^\d{1,2}$/.test(tokens[i])) {
-        var num = tokens[i+1];
-        if (/^\d{1,3}$/.test(num)) {
-          // Skip nation (3 letters) and flag letter
-          var ni = i + 2;
-          if (/^[A-Z]{3}$/.test(tokens[ni])) ni++;
-          if (/^[A-Z]$/.test(tokens[ni])) ni++;
-          // Collect name (2 words)
-          var name = '';
-          if (tokens[ni] && tokens[ni+1]) {
-            name = tokens[ni] + ' ' + tokens[ni+1];
-          }
-          // Find time near this position
-          var slice = tokens.slice(i, i+20).join(' ');
-          var tm = slice.match(/\d+'\d+\.\d{3}/);
-          if (name && tm) {
-            riders.push({pos: pos, num: num, name: name, time: tm[0]});
-            i = ni + 2;
-          }
-        }
+  // Strategy: find position numbers 1,2,3... followed by rider data
+  // The PDF has: gap time laps speed... SURNAME team gap time pos
+  // Better: extract times and find names before them
+  
+  // Split by time pattern and extract surrounding context
+  var timePattern = /(\d{1,2}'\d{2}\.\d{3})/g;
+  var times = [];
+  var m;
+  while ((m = timePattern.exec(text)) !== null) {
+    times.push({time: m[1], index: m.index});
+  }
+
+  // Find rider names - ALL CAPS words before time entries
+  // Pattern: SURNAME appears before the time, after speed numbers
+  var riderPattern = /\b([A-Z]{2,}(?:\s[A-Z]{2,})?)\s+Yamaha|Honda|Ducati|BMW|Kawasaki|Triumph|Aprilia|MV\s/g;
+  
+  // Simpler approach: find position markers
+  // In WSBK PDF the layout per rider is:
+  // [speed] [gap] [time] [pos_number] [name] [bike] [gap] [time] [lap]
+  // Let's find names followed by bike brands
+  var brands = 'Yamaha|Ducati|Kawasaki|BMW|Honda|Triumph|Aprilia|MV Agusta|Bimota';
+  var nameBeforeBike = new RegExp('([A-Z][A-Z]+(?:\\s[A-Z][A-Z]+)?)\\s+(' + brands + ')', 'g');
+  
+  var names = [];
+  var nm;
+  while ((nm = nameBeforeBike.exec(text)) !== null) {
+    names.push({name: nm[1], index: nm.index});
+  }
+
+  // Match positions with names and times
+  // Find position numbers 1-30 in text
+  var posPattern = /(?:^|\s)(\d{1,2})\s+([A-Z]{3})\s+([A-Z])\s+([A-Z]+(?:\s[A-Z]+)?)\s+/gm;
+  var pm;
+  while ((pm = posPattern.exec(text)) !== null) {
+    var pos = parseInt(pm[1]);
+    if (pos >= 1 && pos <= 30) {
+      // Find nearest time after this position
+      var nearTime = times.find(function(t) { return t.index > pm.index && t.index < pm.index + 200; });
+      if (nearTime) {
+        riders.push({pos: pos, num: '', name: pm[4], time: nearTime.time});
       }
     }
   }
 
+  // If still nothing, try the simplest approach:
+  // Names in WSBK PDFs are SURNAME only in caps, before bike brand
   if (!riders.length) {
-    // Show first 600 chars raw for debugging
-    rd.innerHTML = '<div style="font-size:8px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;">'
-      + text.substring(0, 600).replace(/</g,'&lt;') + '</div>';
+    // Use names array matched with times
+    names.forEach(function(n, i) {
+      var nearTime = times.find(function(t) { return Math.abs(t.index - n.index) < 150; });
+      if (nearTime) {
+        riders.push({pos: i+1, num: '', name: n.name, time: nearTime.time});
+      }
+    });
+  }
+
+  // Deduplicate by name
+  var seen = {};
+  riders = riders.filter(function(r) {
+    if (seen[r.name]) return false;
+    seen[r.name] = true;
+    return true;
+  });
+
+  if (!riders.length) {
+    // Show raw text for debugging - first 800 chars
+    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
+      + text.substring(0, 800).replace(/</g,'&lt;') + '</div>';
     return;
   }
 
@@ -256,7 +274,7 @@ function parseWsbkPdf(rd, text) {
   var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
     + '<span style="color:var(--green);">' + label + '</span> - ' + wsbkEvent + ' - ' + wsbkSessionLabel + '</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.forEach(function(r, i) {
+  riders.slice(0,25).forEach(function(r, i) {
     var pc = r.pos == 1 ? '#f5c400' : r.pos == 2 ? '#aaa' : r.pos == 3 ? '#cd7f32' : 'var(--off-white)';
     html += '<tr style="background:' + (i % 2 ? 'transparent' : 'rgba(255,255,255,0.02)') + '">'
       + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + r.pos + '</td>'
