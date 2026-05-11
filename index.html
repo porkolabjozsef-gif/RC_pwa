@@ -2656,7 +2656,7 @@ var CI = {
   FRA:{n:'Le Mans',               l:'4.185 km',c:14,r:{MotoGP:{r:'Bagnaia',    t:'1:31.198',y:2023},Moto2:{r:'Arbolino',   t:'1:36.769',y:2022},Moto3:{r:'Foggia',     t:'1:42.309',y:2022}}},
   CAT:{n:'Barcelona-Catalunya',   l:'4.657 km',c:16,r:{MotoGP:{r:'J. Martin',  t:'1:38.798',y:2024},Moto2:{r:'Vietti',     t:'1:45.264',y:2022},Moto3:{r:'S. Garcia',  t:'1:52.562',y:2021}}},
   ITA:{n:'Mugello',               l:'5.245 km',c:15,r:{MotoGP:{r:'J. Martin',  t:'1:45.519',y:2023},Moto2:{r:'Canet',      t:'1:52.830',y:2022},Moto3:{r:'McPhee',     t:'2:01.812',y:2018}}},
-  HUN:{n:'Balaton Park Circuit',  l:'4.381 km',c:16,r:{MotoGP:{r:'M. Marquez',t:'1:33.901',y:2025},Moto2:{r:'Vietti',     t:'1:40.112',y:2025},Moto3:{r:'Suzuki',     t:'1:46.884',y:2025}}},
+  HUN:{n:'Balaton Park Circuit',  l:'4.08 km',c:18,r:{MotoGP:{r:'M. Marquez',t:'1:33.901',y:2025},Moto2:{r:'Vietti',     t:'1:40.112',y:2025},Moto3:{r:'Suzuki',     t:'1:46.884',y:2025}}},
   CZE:{n:'Automotodrom Brno',     l:'5.403 km',c:14,r:{MotoGP:{r:'M. Marquez',t:'1:55.797',y:2019},Moto2:{r:'Fernandez',  t:'2:03.915',y:2022},Moto3:{r:'Fenati',     t:'2:13.651',y:2016}}},
   NED:{n:'TT Circuit Assen',      l:'4.542 km',c:18,r:{MotoGP:{r:'Bagnaia',    t:'1:32.567',y:2022},Moto2:{r:'Schrotter',  t:'1:38.456',y:2021},Moto3:{r:'Sasaki',     t:'1:45.383',y:2022}}},
   GER:{n:'Sachsenring',           l:'3.671 km',c:13,r:{MotoGP:{r:'M. Marquez',t:'1:20.269',y:2019},Moto2:{r:'Fernandez',  t:'1:25.964',y:2022},Moto3:{r:'Fenati',     t:'1:31.250',y:2016}}},
@@ -2671,19 +2671,46 @@ var CI = {
   POR:{n:'Portimao',              l:'4.592 km',c:15,r:{MotoGP:{r:'J. Martin',  t:'1:38.742',y:2023},Moto2:{r:'Ogura',      t:'1:45.267',y:2023},Moto3:{r:'Holgado',    t:'1:52.881',y:2023}}},
   VAL:{n:'Circuit Ricardo Tormo', l:'4.005 km',c:14,r:{MotoGP:{r:'J. Martin',  t:'1:29.577',y:2024},Moto2:{r:'Aldeguer',   t:'1:35.448',y:2024},Moto3:{r:'Munoz',      t:'1:42.337',y:2023}}}
 };
+function renderCI(name, length, corners, cat, rec) {
+  var el = document.getElementById('ciPanel');
+  if (!el) return;
+  var rc = (cat && rec && rec[cat]) ? cat : 'MotoGP';
+  var r = rec ? (rec[rc] || rec['MotoGP']) : null;
+  el.innerHTML =
+    '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--green);letter-spacing:1px;margin-bottom:3px;">' + name + '</div>' +
+    '<div style="font-size:9px;color:var(--text-mid);margin-bottom:5px;">' + length + ' &nbsp;|&nbsp; ' + corners + ' kanyar</div>' +
+    (r ? '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--yellow);letter-spacing:1px;margin-bottom:2px;">' + rc + ' KORREKORD</div>' +
+    '<div style="font-size:9px;color:var(--off-white);">' + r.r + '</div>' +
+    '<div style="font-size:13px;font-weight:bold;color:var(--green);">' + r.t + ' <span style="font-size:8px;color:var(--text-dim);">(' + r.y + ')</span></div>' : '');
+}
+
 function showCI(code, cat) {
   var el = document.getElementById('ciPanel');
   if (!el) return;
-  var d = CI[(code||'').toUpperCase()];
-  if (!d) { el.innerHTML = ''; return; }
-  var rc = (cat && d.r[cat]) ? cat : 'MotoGP';
-  var rec = d.r[rc];
-  el.innerHTML =
-    '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--green);letter-spacing:1px;margin-bottom:3px;">' + d.n + '</div>' +
-    '<div style="font-size:9px;color:var(--text-mid);margin-bottom:5px;">' + d.l + ' &nbsp;|&nbsp; ' + d.c + ' kanyar</div>' +
-    '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--yellow);letter-spacing:1px;margin-bottom:2px;">' + rc + ' KORREKORD</div>' +
-    '<div style="font-size:9px;color:var(--off-white);">' + rec.r + '</div>' +
-    '<div style="font-size:13px;font-weight:bold;color:var(--green);">' + rec.t + ' <span style="font-size:8px;color:var(--text-dim);">(' + rec.y + ')</span></div>';
+  var upper = (code||'').toUpperCase();
+  var d = CI[upper];
+
+  // Show static data immediately
+  if (d) renderCI(d.n, d.l, d.c, cat, d.r);
+
+  // Then try to get official data from MotoGP API via Worker
+  var proxy = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
+  var seasonUuid = 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e';
+  fetch(proxy + 'events?seasonUuid=' + seasonUuid + '&isFinished=true')
+    .then(function(r) { return r.json(); })
+    .then(function(events) {
+      var ev = events.find(function(e) {
+        return (e.short_name||'').toUpperCase() === upper ||
+               (e.additional_name||'').toUpperCase() === upper;
+      });
+      if (!ev || !ev.circuit) return;
+      var c = ev.circuit;
+      var name = c.name || (d && d.n) || upper;
+      var length = c.length ? (c.length + ' km') : (d && d.l) || '—';
+      var corners = c.corners || (d && d.c) || '—';
+      renderCI(name, length, corners, cat, d ? d.r : null);
+    })
+    .catch(function() {});
 }
 </script>
 </body>
