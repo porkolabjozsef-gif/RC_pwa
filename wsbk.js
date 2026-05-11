@@ -164,9 +164,15 @@ function loadWsbkPdf(panelEl) {
     }
   }
 
-  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">PDF betoltese...</div>';
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Betoltese...</div>';
 
-  var url = WSBK_PROXY + wsbkYear + '/' + wsbkEvent + '/' + wsbkSeries
+  // STD: use Worker to fetch worldsbk.com standings HTML
+  if (wsbkSessionLabel === 'STD') {
+    loadWsbkStandings(rd);
+    return;
+  }
+
+  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/' + wsbkYear + '/' + wsbkEvent + '/' + wsbkSeries
     + '/' + wsbkSession + '/' + wsbkSessionSub + '/' + wsbkSessionFile;
 
   if (typeof pdfjsLib === 'undefined') {
@@ -192,75 +198,92 @@ function loadWsbkPdf(panelEl) {
 }
 
 function parseWsbkPdf(rd, text) {
-  // Detect if this is a standings PDF
-  var isStandings = wsbkSessionLabel === 'STD' || 
-    text.indexOf('Riders Standings') > -1 || 
-    text.indexOf('Championship Standing') > -1;
-
-  if (isStandings) {
-    parseWsbkStandings(rd, text);
-  } else {
-    parseWsbkResults(rd, text);
-  }
+  parseWsbkResults(rd, text);
 }
 
-function parseWsbkStandings(rd, text) {
-  // Structure: NAME (NAT) total_pts round_pts round_pts...
-  // e.g. "NEILA 2... 115  20 25  20 25 20"
-  // or "1 Maria (ESP) 18 97  16 16  20 25 20 NEILA"
-  
+function loadWsbkStandings(rd) {
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Pontallas betoltese...</div>';
+
+  var seriesMap = {SBK:'sbk', SSP:'ssp', WCR:'wcr', SPB:'spb', R3:'r3'};
+  var cat = seriesMap[wsbkSeries] || 'sbk';
+  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-standings/' + cat.toUpperCase() + '/' + wsbkYear;
+
+  fetch(url)
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      parseWsbkStandingsHtml(rd, html);
+    })
+    .catch(function(e) {
+      rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Hiba: ' + e.message + '</div>';
+    });
+}
+
+function parseWsbkStandingsHtml(rd, html) {
+  // Parse the standings table from worldsbk.com HTML
+  // Table rows contain: rider name | pos | points | poles | races | podiums | wins...
   var riders = [];
-  
-  // Pattern: UPPERCASE surname followed by numbers
-  // From raw: "1 Maria (ESP) 18 97 16 16 20 25 20 NEILA 2..."
-  // Better pattern: find pos + name + points
-  
-  // Try: number + name + (nat) + number (points)
-  var pattern = /(\d{1,2})\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+\(([A-Z]{3})\)\s+(\d{1,3})/g;
-  var m;
-  while ((m = pattern.exec(text)) !== null) {
-    var pos = parseInt(m[1]);
-    if (pos >= 1 && pos <= 30) {
-      riders.push({pos: pos, name: m[2], nat: m[3], pts: m[4]});
+
+  // Find table rows with rider data
+  var rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  var cellRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+  var linkRe = />([^<]+)<\/a>/;
+  var row;
+
+  while ((row = rowRe.exec(html)) !== null) {
+    var rowHtml = row[1];
+    var cells = [];
+    var cell;
+    cellRe.lastIndex = 0;
+    while ((cell = cellRe.exec(rowHtml)) !== null) {
+      // Strip HTML tags
+      var text = cell[1].replace(/<[^>]+>/g, '').trim();
+      // Try to get link text if available
+      var linkMatch = linkRe.exec(cell[1]);
+      if (linkMatch) text = linkMatch[1].trim();
+      cells.push(text);
     }
-  }
-  
-  // Fallback: UPPERCASE names with points
-  if (!riders.length) {
-    var pattern2 = /([A-Z]{3,}(?:\s[A-Z]{2,})?)\s+(\d{2,3})\s/g;
-    var idx = 1;
-    while ((m = pattern2.exec(text)) !== null) {
-      var pts = parseInt(m[2]);
-      if (pts > 0 && pts <= 999 && m[1].length > 2) {
-        riders.push({pos: idx++, name: m[1], nat: '', pts: m[2]});
+    // Valid rider row: cells[0]=name, cells[1]=pos, cells[2]=points
+    if (cells.length >= 3) {
+      var pos = parseInt(cells[1]);
+      var pts = parseInt(cells[2]);
+      var name = cells[0].replace(/\s+/g, ' ').trim();
+      if (pos >= 1 && pos <= 50 && pts >= 0 && name.length > 2 && /[A-Za-z]/.test(name)) {
+        riders.push({pos: pos, name: name, pts: pts});
       }
-      if (riders.length >= 20) break;
     }
   }
 
+  // Sort by position
+  riders.sort(function(a,b) { return a.pos - b.pos; });
+  // Deduplicate
+  var seen = {};
+  riders = riders.filter(function(r) {
+    if (seen[r.pos]) return false;
+    seen[r.pos] = true;
+    return true;
+  });
+
   if (!riders.length) {
-    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
-      + text.substring(0, 800).replace(/</g,'&lt;') + '</div>';
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Nem sikerult parse-olni</div>';
     return;
   }
 
   var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
-  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS - ' + wsbkEvent + ' ' + wsbkYear + '</div>';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  var leader = riders[0] ? parseInt(riders[0].pts) : 0;
-  riders.slice(0,20).forEach(function(r, i) {
+  var leader = riders[0] ? riders[0].pts : 0;
+  var html2 = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear + '</div>';
+  html2 += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.slice(0,25).forEach(function(r, i) {
     var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
-    var gap = i===0 ? '' : '-'+(leader-parseInt(r.pts));
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+    var gap = i===0 ? '' : '-'+(leader-r.pts);
+    html2 += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;font-size:8px;">' + r.nat + '</td>'
       + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
       + '</tr>';
   });
-  rd.innerHTML = html + '</table>';
+  rd.innerHTML = html2 + '</table>';
 }
 
 function parseWsbkResults(rd, text) {
