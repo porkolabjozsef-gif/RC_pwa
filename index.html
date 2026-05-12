@@ -379,12 +379,13 @@ body::after {
   border-top: 2px solid var(--border);
   border-right: 2px solid var(--border);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
   background: #222222;
   overflow: hidden;
-  min-height: 60px;
+  min-height: 200px;
 }
+#timingPanel { flex: 1; min-height: 0; }
 
 .col-logo img {
   max-width: 70%;
@@ -1090,9 +1091,9 @@ body::after {
     </div><!-- /col-mid -->
 
     <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
-    <div class="col-logo" id="logoPanel" style="position:relative;">
-      <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
-      <img id="logoPanelImg" src="" alt="" style="display:none;" />
+    <div class="col-logo" id="logoPanel">
+      <div class="logo-placeholder" id="logoPlaceholder" style="flex:1;display:flex;align-items:center;justify-content:center;">— Nincs aktív sorozat —</div>
+      <img id="logoPanelImg" src="" alt="" style="display:none;max-width:70%;max-height:85%;object-fit:contain;margin:auto;" />
     </div>
 
     <!-- COL 3: SCHEDULE LIST -->
@@ -1775,7 +1776,7 @@ function renderPanel() {
     tp.id = 'timingPanel';
     panel.appendChild(tp);
   }
-  tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
+  tp.style.cssText = 'width:100%;flex:1;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
 
   const evList = SEASON_EVENTS[selectedYear] || [];
 

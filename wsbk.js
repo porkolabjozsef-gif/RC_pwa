@@ -175,14 +175,10 @@ function wsbkFetchPdfText(url, maxPages, onText, onError) {
     return nums.reduce(function(p,num){
       return p.then(function(acc){
         return pdf.getPage(num).then(function(page){
-          return page.getTextContent({normalizeWhitespace:true});
+          return page.getTextContent();
         }).then(function(tc){
-          // Rendezés: fentről lefelé (Y csökkenő), balról jobbra (X növekvő)
-          var items=tc.items.slice().sort(function(a,b){
-            var dy=Math.round(b.transform[5])-Math.round(a.transform[5]);
-            return dy!==0?dy:a.transform[4]-b.transform[4];
-          });
-          var words=items.map(function(it){return it.str.trim();}).filter(Boolean);
+          // Eredeti sorrend megtartása — a pdf.js bal->jobb, fent->le sorrendben adja
+          var words=tc.items.map(function(it){return it.str;}).filter(function(s){return s.trim();});
           acc.push(words.join(' '));
           return acc;
         });
