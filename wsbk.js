@@ -297,17 +297,129 @@ function parseWsbkPdf(rd, text) {
 }
 
 function loadWsbkStandings(rd) {
-  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
-  var data = WSBK_STANDINGS_DATA[wsbkSeries] || [];
-  
-  if (!data.length) {
-    rd.innerHTML = '<div style="color:var(--text-mid);font-size:9px;padding:4px;">Nincs standings adat: ' + wsbkSeries + '</div>';
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Pontallas betoltese...</div>';
+
+  // Use the latest event's standings PDF - always fresh
+  var evList = WSBK_EVENTS[wsbkYear] || [];
+  // Find last past event
+  var now = new Date();
+  var pastEvents = evList.filter(function(e) {
+    return new Date(e.dateEnd) < now;
+  });
+  var latestEvent = pastEvents.length ? pastEvents[pastEvents.length-1] : evList[0];
+  if (!latestEvent) {
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Nincs befejezett verseny</div>';
     return;
   }
 
+  var seriesCode = getWsbkSeriesUrlCode();
+  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
+    + wsbkYear + '/' + latestEvent.code + '/' + seriesCode
+    + '/001/STD/ChampionshipStandings.pdf';
+
+  if (typeof pdfjsLib === 'undefined') {
+    setTimeout(function() { loadWsbkStandings(rd); }, 1000);
+    return;
+  }
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  pdfjsLib.getDocument(url).promise.then(function(pdf) {
+    var pages = [];
+    for (var i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+      pages.push(pdf.getPage(i).then(function(page) {
+        return page.getTextContent().then(function(tc) {
+          return tc.items.map(function(item) { return item.str; }).join(' ');
+        });
+      }));
+    }
+    return Promise.all(pages);
+  }).then(function(texts) {
+    parseWsbkStandingsPdf(rd, texts.join(' '), latestEvent.name);
+  }).catch(function(e) {
+    // Fallback to embedded data for SBK/SSP/WCR/SPB
+    var embedded = WSBK_STANDINGS_EMBEDDED[wsbkSeries];
+    if (embedded && embedded.length) {
+      renderEmbeddedStandings(rd, embedded);
+    } else {
+      rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Hiba: ' + e.message + '</div>';
+    }
+  });
+}
+
+function parseWsbkStandingsPdf(rd, text, eventName) {
+  var riders = [];
+  var plain = text.replace(/\s+/g, ' ').trim();
+
+  // Try pattern: pos name nat pts
+  // e.g. "1 NICOLO BULEGA ITA 248" or "1 Nicolo Bulega ITA 248"
+  var re = /\b(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+  var m;
+  while ((m = re.exec(plain)) !== null) {
+    var pos = parseInt(m[1]);
+    if (pos >= 1 && pos <= 50) {
+      riders.push({pos: pos, name: m[2], pts: parseInt(m[3])});
+    }
+    if (riders.length >= 30) break;
+  }
+
+  // Fallback: UPPERCASE names
+  if (!riders.length) {
+    var re2 = /\b(\d{1,2})\s+([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+    while ((m = re2.exec(plain)) !== null) {
+      var pos2 = parseInt(m[1]);
+      if (pos2 >= 1 && pos2 <= 50) {
+        riders.push({pos: pos2, name: m[2], pts: parseInt(m[3])});
+      }
+      if (riders.length >= 30) break;
+    }
+  }
+
+  riders.sort(function(a,b) { return a.pos - b.pos; });
+  var seen = {};
+  riders = riders.filter(function(r) {
+    if (seen[r.pos]) return false;
+    seen[r.pos] = true;
+    return true;
+  });
+
+  if (!riders.length) {
+    // Show fallback embedded data
+    var embedded = WSBK_STANDINGS_EMBEDDED[wsbkSeries];
+    if (embedded && embedded.length) {
+      renderEmbeddedStandings(rd, embedded);
+      return;
+    }
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba</div>';
+    return;
+  }
+
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+  var leader = riders[0].pts;
+  var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear
+    + ' <span style="font-size:7px;color:var(--text-dim);">(' + eventName + ')</span></div>';
+  out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.forEach(function(r, i) {
+    var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
+    var gap = i===0 ? '' : '-'+(leader-r.pts);
+    out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
+      + '</tr>';
+  });
+  rd.innerHTML = out + '</table>';
+}
+
+function renderEmbeddedStandings(rd, data) {
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
   var leader = data[0].pts;
   var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS 2026 <span style="font-size:7px;color:var(--text-dim);">(NED utan)</span></div>';
+    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear
+    + ' <span style="font-size:7px;color:var(--text-dim);">(cached)</span></div>';
   out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   data.forEach(function(r, i) {
     var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
@@ -322,8 +434,8 @@ function loadWsbkStandings(rd) {
   rd.innerHTML = out + '</table>';
 }
 
-// Standings data - NED 2026 utan (12 maj 2026)
-var WSBK_STANDINGS_DATA = {
+// Fallback embedded standings (NED 2026 utan)
+var WSBK_STANDINGS_EMBEDDED = {
   SBK: [
     {n:'Nicolo Bulega',pts:248},{n:'Iker Lecuona',pts:166},{n:'Sam Lowes',pts:99},
     {n:'Miguel Oliveira',pts:85},{n:'Yari Montella',pts:82},{n:'Alex Lowes',pts:82},
