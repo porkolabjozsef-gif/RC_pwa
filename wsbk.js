@@ -237,17 +237,12 @@ function loadWsbkPdf(panelEl) {
   }
 
   pdfjsLib.getDocument(url).promise.then(function(pdf) {
-    var pages = [];
-    for (var i = 1; i <= Math.min(pdf.numPages, 2); i++) {
-      pages.push(pdf.getPage(i).then(function(page) {
-        return page.getTextContent().then(function(tc) {
-          return tc.items.map(function(item) { return item.str; }).join(' ');
-        });
-      }));
-    }
-    return Promise.all(pages);
-  }).then(function(texts) {
-    parseWsbkPdf(rd, texts.join(' '));
+    // Use position-based extraction to reconstruct rows
+    return pdf.getPage(1).then(function(page) {
+      return page.getTextContent({normalizeWhitespace: false});
+    });
+  }).then(function(tc) {
+    parseWsbkResultsByPosition(rd, tc.items);
   }).catch(function(e) {
     rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Hiba: ' + e.message + '</div>';
   });
@@ -294,6 +289,88 @@ function parseWsbkR3Standings(rd, text) {
 
 function parseWsbkPdf(rd, text) {
   parseWsbkResults(rd, text);
+}
+
+function parseWsbkResultsByPosition(rd, items) {
+  // Group items by Y position (row)
+  var rows = {};
+  items.forEach(function(item) {
+    var y = Math.round(item.transform[5]);
+    if (!rows[y]) rows[y] = [];
+    rows[y].push({x: item.transform[4], str: item.str.trim()});
+  });
+
+  // Sort rows top to bottom (descending Y in PDF coords)
+  var yKeys = Object.keys(rows).map(Number).sort(function(a,b) { return b-a; });
+
+  var riders = [];
+  var timeRe = /^\d{1,3}'\d{2}\.\d{3}$/;
+  var numRe = /^\d{1,3}$/;
+
+  yKeys.forEach(function(y) {
+    var row = rows[y].sort(function(a,b) { return a.x - b.x; });
+    var tokens = row.map(function(r) { return r.str; }).filter(function(s) { return s.length > 0; });
+    if (tokens.length < 4) return;
+
+    // Check if first token is a position number (1-30)
+    var pos = parseInt(tokens[0]);
+    if (isNaN(pos) || pos < 1 || pos > 30) return;
+
+    // Find surname - usually 3rd or 4th token, all caps, length > 2
+    var surname = '';
+    var num = '';
+    var bestLap = '';
+
+    // Second token is grid pos, third is race number
+    if (tokens.length > 2 && numRe.test(tokens[1]) && numRe.test(tokens[2])) {
+      num = tokens[2];
+      // Find surname after initial (e.g. "M.")
+      for (var i = 3; i < Math.min(tokens.length, 8); i++) {
+        if (/^[A-Z]\.$/.test(tokens[i])) continue; // skip initial
+        if (/^[A-Z]{2,}$/.test(tokens[i])) { surname = tokens[i]; break; }
+      }
+    }
+
+    // Find best lap time (last time in row)
+    for (var j = tokens.length - 1; j >= 0; j--) {
+      if (timeRe.test(tokens[j])) { bestLap = tokens[j]; break; }
+    }
+
+    if (surname && bestLap) {
+      riders.push({pos: pos, num: num, name: surname, time: bestLap});
+    }
+  });
+
+  // Deduplicate
+  var seen = {};
+  riders = riders.filter(function(r) {
+    if (seen[r.pos]) return false;
+    seen[r.pos] = true;
+    return true;
+  });
+  riders.sort(function(a,b) { return a.pos - b.pos; });
+
+  if (!riders.length) {
+    // Fallback to plain text
+    var plain = items.map(function(i) { return i.str; }).join(' ');
+    parseWsbkResults(rd, plain);
+    return;
+  }
+
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--green);">' + label + '</span> - ' + wsbkEvent + ' - ' + wsbkSessionLabel + '</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.forEach(function(r, i) {
+    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;">' + r.num + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.time + '</td>'
+      + '</tr>';
+  });
+  rd.innerHTML = html + '</table>';
 }
 
 function loadWsbkStandings(rd) {
