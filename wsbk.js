@@ -95,7 +95,7 @@ function switchChampionship(champ) {
   var panel=document.getElementById('logoPanel'); if(!panel) return;
   var tp=document.getElementById('timingPanel');
   if(!tp){tp=document.createElement('div');tp.id='timingPanel';panel.appendChild(tp);}
-  tp.style.cssText='width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
+  tp.style.cssText='width:100%;flex:1;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
   var img=document.getElementById('logoPanelImg'); var ph=document.getElementById('logoPlaceholder');
   if(img) img.style.display='none'; if(ph) ph.style.display='none';
   if(champ==='wsbk'){renderWsbkPanel(tp);}else{renderPanel();doFetch();}
