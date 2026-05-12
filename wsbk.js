@@ -352,19 +352,43 @@ function parseWsbkStandingsPdf(rd, text, eventName) {
   var riders = [];
   var plain = text.replace(/\s+/g, ' ').trim();
 
-  // R3 PDF structure: "25 25 BOCANEGRA 1 1 Aymon (BRA) 5"
-  // Pattern: pts pts SURNAME pos pos Firstname (NAT) num
-  var re = /(\d{1,3})\s+\d{1,3}\s+([A-Z]{2,})\s+(\d{1,2})\s+\d{1,2}\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{3}\)\s+\d+/g;
-  var m;
-  while ((m = re.exec(plain)) !== null) {
-    var pts = parseInt(m[1]);
-    var surname = m[2];
-    var pos = parseInt(m[3]);
-    var firstname = m[4];
-    if (pos >= 1 && pos <= 50 && pts <= 500) {
-      riders.push({pos: pos, name: firstname + ' ' + surname, pts: pts});
+  if (wsbkSeries === 'R3') {
+    // R3 structure: "25 25 BOCANEGRA 1 1 Aymon (BRA) 5"
+    // pts pts SURNAME pos pos Firstname (NAT) num
+    var re = /(\d{1,3})\s+\d{1,3}\s+([A-Z]{2,})\s+(\d{1,2})\s+\d{1,2}\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{3}\)\s+\d+/g;
+    var m;
+    while ((m = re.exec(plain)) !== null) {
+      var pts = parseInt(m[1]);
+      var pos = parseInt(m[3]);
+      var name = m[4] + ' ' + m[2];
+      if (pos >= 1 && pos <= 50 && pts <= 500) {
+        riders.push({pos: pos, name: name, pts: pts});
+      }
+      if (riders.length >= 20) break;
     }
-    if (riders.length >= 20) break;
+  } else {
+    // SBK/SSP/WCR/SPB: "1 Nicolo Bulega ITA 248"
+    var re1 = /\b(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+    var m1;
+    while ((m1 = re1.exec(plain)) !== null) {
+      var pos1 = parseInt(m1[1]);
+      if (pos1 >= 1 && pos1 <= 50) {
+        riders.push({pos: pos1, name: m1[2], pts: parseInt(m1[3])});
+      }
+      if (riders.length >= 30) break;
+    }
+    // Fallback UPPERCASE
+    if (!riders.length) {
+      var re2 = /\b(\d{1,2})\s+([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+      var m2;
+      while ((m2 = re2.exec(plain)) !== null) {
+        var pos2 = parseInt(m2[1]);
+        if (pos2 >= 1 && pos2 <= 50) {
+          riders.push({pos: pos2, name: m2[2], pts: parseInt(m2[3])});
+        }
+        if (riders.length >= 30) break;
+      }
+    }
   }
 
   riders.sort(function(a,b) { return a.pos - b.pos; });
@@ -376,6 +400,12 @@ function parseWsbkStandingsPdf(rd, text, eventName) {
   });
 
   if (!riders.length) {
+    // Fallback to embedded data
+    var embedded = WSBK_STANDINGS_EMBEDDED[wsbkSeries];
+    if (embedded && embedded.length) {
+      renderEmbeddedStandings(rd, embedded);
+      return;
+    }
     rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
       + plain.substring(0, 600).replace(/</g,'&lt;') + '</div>';
     return;
