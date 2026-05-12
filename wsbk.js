@@ -592,58 +592,57 @@ function parseWsbkStandingsHtml(rd, html) {
 
 function parseWsbkResults(rd, text) {
   var riders = [];
+  var plain = text.replace(/\s+/g, ' ').trim();
 
-  // Known team name fragments to skip
-  var teamWords = ['GRT','PATA','ARUBA','BONOVO','GMT94','ROKiT','KLINT','PONS','AMPITO',
-    'CRESCENT','RACING','TEAM','MOTOCORSA','BARNI','PEDERCINI','ORELAC','MOTOIN',
-    'FIMLA','ITALIKA','EAB','MIE','WILLI','NOLAN','XBOW'];
+  // WSBK Results PDF structure:
+  // pos grid num Initial.SURNAME NAT team bike laps [gap rel] time speed bestlap speed
+  // e.g. "1 4 6 M. HERRERA ESP Terra Vita GRT Yamaha ... 9 1'52.686 196,0 1'52.264 194,2"
+  // e.g. "2 2 36 B. NEILA ESP ... 9 0.263 0.263 1'52.626 195,3 1'53.969 194,9"
 
-  // Find all lap times
-  var times = [];
-  var tm;
+  // Find all time patterns: digits'digits.digits
   var timeRe = /(\d{1,3}'\d{2}\.\d{3})/g;
-  while ((tm = timeRe.exec(text)) !== null) {
-    times.push({time: tm[1], index: tm.index});
+  var allTimes = [];
+  var tm;
+  while ((tm = timeRe.exec(plain)) !== null) {
+    allTimes.push({time: tm[1], index: tm.index});
   }
 
-  // Find names before bike brands
-  var brands = 'Yamaha|Ducati|Kawasaki|BMW|Honda|Triumph|Aprilia|Bimota|Panigale|YZF|CBR|ZX|S1000';
-  var nameRe = new RegExp('([A-Z]{2,}(?:\\s[A-Z]{2,}){0,2})\\s+(?:' + brands + ')', 'g');
-  var nm;
-  var pos = 1;
-  while ((nm = nameRe.exec(text)) !== null) {
-    var name = nm[1].trim();
-    
-    // Skip if it's a team name fragment
-    var isTeam = false;
-    teamWords.forEach(function(tw) {
-      if (name.indexOf(tw) > -1) isTeam = true;
+  // Find rider entries: pos + grid + num + Initial.SURNAME + NAT
+  // Pattern: 1-2 digit pos, 1-2 digit grid, 1-3 digit num, Initial.SURNAME, 3-letter NAT
+  var riderRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+[A-Z]\.\s*([A-Z]+)\s+([A-Z]{3})\s/g;
+  var m;
+  while ((m = riderRe.exec(plain)) !== null) {
+    var pos = parseInt(m[1]);
+    var num = m[2];
+    var surname = m[3];
+    if (pos < 1 || pos > 30) continue;
+
+    // Find times after this rider entry
+    var afterIdx = m.index + m[0].length;
+    var riderTimes = allTimes.filter(function(t) {
+      return t.index > afterIdx && t.index < afterIdx + 300;
     });
-    // Skip nation codes
-    if (/^[A-Z]{3}$/.test(name)) isTeam = true;
-    // Skip short fragments
-    if (name.length < 3) isTeam = true;
-    
-    if (!isTeam) {
-      var nearTime = times.find(function(t) {
-        return t.index > nm.index - 100 && t.index < nm.index + 300;
-      });
-      riders.push({pos: pos++, num: '', name: name, time: nearTime ? nearTime.time : ''});
-    }
+
+    // First time = race time (or gap for non-leaders), last time = best lap
+    var bestLap = riderTimes.length >= 2 ? riderTimes[riderTimes.length-1].time :
+                  riderTimes.length === 1 ? riderTimes[0].time : '';
+
+    riders.push({pos: pos, num: num, name: surname, time: bestLap});
     if (riders.length >= 25) break;
   }
 
-  // Deduplicate
+  // Deduplicate by pos
   var seen = {};
   riders = riders.filter(function(r) {
-    if (seen[r.name]) return false;
-    seen[r.name] = true;
+    if (seen[r.pos]) return false;
+    seen[r.pos] = true;
     return true;
   });
+  riders.sort(function(a,b) { return a.pos - b.pos; });
 
   if (!riders.length) {
     rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
-      + text.substring(0, 800).replace(/</g,'&lt;') + '</div>';
+      + plain.substring(0, 600).replace(/</g,'&lt;') + '</div>';
     return;
   }
 
@@ -651,11 +650,11 @@ function parseWsbkResults(rd, text) {
   var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
     + '<span style="color:var(--green);">' + label + '</span> - ' + wsbkEvent + ' - ' + wsbkSessionLabel + '</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,25).forEach(function(r, i) {
+  riders.forEach(function(r, i) {
     var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
     html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + r.num + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;">' + r.num + '</td>'
       + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.time + '</td>'
       + '</tr>';
