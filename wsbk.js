@@ -315,37 +315,62 @@ function loadWsbkStandings(rd) {
 function parseWsbkStandingsHtml(rd, html) {
   var riders = [];
 
-  // Extract from table: rider link + pos + points
-  // Pattern: /en/rider/Name Surname/ID ... | pos | points |
-  var riderLinkRe = /\/en\/rider\/([^/]+)\/\d+[^>]*>([^<]+)<\/a>[\s\S]{1,500}?<\/td>\s*<td[^>]*>\s*(\d+)\s*<\/td>\s*<td[^>]*>\s*(\d+)\s*<\/td>/g;
+  // The page has multiple tables - one per series
+  // Find table for our series by looking for anchor IDs or series-specific links
+  // Links pattern: /en/results statistics/rider/Name/poles/SBK/2026
+  var seriesCode = wsbkSeries === 'R3' ? 'YR3EC' : wsbkSeries;
+  
+  // Find the section containing our series links
+  // Each table has links like: /rider/Name/wins/SBK/2026
+  var tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
   var m;
-  while ((m = riderLinkRe.exec(html)) !== null) {
-    var name = m[2].trim();
-    var pos = parseInt(m[3]);
-    var pts = parseInt(m[4]);
-    if (pos >= 1 && pos <= 50 && name.length > 2) {
-      riders.push({pos: pos, name: name, pts: pts});
+  var seriesTable = '';
+  while ((m = tableRe.exec(html)) !== null) {
+    // Check if this table contains our series
+    if (m[1].indexOf('/' + wsbkSeries + '/' + wsbkYear) > -1 ||
+        m[1].indexOf('/' + seriesCode + '/' + wsbkYear) > -1) {
+      seriesTable = m[1];
+      break;
     }
-    if (riders.length >= 25) break;
   }
 
-  // Fallback: simpler link extraction
-  if (!riders.length) {
-    var linkRe = /\/en\/rider\/[^"]+"\s*>\s*([A-Z][A-Z\s]+?)\s*<\/a>/g;
-    var pos = 1;
-    while ((m = linkRe.exec(html)) !== null) {
-      var name = m[1].trim();
-      if (name.length > 3 && !['WORLDSBK','WORLDSSP','WORLDWCR','WORLDSPB'].includes(name)) {
-        riders.push({pos: pos++, name: name, pts: 0});
-      }
-      if (riders.length >= 25) break;
+  // If no series-specific table found, use full HTML
+  var searchHtml = seriesTable || html;
+
+  // Extract rider rows: rider link + pos + points columns
+  var rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  var row;
+  while ((row = rowRe.exec(searchHtml)) !== null) {
+    var rowHtml = row[1];
+    // Find rider name from link
+    var nameMatch = rowHtml.match(/\/en\/rider\/[^"]+"\s*[^>]*>\s*([A-Z][^<]+?)\s*<\/a>/);
+    if (!nameMatch) continue;
+    var name = nameMatch[1].trim();
+    if (name.length < 3) continue;
+    
+    // Find all td numbers
+    var nums = [];
+    var tdRe = /<td[^>]*>\s*(\d+)\s*<\/td>/g;
+    var td;
+    while ((td = tdRe.exec(rowHtml)) !== null) {
+      nums.push(parseInt(td[1]));
     }
+    
+    if (nums.length >= 2) {
+      // First number = pos, second = points
+      var pos = nums[0];
+      var pts = nums[1];
+      if (pos >= 1 && pos <= 50) {
+        riders.push({pos: pos, name: name, pts: pts});
+      }
+    }
+    if (riders.length >= 25) break;
   }
 
   riders.sort(function(a,b) { return a.pos - b.pos; });
 
   if (!riders.length) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba</div>';
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba - ' + wsbkSeries + '</div>';
     return;
   }
 
