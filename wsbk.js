@@ -221,43 +221,7 @@ function renderWsbkPanel(panelEl) {
 // STANDINGS
 // ============================================================
 function loadWsbkStandings(rd) {
-  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">&#9203; Pontallas betoltese...</div>';
-
-  var evList = WSBK_EVENTS[wsbkYear] || [];
-  var now = new Date();
-  var pastEvents = evList.filter(function(e) { return new Date(e.dateEnd) < now; });
-  var latestEvent = pastEvents.length ? pastEvents[pastEvents.length-1] : null;
-
-  if (!latestEvent) {
-    renderEmbeddedStandings(rd);
-    return;
-  }
-
-  var url = WSBK_PROXY + wsbkYear + '/' + latestEvent.code + '/' + getWsbkUrlCode() + '/001/STD/ChampionshipStandings.pdf';
-
-  if (typeof pdfjsLib === 'undefined') {
-    setTimeout(function() { loadWsbkStandings(rd); }, 1000);
-    return;
-  }
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
-
-  pdfjsLib.getDocument(url).promise.then(function(pdf) {
-    var pages = [];
-    for (var i = 1; i <= Math.min(pdf.numPages, 3); i++) {
-      pages.push(pdf.getPage(i).then(function(page) {
-        return page.getTextContent().then(function(tc) {
-          return tc.items.map(function(item) { return item.str; }).join(' ');
-        });
-      }));
-    }
-    return Promise.all(pages);
-  }).then(function(texts) {
-    parseWsbkStandingsPdf(rd, texts.join(' '), latestEvent.name);
-  }).catch(function() {
-    renderEmbeddedStandings(rd);
-  });
+  renderEmbeddedStandings(rd);
 }
 
 function parseWsbkStandingsPdf(rd, text, eventName) {
@@ -340,7 +304,7 @@ function renderEmbeddedStandings(rd) {
   var leader = data[0].pts;
   var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
     + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear
-    + ' <span style="font-size:7px;color:var(--text-dim);">(cached)</span></div>';
+    + ' <span style="font-size:7px;color:var(--text-dim);">(NED utan)</span></div>';
   out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   data.forEach(function(r, i) {
     var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
