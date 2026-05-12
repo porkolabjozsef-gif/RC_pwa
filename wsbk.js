@@ -63,7 +63,7 @@ var wsbkSessionLabel = 'R1';
 // CACHE
 // ============================================================
 function wsbkCacheKey(type) {
-  return 'wsbk_'+type+'_'+wsbkYear+'_'+wsbkEvent+'_'+wsbkSeries+'_'+wsbkSession;
+  return 'wsbk2_'+type+'_'+wsbkYear+'_'+wsbkEvent+'_'+wsbkSeries+'_'+wsbkSession;
 }
 function wsbkCacheGet(type) {
   try { var r=sessionStorage.getItem(wsbkCacheKey(type)); return r?JSON.parse(r):null; } catch(e){return null;}
@@ -213,65 +213,68 @@ function loadWsbkSession(rd) {
 // ahol BETŰ. = "N." "I." "S." stb. (kezdőbetű pont)
 // ============================================================
 function parseSessionText(text) {
-  var rows=[];
-  var seen={};
+  var rows = [];
+  var seen = {};
 
-  // Fő regex: befogja mind a race (grid van) mind a nem-race (nincs grid) formát
-  // Pos: \d{1,2}
-  // Opcionális grid: (?:\d{1,2}\s+)?
-  // Rajtszám: \d{1,3}
-  // Initial: [A-Z]\.
-  // Surname: [A-Z][A-Z\-']+  (nagybetűs, lehet kötőjeles)
-  // NAT: [A-Z]{3}
-  // A sorban valahol később: időeredmény X'XX.XXX formátumban
-  var re=new RegExp(
-    '(\\d{1,2})\\s+(?:\\d{1,2}\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-]+)\\s+([A-Z]{3})'+
-    '[^0-9]*'+
-    "(\\d'\\d{2}\\.\\d{3})",
-    'g'
-  );
+  // Minta: "N. BULEGA ITA" után keresünk laptime-ot (X'XX.XXX)
+  // Előtte van: pos [grid] num
+  // A laptime az első ilyen formátumú szám a sorban
+  var reRider = /(\d{1,2})\s+(?:(\d{1,2})\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})/g;
+  var reTime  = /\d'\d{2}\.\d{3}/g;
 
-  var m;
-  while((m=re.exec(text))!==null){
-    var pos=parseInt(m[1]);
-    var num=parseInt(m[2]);
-    var init=m[3];
-    var sur=m[4];
-    var nat=m[5];
-    var lap=m[6];
-    if(pos<1||pos>60) continue;
-    var key=num+'_'+pos;
-    if(seen[key]) continue;
-    seen[key]=1;
-
-    // Gap: race esetén a lap előtti szövegből kiszedünk egy számot
-    // ami lehet "2.538" vagy "1'07.187"
-    var gap='';
-    var before=text.slice(Math.max(0,m.index),m.index+m[0].length-lap.length);
-    var gm=before.match(/\b(\d{1,2}'\d{2}\.\d+|\d+\.\d{3})\b/g);
-    if(gm&&gm.length>0) gap=gm[gm.length-1];
-    if(gap===lap) gap='';
-
-    var name=init+'. '+sur.charAt(0)+sur.slice(1).toLowerCase();
-    rows.push({pos:pos,num:num,name:name,nat:nat,lap:lap,gap:gap});
+  // Gyűjtsük össze az összes laptime pozícióját
+  var times = [];
+  var tm;
+  reTime.lastIndex = 0;
+  while((tm = reTime.exec(text)) !== null) {
+    times.push({idx: tm.index, val: tm[0]});
   }
 
-  // RET — "RET \d \d{1,3} X. SURNAME NAT"
-  var reRet=new RegExp('RET\\s+(?:\\d+\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-]+)\\s+([A-Z]{3})','g');
-  while((m=reRet.exec(text))!==null){
-    var num=parseInt(m[1]);
-    var key='RET_'+num;
+  var m;
+  reRider.lastIndex = 0;
+  while((m = reRider.exec(text)) !== null) {
+    var pos = parseInt(m[1]);
+    var num = parseInt(m[3]);
+    var init = m[4];
+    var sur  = m[5];
+    var nat  = m[6];
+    if(pos < 1 || pos > 60) continue;
+    var key = num + '_' + pos;
     if(seen[key]) continue;
-    seen[key]=1;
-    rows.push({pos:'RET',num:num,name:m[2]+'. '+m[3].charAt(0)+m[3].slice(1).toLowerCase(),nat:m[4],lap:'',gap:'DNF'});
+    seen[key] = 1;
+
+    // Első laptime ami a rider neve után jön
+    var afterIdx = m.index + m[0].length;
+    var lap = '';
+    for(var t = 0; t < times.length; t++) {
+      if(times[t].idx >= afterIdx) { lap = times[t].val; break; }
+    }
+    if(!lap) continue;
+
+    // Gap: a laptime előtti szövegből (a rider match vége és a laptime között)
+    var between = text.slice(afterIdx, times[t] ? times[t].idx : afterIdx);
+    var gm = between.match(/\d{1,2}'\d{2}\.\d+|\d+\.\d{3}/g);
+    var gap = (gm && gm.length > 0) ? gm[gm.length-1] : '';
+
+    var name = init + '. ' + sur.charAt(0) + sur.slice(1).toLowerCase();
+    rows.push({pos:pos, num:num, name:name, nat:nat, lap:lap, gap:gap});
+  }
+
+  // RET sorok
+  var reRet = /RET\s+(?:\d+\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})/g;
+  while((m = reRet.exec(text)) !== null) {
+    var num = parseInt(m[1]);
+    var key = 'RET_' + num;
+    if(seen[key]) continue;
+    seen[key] = 1;
+    rows.push({pos:'RET', num:num, name:m[2]+'. '+m[3].charAt(0)+m[3].slice(1).toLowerCase(), nat:m[4], lap:'', gap:'DNF'});
   }
 
   rows.sort(function(a,b){
-    if(a.pos==='RET') return 1; if(b.pos==='RET') return -1; return a.pos-b.pos;
+    if(a.pos==='RET') return 1; if(b.pos==='RET') return -1; return a.pos - b.pos;
   });
   return rows;
 }
-
 // ============================================================
 // SESSION TÁBLÁZAT
 // ============================================================
@@ -300,15 +303,82 @@ function renderSessionTable(rd,rows){
 // ============================================================
 // STANDINGS BETÖLTÉSE
 // ============================================================
-function loadWsbkStandings(rd){
-  var cached=wsbkCacheGet('std');
-  if(cached&&cached.length>=3){renderStandingsTable(rd,cached);return;}
-  rd.innerHTML=wsbkLoadingHtml();
-  wsbkFetchPdfText(getWsbkProxyUrl(null),99,function(text){
-    var riders=parseStandingsText(text);
-    if(riders&&riders.length>=3){wsbkCacheSet('std',riders);renderStandingsTable(rd,riders);}
-    else{renderEmbeddedStandings(rd);}
-  },function(){renderEmbeddedStandings(rd);});
+// ============================================================
+// STANDINGS — automatikus frissítés az utolsó lezajlott futam alapján
+// ============================================================
+function getLatestFinishedEvent() {
+  var now = new Date();
+  var evList = WSBK_EVENTS[wsbkYear] || [];
+  var latest = null;
+  evList.forEach(function(ev) {
+    if(ev.series && ev.series.indexOf(wsbkSeries) === -1) return;
+    if(new Date(ev.dateEnd) < now) latest = ev;
+  });
+  return latest;
+}
+
+function getStdProxyUrlForEvent(ev) {
+  return WSBK_PROXY + wsbkYear + '/' + ev.code + '/'
+    + (WSBK_SERIES_URL[wsbkSeries] || wsbkSeries)
+    + '/001/STD/ChampionshipStandings.pdf';
+}
+
+function loadWsbkStandings(rd) {
+  var latest = getLatestFinishedEvent();
+
+  // Ha nincs lezajlott futam ebben az évben → embedded
+  if(!latest) {
+    renderEmbeddedStandings(rd);
+    return;
+  }
+
+  // Cache kulcs az utolsó futam alapján
+  var cacheKey = 'wsbk3_std_' + wsbkYear + '_' + latest.code + '_' + wsbkSeries;
+  try {
+    var cached = sessionStorage.getItem(cacheKey);
+    if(cached) {
+      var riders = JSON.parse(cached);
+      if(riders && riders.length >= 3) {
+        renderStandingsTable(rd, riders, latest.code);
+        return;
+      }
+    }
+  } catch(e) {}
+
+  // Fetch a legutóbbi lezajlott futam standings PDF-jét
+  rd.innerHTML = wsbkLoadingHtml();
+
+  if(typeof pdfjsLib === 'undefined') {
+    renderEmbeddedStandings(rd);
+    return;
+  }
+
+  var url = getStdProxyUrlForEvent(latest);
+  pdfjsLib.getDocument(url).promise.then(function(pdf) {
+    var nums = [];
+    for(var i = 1; i <= pdf.numPages; i++) nums.push(i);
+    return nums.reduce(function(p, num) {
+      return p.then(function(acc) {
+        return pdf.getPage(num).then(function(page) {
+          return page.getTextContent();
+        }).then(function(tc) {
+          var words = tc.items.map(function(it){ return it.str; }).filter(function(s){ return s.trim(); });
+          acc.push(words.join(' '));
+          return acc;
+        });
+      });
+    }, Promise.resolve([]));
+  }).then(function(pages) {
+    var riders = parseStandingsText(pages.join(' '));
+    if(riders && riders.length >= 3) {
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(riders)); } catch(e) {}
+      renderStandingsTable(rd, riders, latest.code);
+    } else {
+      renderEmbeddedStandings(rd);
+    }
+  }).catch(function() {
+    renderEmbeddedStandings(rd);
+  });
 }
 
 // ============================================================
@@ -370,13 +440,14 @@ function parseStandingsText(text) {
 // ============================================================
 // STANDINGS TÁBLÁZAT
 // ============================================================
-function renderStandingsTable(rd,riders){
+function renderStandingsTable(rd, riders, eventCode){
   var label=WSBK_SERIES_LABELS[wsbkSeries]||wsbkSeries;
   var leader=riders[0].pts;
+  var evCode = eventCode || wsbkEvent;
   var out='<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:5px;letter-spacing:1px;">'
     +'<span style="color:var(--yellow);">'+label+'</span>'
-    +' STANDINGS \u00b7 '+wsbkYear+' \u00b7 '+wsbkEvent
-    +' <span style="font-size:7px;color:var(--green);">\u25cf LIVE</span></div>';
+    +' STANDINGS \u00b7 '+wsbkYear+' \u00b7 '+evCode
+    +' <span style="font-size:7px;color:var(--green);">\u25cf AUTO</span></div>';
   out+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.forEach(function(r,i){
     var pc=i===0?'#f5c400':i===1?'#bbb':i===2?'#cd7f32':'var(--off-white)';
@@ -426,52 +497,124 @@ function wsbkNoDataHtml() {return '<div style="font-family:Oswald,sans-serif;fon
 // EMBEDDED STANDINGS — HUN 2026 UTÁN
 // ============================================================
 var WSBK_STANDINGS_EMBEDDED = {
+  // Forrás: worldsbk.com ChampionshipStandings.pdf — HUN 2026 után (2026-05-03)
   SBK: [
-    {n:'Nicolo Bulega',pts:211},{n:'Iker Lecuona',pts:137},{n:'Sam Lowes',pts:89},
-    {n:'Miguel Oliveira',pts:85},{n:'Alex Lowes',pts:79},{n:'Alvaro Bautista',pts:70},
-    {n:'Axel Bassani',pts:67},{n:'Yari Montella',pts:61},{n:'Lorenzo Baldassarri',pts:58},
-    {n:'Andrea Locatelli',pts:53},{n:'Danilo Petrucci',pts:46},{n:'Xavi Vierge',pts:40},
-    {n:'Tarran Mackenzie',pts:36},{n:'Garrett Gerloff',pts:27},{n:'Alberto Surra',pts:21},
-    {n:'Remy Gardner',pts:16},{n:'Stefano Manzi',pts:9},{n:'Thomas Bridewell',pts:8},
-    {n:'Tetsuta Nagashima',pts:7},{n:'Jonathan Rea',pts:4},{n:'Somkiat Chantra',pts:1},
-    {n:'Bahattin Sofuoglu',pts:1},{n:'Ryan Vickers',pts:1}
+    {n:'Nicolo Bulega',      pts:211},
+    {n:'Iker Lecuona',       pts:137},
+    {n:'Sam Lowes',          pts:89},
+    {n:'Miguel Oliveira',    pts:85},
+    {n:'Alex Lowes',         pts:79},
+    {n:'Alvaro Bautista',    pts:70},
+    {n:'Axel Bassani',       pts:67},
+    {n:'Yari Montella',      pts:61},
+    {n:'Lorenzo Baldassarri',pts:58},
+    {n:'Andrea Locatelli',   pts:53},
+    {n:'Danilo Petrucci',    pts:46},
+    {n:'Xavi Vierge',        pts:40},
+    {n:'Tarran Mackenzie',   pts:36},
+    {n:'Garrett Gerloff',    pts:27},
+    {n:'Alberto Surra',      pts:21},
+    {n:'Remy Gardner',       pts:16},
+    {n:'Stefano Manzi',      pts:9},
+    {n:'Thomas Bridewell',   pts:8},
+    {n:'Tetsuta Nagashima',  pts:7},
+    {n:'Jonathan Rea',       pts:4},
+    {n:'Somkiat Chantra',    pts:1},
+    {n:'Bahattin Sofuoglu',  pts:1},
+    {n:'Ryan Vickers',       pts:1}
   ],
   SSP: [
-    {n:'Albert Arenas',pts:125},{n:'Jaume Masia',pts:106},{n:'Valentin Debise',pts:97},
-    {n:'Philipp Oettl',pts:89},{n:'Can Oncu',pts:68},{n:'Lucas Mahias',pts:59},
-    {n:'Jeremy Alcoba',pts:56},{n:'Alessandro Zaccone',pts:50},{n:'Tom Booth-Amos',pts:47},
-    {n:'Matteo Ferrari',pts:43},{n:'Roberto Garcia',pts:41},{n:'Aldi Mahendra',pts:33},
-    {n:'Simon Jespersen',pts:27},{n:'Mattia Casadei',pts:21},{n:'Oli Bayliss',pts:20},
-    {n:'Dominique Aegerter',pts:20},{n:'Corentin Perolari',pts:16},{n:'Filippo Farioli',pts:14},
-    {n:'Andrea Giombini',pts:13},{n:'Ondrej Vostatek',pts:12},{n:'Josh Whatley',pts:11},
-    {n:'Federico Caricasulo',pts:10},{n:'Xavi Cardelus',pts:2}
+    {n:'Albert Arenas',      pts:125},
+    {n:'Jaume Masia',        pts:106},
+    {n:'Valentin Debise',    pts:97},
+    {n:'Philipp Oettl',      pts:89},
+    {n:'Can Oncu',           pts:68},
+    {n:'Lucas Mahias',       pts:59},
+    {n:'Jeremy Alcoba',      pts:56},
+    {n:'Alessandro Zaccone', pts:50},
+    {n:'Tom Booth-Amos',     pts:47},
+    {n:'Matteo Ferrari',     pts:43},
+    {n:'Roberto Garcia',     pts:41},
+    {n:'Aldi Mahendra',      pts:33},
+    {n:'Simon Jespersen',    pts:27},
+    {n:'Mattia Casadei',     pts:21},
+    {n:'Oli Bayliss',        pts:20},
+    {n:'Dominique Aegerter', pts:20},
+    {n:'Corentin Perolari',  pts:16},
+    {n:'Filippo Farioli',    pts:14},
+    {n:'Andrea Giombini',    pts:13},
+    {n:'Ondrej Vostatek',    pts:12},
+    {n:'Josh Whatley',       pts:11},
+    {n:'Federico Caricasulo',pts:10},
+    {n:'Xavi Cardelus',      pts:2}
   ],
   WCR: [
-    {n:'Maria Herrera',pts:115},{n:'Beatriz Neila',pts:97},{n:'Roberta Ponziani',pts:65},
-    {n:'Paola Ramos',pts:61},{n:'Muklada Sarapuech',pts:45},{n:'Natalia Rivera',pts:41},
-    {n:'Chloe Jones',pts:38},{n:'Lucie Boudesseul',pts:36},{n:'Pakita Ruiz',pts:35},
-    {n:'Yvonne Cerpa',pts:28},{n:'Tayla Relph',pts:27},{n:'Astrid Madrigal',pts:24},
-    {n:'Sara Sanchez',pts:20},{n:'Karolina Danak',pts:18},{n:'Isis Carreno',pts:9},
-    {n:'Denise Dal Zotto',pts:9},{n:'Arianna Barale',pts:7},{n:'Line Vieillard',pts:7},
-    {n:'Mallory Dobbs',pts:6},{n:'Patrycja Sowa',pts:4},{n:'Lucy Michel',pts:3},
-    {n:'Katie Hand',pts:2},{n:'Adela Ourednickova',pts:2},{n:'Emily Bondi',pts:1}
+    {n:'Maria Herrera',      pts:115},
+    {n:'Beatriz Neila',      pts:97},
+    {n:'Roberta Ponziani',   pts:65},
+    {n:'Paola Ramos',        pts:61},
+    {n:'Muklada Sarapuech',  pts:45},
+    {n:'Natalia Rivera',     pts:41},
+    {n:'Chloe Jones',        pts:38},
+    {n:'Lucie Boudesseul',   pts:36},
+    {n:'Pakita Ruiz',        pts:35},
+    {n:'Yvonne Cerpa',       pts:28},
+    {n:'Tayla Relph',        pts:27},
+    {n:'Astrid Madrigal',    pts:24},
+    {n:'Sara Sanchez',       pts:20},
+    {n:'Karolina Danak',     pts:18},
+    {n:'Isis Carreno',       pts:9},
+    {n:'Denise Dal Zotto',   pts:9},
+    {n:'Arianna Barale',     pts:7},
+    {n:'Line Vieillard',     pts:7},
+    {n:'Mallory Dobbs',      pts:6},
+    {n:'Patrycja Sowa',      pts:4},
+    {n:'Lucy Michel',        pts:3},
+    {n:'Katie Hand',         pts:2},
+    {n:'Adela Ourednickova', pts:2},
+    {n:'Emily Bondi',        pts:1}
   ],
   SPB: [
-    {n:'David Salvador',pts:69},{n:'Jeffrey Buis',pts:64},{n:'Ferre Fleerackers',pts:59},
-    {n:'Xavi Artigas',pts:54},{n:'Antonio Torres',pts:53},{n:'Matteo Vannucci',pts:41},
-    {n:'Loris Veneman',pts:40},{n:'Bruno Ieraci',pts:35},{n:'Elia Bartolini',pts:22},
-    {n:'Kas Beekmans',pts:19},{n:'Diego Poncet',pts:18},{n:'Carter Thompson',pts:16},
-    {n:'Marco Gaggi',pts:16},{n:'Alvaro Fuertes',pts:13},{n:'Benat Fernandez',pts:12},
-    {n:'Harrison Dessoy',pts:7},{n:'Mirko Gennai',pts:6},{n:'Alessandro Di Persio',pts:5},
-    {n:'Jose Osuna',pts:4},{n:'Thomas Benetti',pts:3},{n:'Mattia Sorrenti',pts:2},
-    {n:'Gonzalo Sanchez',pts:1},{n:'Juan Risueno',pts:1}
+    {n:'David Salvador',      pts:69},
+    {n:'Jeffrey Buis',        pts:64},
+    {n:'Ferre Fleerackers',   pts:59},
+    {n:'Xavi Artigas',        pts:54},
+    {n:'Antonio Torres',      pts:53},
+    {n:'Matteo Vannucci',     pts:41},
+    {n:'Loris Veneman',       pts:40},
+    {n:'Bruno Ieraci',        pts:35},
+    {n:'Elia Bartolini',      pts:22},
+    {n:'Kas Beekmans',        pts:19},
+    {n:'Diego Poncet',        pts:18},
+    {n:'Carter Thompson',     pts:16},
+    {n:'Marco Gaggi',         pts:16},
+    {n:'Alvaro Fuertes',      pts:13},
+    {n:'Benat Fernandez',     pts:12},
+    {n:'Harrison Dessoy',     pts:7},
+    {n:'Mirko Gennai',        pts:6},
+    {n:'Alessandro Di Persio',pts:5},
+    {n:'Jose Osuna',          pts:4},
+    {n:'Thomas Benetti',      pts:3},
+    {n:'Mattia Sorrenti',     pts:2},
+    {n:'Gonzalo Sanchez',     pts:1},
+    {n:'Juan Risueno',        pts:1}
   ],
   R3: [
-    {n:'Aymon Bocanegra',pts:25},{n:'Xarly Mendez',pts:20},{n:'Alessandro Binder',pts:16},
-    {n:'Emanuele Pastore',pts:13},{n:'Christopher Clark',pts:11},{n:'Mauro Gomez',pts:10},
-    {n:'Riichi Takahira',pts:9},{n:'Rintaro Takemoto',pts:8},{n:'Angelo Mottola',pts:7},
-    {n:'Heitor Santana',pts:6},{n:'Salvatore Germano',pts:5},{n:'Daniel Krabacher',pts:4},
-    {n:'Ruggero Berti',pts:3},{n:'Nathan Bettencourt',pts:2},{n:'Charlie Huntingford',pts:1}
+    {n:'Aymon Bocanegra',    pts:25},
+    {n:'Xarly Mendez',       pts:20},
+    {n:'Alessandro Binder',  pts:16},
+    {n:'Emanuele Pastore',   pts:13},
+    {n:'Christopher Clark',  pts:11},
+    {n:'Mauro Gomez',        pts:10},
+    {n:'Riichi Takahira',    pts:9},
+    {n:'Rintaro Takemoto',   pts:8},
+    {n:'Angelo Mottola',     pts:7},
+    {n:'Heitor Santana',     pts:6},
+    {n:'Salvatore Germano',  pts:5},
+    {n:'Daniel Krabacher',   pts:4},
+    {n:'Ruggero Berti',      pts:3},
+    {n:'Nathan Bettencourt', pts:2},
+    {n:'Charlie Huntingford',pts:1}
   ]
 };
 
