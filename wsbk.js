@@ -314,75 +314,75 @@ function loadWsbkStandings(rd) {
 
 function parseWsbkStandingsHtml(rd, html) {
   var riders = [];
-  var seriesKey = wsbkSeries === 'R3' ? 'YR3EC' : wsbkSeries;
 
-  // Find the correct table by series code in links
-  // Links look like: /en/results statistics/rider/Name/poles/SBK/2026
-  var tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  // Pattern from actual HTML:
+  // [NICOLO BULEGA](https://www.worldsbk.com/en/rider/Nicolo Bulega/6164) | 1 | 248 | ...
+  // In raw HTML: <a href="/en/rider/Nicolo Bulega/6164">NICOLO BULEGA</a> ... <td>1</td><td>248</td>
+
+  // Find rider links and extract name + following numbers
+  var riderRe = /href="\/en\/rider\/[^"]+\/(\d+)"[^>]*>([^<]+)<\/a>([\s\S]{0,600})/g;
   var m;
-  var seriesTable = '';
-  while ((m = tableRe.exec(html)) !== null) {
-    if (m[1].indexOf('/' + wsbkSeries + '/' + wsbkYear) > -1) {
-      seriesTable = m[1];
-      break;
-    }
-  }
-
-  var searchHtml = seriesTable || html;
-
-  // Extract rows with rider name links
-  // Link pattern: /en/rider/Name Surname/ID">NAME
-  var rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  var row;
-  while ((row = rowRe.exec(searchHtml)) !== null) {
-    var rowHtml = row[1];
+  while ((m = riderRe.exec(html)) !== null) {
+    var name = m[2].trim();
+    if (name.length < 3) continue;
     
-    // Find rider name - from /en/rider/ link
-    var nameMatch = rowHtml.match(/\/en\/rider\/[^"]+"\s*[^>]*>([^<]+)<\/a>/);
-    if (!nameMatch) continue;
-    var name = nameMatch[1].trim();
-    if (name.length < 3 || name === 'RIDER') continue;
-
-    // Find td numbers - pos is first, points is second
-    var tdRe = /<td[^>]*>[\s\S]*?(\d+)[\s\S]*?<\/td>/g;
-    var td;
+    // Find first two numbers after the link (pos and points)
     var nums = [];
-    while ((td = tdRe.exec(rowHtml)) !== null) {
-      var n = parseInt(td[1]);
-      if (!isNaN(n)) nums.push(n);
+    var numRe = />\s*(\d+)\s*</g;
+    var nm;
+    var segment = m[3];
+    while ((nm = numRe.exec(segment)) !== null) {
+      nums.push(parseInt(nm[1]));
+      if (nums.length >= 2) break;
     }
-
-    if (nums.length >= 2) {
+    
+    if (nums.length >= 2 && nums[0] >= 1 && nums[0] <= 50) {
       riders.push({pos: nums[0], name: name, pts: nums[1]});
+    } else if (nums.length === 1 && nums[0] >= 1 && nums[0] <= 50) {
+      riders.push({pos: nums[0], name: name, pts: 0});
     }
+    
     if (riders.length >= 25) break;
   }
 
-  // Fallback: extract all rider links and all numbers separately
-  if (!riders.length) {
-    var names = [];
-    var linkRe = /\/en\/rider\/([^/]+)\/\d+"[^>]*>([^<]+)<\/a>/g;
-    while ((m = linkRe.exec(searchHtml)) !== null) {
-      var n = m[2].trim();
-      if (n.length > 2 && names.indexOf(n) === -1) names.push(n);
-    }
-    
-    // Find pos+pts: pattern "| 1 | 248 |" in td cells
-    var posRe = /<td[^>]*>\s*(\d{1,2})\s*<\/td>\s*<td[^>]*>\s*(\d{1,3})\s*<\/td>/g;
-    var pi = 0;
-    while ((m = posRe.exec(searchHtml)) !== null && pi < names.length) {
-      riders.push({pos: parseInt(m[1]), name: names[pi++], pts: parseInt(m[2])});
-    }
-    
-    // Last fallback: just names with auto position
-    if (!riders.length) {
-      names.forEach(function(n, i) {
-        riders.push({pos: i+1, name: n, pts: 0});
-      });
+  // Filter to correct series - each rider link has series-specific stat links
+  // e.g. /en/results statistics/rider/Name/poles/SBK/2026
+  if (riders.length > 25) {
+    // Find which section has our series
+    var seriesIdx = html.indexOf('/' + wsbkSeries + '/' + wsbkYear);
+    if (seriesIdx > 0) {
+      // Re-search from that position
+      riders = [];
+      riderRe.lastIndex = Math.max(0, seriesIdx - 5000);
+      var count = 0;
+      while ((m = riderRe.exec(html)) !== null && count < 25) {
+        var name2 = m[2].trim();
+        if (name2.length < 3) continue;
+        var nums2 = [];
+        var numRe2 = />\s*(\d+)\s*</g;
+        var nm2;
+        var seg2 = m[3];
+        while ((nm2 = numRe2.exec(seg2)) !== null) {
+          nums2.push(parseInt(nm2[1]));
+          if (nums2.length >= 2) break;
+        }
+        if (nums2.length >= 2 && nums2[0] >= 1 && nums2[0] <= 50) {
+          riders.push({pos: nums2[0], name: name2, pts: nums2[1]});
+          count++;
+        }
+      }
     }
   }
 
   riders.sort(function(a,b) { return a.pos - b.pos; });
+
+  // Deduplicate
+  var seen = {};
+  riders = riders.filter(function(r) {
+    if (seen[r.pos]) return false;
+    seen[r.pos] = true;
+    return true;
+  });
 
   if (!riders.length) {
     rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Parse hiba: ' + wsbkSeries + '</div>';
