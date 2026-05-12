@@ -300,67 +300,54 @@ function parseWsbkResults(rd, text) {
   var riders = [];
   var plain = text.replace(/\s+/g, ' ').trim();
 
-  // Detect session type
+  // Race sessions have grid number: pos grid num Initial.SURNAME NAT
+  // FP/SUP/WUP sessions no grid:   pos num Initial.SURNAME NAT
   var isRace = ['R1','R2','SPR'].indexOf(wsbkSessionLabel) > -1;
 
   var matches = [];
   var m;
-  var timeRe = /\d{1,3}'\d{2}\.\d{3}/g;
 
   if (isRace) {
-    // Race: pos grid num Initial.SURNAME NAT ... laps gap rel racetime speed bestlap speed
-    var raceRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+([A-Z])\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
-    while ((m = raceRe.exec(plain)) !== null) {
+    var re = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+[A-Z]\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
+    while ((m = re.exec(plain)) !== null) {
       var pos = parseInt(m[1]);
-      if (pos >= 1 && pos <= 30) {
-        matches.push({pos:pos, num:m[2], name:m[4], nat:m[5], index:m.index, end:m.index+m[0].length});
-      }
+      if (pos >= 1 && pos <= 30)
+        matches.push({pos:pos, num:m[2], name:m[3], nat:m[4], end:m.index+m[0].length});
     }
   } else {
-    // FP/SUP/WUP: pos num Initial.SURNAME NAT ... bestlap laps speed [gap rel speed]
-    var fpRe = /\b(\d{1,2})\s+(\d{1,3})\s+([A-Z])\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
-    while ((m = fpRe.exec(plain)) !== null) {
+    var re2 = /\b(\d{1,2})\s+(\d{1,3})\s+[A-Z]\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
+    while ((m = re2.exec(plain)) !== null) {
       var pos = parseInt(m[1]);
-      if (pos >= 1 && pos <= 30) {
-        matches.push({pos:pos, num:m[2], name:m[4], nat:m[5], index:m.index, end:m.index+m[0].length});
-      }
+      if (pos >= 1 && pos <= 30)
+        matches.push({pos:pos, num:m[2], name:m[3], nat:m[4], end:m.index+m[0].length});
     }
   }
 
+  var timeRe = /\d{1,3}'\d{2}\.\d{3}/g;
+
   matches.forEach(function(rider, i) {
-    var segEnd = (i < matches.length-1) ? matches[i+1].index : rider.end + 400;
+    var segEnd = i < matches.length-1 ? matches[i+1].end - 10 : rider.end + 400;
     var segment = plain.slice(rider.end, Math.min(segEnd, rider.end + 400));
 
     // Find all times in segment
     var times = [];
     var t;
     timeRe.lastIndex = 0;
-    while ((t = timeRe.exec(segment)) !== null) {
-      times.push(t[0]);
+    while ((t = timeRe.exec(segment)) !== null) times.push(t[0]);
+
+    // First time = best lap (FP) or race time (Race)
+    // Last time = best lap (Race)
+    var mainTime = times.length > 0 ? times[0] : '';
+    
+    // Gap: for non-leader, find decimal number before first time
+    var gap = '';
+    if (i > 0 && times.length > 0) {
+      var beforeTime = segment.slice(0, segment.indexOf(times[0]));
+      var gm = beforeTime.match(/\b(\d+\.\d{3})\b(?!\d)/);
+      if (gm) gap = '+' + gm[1];
     }
 
-    var raceTime = '', gap = '';
-
-    if (isRace) {
-      // Race: first time = race time, last time = best lap
-      raceTime = times.length > 0 ? times[0] : '';
-      // Gap: find decimal number before first time
-      if (i > 0) {
-        var gapM = segment.match(/^[^']*?\b(\d+\.\d{3})\b/);
-        if (gapM) gap = '+' + gapM[1];
-      }
-    } else {
-      // FP: first time = best lap
-      raceTime = times.length > 0 ? times[0] : '';
-      // Gap: decimal after first time
-      if (i > 0) {
-        var afterTime = segment.slice(segment.indexOf(raceTime) + raceTime.length);
-        var gapM2 = afterTime.match(/\b(\d+\.\d{3})\b/);
-        if (gapM2) gap = '+' + gapM2[1];
-      }
-    }
-
-    riders.push({pos:rider.pos, num:rider.num, name:rider.name, nat:rider.nat, time:raceTime, gap:gap});
+    riders.push({pos:rider.pos, num:rider.num, name:rider.name, nat:rider.nat, time:mainTime, gap:gap});
   });
 
   var seen = {};
