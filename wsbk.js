@@ -276,7 +276,7 @@ function parseWsbkStandingsPdf(rd, text, eventName) {
       if (riders.length >= 20) break;
     }
   } else {
-    var re1 = /\b(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+    var re1 = /(?:^|\s)(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})(?:\s|$)/g;
     var m1;
     while ((m1 = re1.exec(plain)) !== null) {
       var pos1 = parseInt(m1[1]);
@@ -286,7 +286,7 @@ function parseWsbkStandingsPdf(rd, text, eventName) {
       if (riders.length >= 30) break;
     }
     if (!riders.length) {
-      var re2 = /\b(\d{1,2})\s+([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+      var re2 = /(?:^|\s)(\d{1,2})\s+([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+[A-Z]{3}\s+(\d{1,3})(?:\s|$)/g;
       var m2;
       while ((m2 = re2.exec(plain)) !== null) {
         var pos2 = parseInt(m2[1]);
