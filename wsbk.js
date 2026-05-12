@@ -323,6 +323,21 @@ function getStdProxyUrlForEvent(ev) {
     + '/001/STD/ChampionshipStandings.pdf';
 }
 
+// Standings validáció: az 1. helyen kell a legtöbb pont legyen
+function isStandingsValid(riders) {
+  if(!riders || riders.length < 3) return false;
+  // Első hely pontszáma legyen a legnagyobb
+  var maxPts = Math.max.apply(null, riders.map(function(r){return r.pts;}));
+  if(riders[0].pts !== maxPts) return false;
+  // Legalább 5 versenyző
+  if(riders.length < 5) return false;
+  // Pontszámok csökkenő sorrendben (kis eltérés megengedett egyenlő pontok miatt)
+  for(var i = 1; i < Math.min(riders.length, 5); i++) {
+    if(riders[i].pts > riders[0].pts) return false;
+  }
+  return true;
+}
+
 function loadWsbkStandings(rd) {
   var latest = getLatestFinishedEvent();
 
@@ -370,7 +385,7 @@ function loadWsbkStandings(rd) {
     }, Promise.resolve([]));
   }).then(function(pages) {
     var riders = parseStandingsText(pages.join(' '));
-    if(riders && riders.length >= 3) {
+    if(riders && riders.length >= 3 && isStandingsValid(riders)) {
       try { sessionStorage.setItem(cacheKey, JSON.stringify(riders)); } catch(e) {}
       renderStandingsTable(rd, riders, latest.code);
     } else {
