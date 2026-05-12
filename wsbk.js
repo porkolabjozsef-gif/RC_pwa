@@ -323,78 +323,43 @@ function getStdProxyUrlForEvent(ev) {
     + '/001/STD/ChampionshipStandings.pdf';
 }
 
-// Standings validáció: az 1. helyen kell a legtöbb pont legyen
-function isStandingsValid(riders) {
-  if(!riders || riders.length < 3) return false;
-  // Első hely pontszáma legyen a legnagyobb
-  var maxPts = Math.max.apply(null, riders.map(function(r){return r.pts;}));
-  if(riders[0].pts !== maxPts) return false;
-  // Legalább 5 versenyző
-  if(riders.length < 5) return false;
-  // Pontszámok csökkenő sorrendben (kis eltérés megengedett egyenlő pontok miatt)
-  for(var i = 1; i < Math.min(riders.length, 5); i++) {
-    if(riders[i].pts > riders[0].pts) return false;
-  }
-  return true;
-}
-
 function loadWsbkStandings(rd) {
+  // Azonnal embedded adat
+  renderEmbeddedStandings(rd);
+
+  // Háttérben: Worker JSON végpont
   var latest = getLatestFinishedEvent();
+  if(!latest) return;
 
-  // Ha nincs lezajlott futam ebben az évben → embedded
-  if(!latest) {
-    renderEmbeddedStandings(rd);
-    return;
-  }
+  var jsonUrl = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-std/'
+    + wsbkYear + '/' + latest.code + '/' + wsbkSeries;
 
-  // Cache kulcs az utolsó futam alapján
-  var cacheKey = 'wsbk3_std_' + wsbkYear + '_' + latest.code + '_' + wsbkSeries;
-  try {
-    var cached = sessionStorage.getItem(cacheKey);
-    if(cached) {
-      var riders = JSON.parse(cached);
-      if(riders && riders.length >= 3) {
-        renderStandingsTable(rd, riders, latest.code);
-        return;
-      }
-    }
-  } catch(e) {}
-
-  // Fetch a legutóbbi lezajlott futam standings PDF-jét
-  rd.innerHTML = wsbkLoadingHtml();
-
-  if(typeof pdfjsLib === 'undefined') {
-    renderEmbeddedStandings(rd);
-    return;
-  }
-
-  var url = getStdProxyUrlForEvent(latest);
-  pdfjsLib.getDocument(url).promise.then(function(pdf) {
-    var nums = [];
-    for(var i = 1; i <= pdf.numPages; i++) nums.push(i);
-    return nums.reduce(function(p, num) {
-      return p.then(function(acc) {
-        return pdf.getPage(num).then(function(page) {
-          return page.getTextContent();
-        }).then(function(tc) {
-          var words = tc.items.map(function(it){ return it.str; }).filter(function(s){ return s.trim(); });
-          acc.push(words.join(' '));
-          return acc;
-        });
-      });
-    }, Promise.resolve([]));
-  }).then(function(pages) {
-    var riders = parseStandingsText(pages.join(' '));
-    if(riders && riders.length >= 3 && isStandingsValid(riders)) {
-      try { sessionStorage.setItem(cacheKey, JSON.stringify(riders)); } catch(e) {}
+  fetch(jsonUrl)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.riders || data.riders.length < 3) return;
+      // Validáció
+      var riders = data.riders;
+      if(riders[0].pts < riders[riders.length-1].pts) return;
       renderStandingsTable(rd, riders, latest.code);
-    } else {
-      renderEmbeddedStandings(rd);
-    }
-  }).catch(function() {
-    renderEmbeddedStandings(rd);
-  });
+    })
+    .catch(function(){
+      // Marad az embedded
+    });
 }
+
+function getLatestFinishedEvent() {
+  var now = new Date();
+  var evList = WSBK_EVENTS[wsbkYear] || [];
+  var latest = null;
+  evList.forEach(function(ev) {
+    if(ev.series && ev.series.indexOf(wsbkSeries) === -1) return;
+    if(new Date(ev.dateEnd) < now) latest = ev;
+  });
+  return latest;
+}
+
+
 
 // ============================================================
 // STANDINGS PARSER
