@@ -314,63 +314,78 @@ function loadWsbkStandings(rd) {
 
 function parseWsbkStandingsHtml(rd, html) {
   var riders = [];
+  var seriesKey = wsbkSeries === 'R3' ? 'YR3EC' : wsbkSeries;
 
-  // The page has multiple tables - one per series
-  // Find table for our series by looking for anchor IDs or series-specific links
-  // Links pattern: /en/results statistics/rider/Name/poles/SBK/2026
-  var seriesCode = wsbkSeries === 'R3' ? 'YR3EC' : wsbkSeries;
-  
-  // Find the section containing our series links
-  // Each table has links like: /rider/Name/wins/SBK/2026
+  // Find the correct table by series code in links
+  // Links look like: /en/results statistics/rider/Name/poles/SBK/2026
   var tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
   var m;
   var seriesTable = '';
   while ((m = tableRe.exec(html)) !== null) {
-    // Check if this table contains our series
-    if (m[1].indexOf('/' + wsbkSeries + '/' + wsbkYear) > -1 ||
-        m[1].indexOf('/' + seriesCode + '/' + wsbkYear) > -1) {
+    if (m[1].indexOf('/' + wsbkSeries + '/' + wsbkYear) > -1) {
       seriesTable = m[1];
       break;
     }
   }
 
-  // If no series-specific table found, use full HTML
   var searchHtml = seriesTable || html;
 
-  // Extract rider rows: rider link + pos + points columns
+  // Extract rows with rider name links
+  // Link pattern: /en/rider/Name Surname/ID">NAME
   var rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   var row;
   while ((row = rowRe.exec(searchHtml)) !== null) {
     var rowHtml = row[1];
-    // Find rider name from link
-    var nameMatch = rowHtml.match(/\/en\/rider\/[^"]+"\s*[^>]*>\s*([A-Z][^<]+?)\s*<\/a>/);
+    
+    // Find rider name - from /en/rider/ link
+    var nameMatch = rowHtml.match(/\/en\/rider\/[^"]+"\s*[^>]*>([^<]+)<\/a>/);
     if (!nameMatch) continue;
     var name = nameMatch[1].trim();
-    if (name.length < 3) continue;
-    
-    // Find all td numbers
-    var nums = [];
-    var tdRe = /<td[^>]*>\s*(\d+)\s*<\/td>/g;
+    if (name.length < 3 || name === 'RIDER') continue;
+
+    // Find td numbers - pos is first, points is second
+    var tdRe = /<td[^>]*>[\s\S]*?(\d+)[\s\S]*?<\/td>/g;
     var td;
+    var nums = [];
     while ((td = tdRe.exec(rowHtml)) !== null) {
-      nums.push(parseInt(td[1]));
+      var n = parseInt(td[1]);
+      if (!isNaN(n)) nums.push(n);
     }
-    
+
     if (nums.length >= 2) {
-      // First number = pos, second = points
-      var pos = nums[0];
-      var pts = nums[1];
-      if (pos >= 1 && pos <= 50) {
-        riders.push({pos: pos, name: name, pts: pts});
-      }
+      riders.push({pos: nums[0], name: name, pts: nums[1]});
     }
     if (riders.length >= 25) break;
+  }
+
+  // Fallback: extract all rider links and all numbers separately
+  if (!riders.length) {
+    var names = [];
+    var linkRe = /\/en\/rider\/([^/]+)\/\d+"[^>]*>([^<]+)<\/a>/g;
+    while ((m = linkRe.exec(searchHtml)) !== null) {
+      var n = m[2].trim();
+      if (n.length > 2 && names.indexOf(n) === -1) names.push(n);
+    }
+    
+    // Find pos+pts: pattern "| 1 | 248 |" in td cells
+    var posRe = /<td[^>]*>\s*(\d{1,2})\s*<\/td>\s*<td[^>]*>\s*(\d{1,3})\s*<\/td>/g;
+    var pi = 0;
+    while ((m = posRe.exec(searchHtml)) !== null && pi < names.length) {
+      riders.push({pos: parseInt(m[1]), name: names[pi++], pts: parseInt(m[2])});
+    }
+    
+    // Last fallback: just names with auto position
+    if (!riders.length) {
+      names.forEach(function(n, i) {
+        riders.push({pos: i+1, name: n, pts: 0});
+      });
+    }
   }
 
   riders.sort(function(a,b) { return a.pos - b.pos; });
 
   if (!riders.length) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba - ' + wsbkSeries + '</div>';
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Parse hiba: ' + wsbkSeries + '</div>';
     return;
   }
 
@@ -384,7 +399,7 @@ function parseWsbkStandingsHtml(rd, html) {
     var gap = i===0 ? '' : (leader-r.pts > 0 ? '-'+(leader-r.pts) : '');
     out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white);overflow:hidden;">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
       + '</tr>';
