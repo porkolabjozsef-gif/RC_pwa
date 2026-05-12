@@ -297,20 +297,75 @@ function parseWsbkPdf(rd, text) {
 }
 
 function loadWsbkStandings(rd) {
-  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Pontallas betoltese...</div>';
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+  var data = WSBK_STANDINGS_DATA[wsbkSeries] || [];
+  
+  if (!data.length) {
+    rd.innerHTML = '<div style="color:var(--text-mid);font-size:9px;padding:4px;">Nincs standings adat: ' + wsbkSeries + '</div>';
+    return;
+  }
 
-  var seriesCode = getWsbkSeriesUrlCode();
-  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-standings/' + seriesCode + '/' + wsbkYear;
-
-  fetch(url)
-    .then(function(r) { return r.text(); })
-    .then(function(html) {
-      parseWsbkStandingsHtml(rd, html);
-    })
-    .catch(function(e) {
-      rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Hiba: ' + e.message + '</div>';
-    });
+  var leader = data[0].pts;
+  var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS 2026 <span style="font-size:7px;color:var(--text-dim);">(NED utan)</span></div>';
+  out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  data.forEach(function(r, i) {
+    var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
+    var gap = i===0 ? '' : '-'+(leader-r.pts);
+    out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + (i+1) + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.n + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
+      + '</tr>';
+  });
+  rd.innerHTML = out + '</table>';
 }
+
+// Standings data - NED 2026 utan (12 maj 2026)
+var WSBK_STANDINGS_DATA = {
+  SBK: [
+    {n:'Nicolo Bulega',pts:248},{n:'Iker Lecuona',pts:166},{n:'Sam Lowes',pts:99},
+    {n:'Miguel Oliveira',pts:85},{n:'Yari Montella',pts:82},{n:'Alex Lowes',pts:82},
+    {n:'Alvaro Bautista',pts:81},{n:'Lorenzo Baldassarri',pts:78},{n:'Axel Bassani',pts:67},
+    {n:'Andrea Locatelli',pts:53},{n:'Danilo Petrucci',pts:46},{n:'Tarran Mackenzie',pts:45},
+    {n:'Xavi Vierge',pts:44},{n:'Garrett Gerloff',pts:40},{n:'Alberto Surra',pts:34},
+    {n:'Remy Gardner',pts:23},{n:'Stefano Manzi',pts:15},{n:'Thomas Bridewell',pts:8},
+    {n:'Tetsuta Nagashima',pts:7},{n:'Jonathan Rea',pts:4},{n:'Bahattin Sofuoglu',pts:4},
+    {n:'Mattia Rato',pts:2},{n:'Somkiat Chantra',pts:2},{n:'Ryan Vickers',pts:1}
+  ],
+  SSP: [
+    {n:'Albert Arenas',pts:150},{n:'Jaume Masia',pts:117},{n:'Valentin Debise',pts:97},
+    {n:'Philipp Oettl',pts:89},{n:'Can Oncu',pts:88},{n:'Lucas Mahias',pts:65},
+    {n:'Jeremy Alcoba',pts:65},{n:'Roberto Garcia',pts:57},{n:'Tom Booth-Amos',pts:57},
+    {n:'Matteo Ferrari',pts:56},{n:'Alessandro Zaccone',pts:53},{n:'Aldi Mahendra',pts:41},
+    {n:'Simon Jespersen',pts:34},{n:'Mattia Casadei',pts:26},{n:'Dominique Aegerter',pts:21},
+    {n:'Oli Bayliss',pts:20},{n:'Corentin Perolari',pts:16},{n:'Ondrej Vostatek',pts:16},
+    {n:'Filippo Farioli',pts:14},{n:'Andrea Giombini',pts:13},{n:'Josh Whatley',pts:13},
+    {n:'Federico Caricasulo',pts:10},{n:'Xavi Cardelus',pts:2}
+  ],
+  WCR: [
+    {n:'Maria Herrera',pts:131},{n:'Beatriz Neila',pts:117},{n:'Paola Ramos',pts:86},
+    {n:'Roberta Ponziani',pts:76},{n:'Muklada Sarapuech',pts:58},{n:'Natalia Rivera',pts:49},
+    {n:'Lucie Boudesseul',pts:45},{n:'Chloe Jones',pts:45},{n:'Pakita Ruiz',pts:41},
+    {n:'Astrid Madrigal',pts:34},{n:'Yvonne Cerpa',pts:32},{n:'Tayla Relph',pts:32},
+    {n:'Sara Sanchez',pts:20},{n:'Karolina Danak',pts:18},{n:'Isis Carreno',pts:12},
+    {n:'Denise Dal Zotto',pts:9},{n:'Line Vieillard',pts:8},{n:'Arianna Barale',pts:7},
+    {n:'Mallory Dobbs',pts:6},{n:'Patrycja Sowa',pts:4},{n:'Lucy Michel',pts:3},
+    {n:'Emily Bondi',pts:3},{n:'Katie Hand',pts:2},{n:'Adela Ourednickova',pts:2}
+  ],
+  SPB: [
+    {n:'David Salvador',pts:69},{n:'Jeffrey Buis',pts:64},{n:'Ferre Fleerackers',pts:59},
+    {n:'Xavi Artigas',pts:54},{n:'Antonio Torres',pts:53},{n:'Matteo Vannucci',pts:41},
+    {n:'Loris Veneman',pts:40},{n:'Bruno Ieraci',pts:35},{n:'Elia Bartolini',pts:22},
+    {n:'Kas Beekmans',pts:19},{n:'Diego Poncet',pts:18},{n:'Carter Thompson',pts:16},
+    {n:'Marco Gaggi',pts:16},{n:'Alvaro Fuertes',pts:13},{n:'Benat Fernandez',pts:12},
+    {n:'Harrison Dessoy',pts:7},{n:'Mirko Gennai',pts:6},{n:'Alessandro Di Persio',pts:5},
+    {n:'Jose Osuna',pts:4},{n:'Thomas Benetti',pts:3},{n:'Mattia Sorrenti',pts:2},
+    {n:'Gonzalo Sanchez',pts:1},{n:'Juan Risueno',pts:1}
+  ],
+  R3: []
+};
 
 function parseWsbkStandingsHtml(rd, html) {
   var riders = [];
