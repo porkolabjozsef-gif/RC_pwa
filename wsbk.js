@@ -343,6 +343,7 @@ function loadWsbkStandings(rd) {
 
   // Háttérben: pdf.js parse a legutóbbi futam standings PDF-jéből
   if(typeof pdfjsLib === 'undefined') return;
+  if(wsbkSeries === 'R3') return; // R3 PDF formátuma nem parse-olható megbízhatóan
   var latest = getLatestFinishedEvent();
   if(!latest) return;
 
