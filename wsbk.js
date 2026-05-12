@@ -300,60 +300,83 @@ function parseWsbkResults(rd, text) {
   var riders = [];
   var plain = text.replace(/\s+/g, ' ').trim();
 
-  // Find all times with positions
-  var timeRe = /(\d{1,3}'\d{2}\.\d{3})/g;
-  var allTimes = [];
+  // PDF.js returns text column by column, not row by row
+  // Pattern found: NAT num team laps initial avgspeed [gap] time pos maxspeed SURNAME
+  // SURNAME is all-caps, followed by next rider's NAT or end
+  // Time format: d'dd.ddd
+  // Position number appears after the time
+
+  var timeRe = /\d{1,3}'\d{2}\.\d{3}/g;
+  var times = [];
   var tm;
   while ((tm = timeRe.exec(plain)) !== null) {
-    allTimes.push({time: tm[1], index: tm.index, used: false});
+    times.push({time: tm[1] || tm[0], index: tm.index});
   }
 
-  // Find rider entries: pos grid num Initial.SURNAME NAT
-  var riderRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+[A-Z]\.\s*([A-Z]{2,})\s+[A-Z]{3}\b/g;
-  var m;
-  while ((m = riderRe.exec(plain)) !== null) {
-    var pos = parseInt(m[1]);
-    if (pos < 1 || pos > 30) continue;
-    var num = m[2];
-    var surname = m[3];
-    var afterIdx = m.index + m[0].length;
+  // Find SURNAMEs: all-caps word of 3+ chars followed by space and bike brand or next NAT
+  // e.g. "LECUONA Ducati" or "BULEGA Ducati"  
+  var surnameRe = /\b([A-Z]{3,})\s+(?:Ducati|Kawasaki|BMW|Honda|Yamaha|Triumph|Aprilia|Bimota)/g;
+  var sm;
+  var surnames = [];
+  while ((sm = surnameRe.exec(plain)) !== null) {
+    surnames.push({name: sm[1], index: sm.index});
+  }
 
-    // Find next unused time after this rider
-    var bestLap = '';
-    for (var i = 0; i < allTimes.length; i++) {
-      if (allTimes[i].index > afterIdx && !allTimes[i].used) {
-        // Skip the race time (first time), use second time (best lap)
-        // Mark first as used, take second
-        allTimes[i].used = true;
-        // Look for next time (best lap)
-        for (var j = i+1; j < allTimes.length; j++) {
-          if (allTimes[j].index < afterIdx + 400 && !allTimes[j].used) {
-            bestLap = allTimes[j].time;
-            allTimes[j].used = true;
-            break;
-          }
-        }
-        if (!bestLap && allTimes[i]) bestLap = allTimes[i].time;
-        break;
-      }
+  // Match each surname with position number and time
+  // Position number appears just before SURNAME in the text
+  surnames.forEach(function(s, i) {
+    // Look back 100 chars for position number
+    var before = plain.slice(Math.max(0, s.index - 150), s.index);
+    
+    // Find position: small number (1-30) 
+    var posMatch = before.match(/(\d{1,2})\s+\d{3}[,.]\d\s+\d'\d{2}\.\d{3}/) ||
+                   before.match(/\b(\d{1,2})\s*$/);
+    var pos = posMatch ? parseInt(posMatch[1]) : (i + 1);
+    if (pos < 1 || pos > 30) pos = i + 1;
+
+    // Find time near this surname
+    var nearTime = times.find(function(t) {
+      return t.index > s.index - 200 && t.index < s.index + 50;
+    });
+
+    // Find gap before surname
+    var gap = '';
+    if (i > 0) {
+      var gapMatch = before.match(/\b(\d+\.\d{3})\s+\d'\d{2}/);
+      if (gapMatch) gap = '+' + gapMatch[1];
     }
 
-    riders.push({pos: pos, num: num, name: surname, time: bestLap});
-    if (riders.length >= 25) break;
-  }
+    // Find NAT (3-letter country code) near start of this rider's block
+    var natMatch = before.match(/\b([A-Z]{3})\s+\d{1,3}\s+/);
+    var nat = natMatch ? natMatch[1] : '';
 
-  // Deduplicate by pos
+    // Find race number
+    var numMatch = before.match(/[A-Z]{3}\s+(\d{1,3})\s+/);
+    var num = numMatch ? numMatch[1] : '';
+
+    riders.push({pos: pos, num: num, name: s.name, nat: nat, 
+                 time: nearTime ? nearTime.time : '', gap: gap});
+  });
+
+  // Deduplicate and sort
   var seen = {};
   riders = riders.filter(function(r) {
-    if (seen[r.pos]) return false;
-    seen[r.pos] = true;
+    var key = r.name;
+    if (seen[key]) return false;
+    seen[key] = true;
     return true;
   });
-  riders.sort(function(a,b) { return a.pos - b.pos; });
+  
+  // Re-assign positions by order if they look wrong
+  var validPos = riders.every(function(r,i) { return r.pos === i+1; });
+  if (!validPos) {
+    riders.sort(function(a,b) { return a.pos - b.pos; });
+    riders.forEach(function(r,i) { if(r.pos > 30) r.pos = i+1; });
+  }
 
   if (!riders.length) {
     rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;">'
-      + plain.substring(0, 400).replace(/</g,'&lt;') + '</div>';
+      + plain.substring(0,500).replace(/</g,'&lt;') + '</div>';
     return;
   }
 
@@ -361,13 +384,15 @@ function parseWsbkResults(rd, text) {
   var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
     + '<span style="color:var(--green);">' + label + '</span> - ' + wsbkEvent + ' - ' + wsbkSessionLabel + '</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.forEach(function(r, i) {
+  riders.slice(0,25).forEach(function(r, i) {
     var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+    html += '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,0.02)')+'">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
       + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;">' + r.num + '</td>'
       + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);font-size:8px;">' + r.nat + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.time + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:8px;">' + r.gap + '</td>'
       + '</tr>';
   });
   rd.innerHTML = html + '</table>';
