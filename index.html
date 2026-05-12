@@ -42,6 +42,7 @@ html, body {
   overflow: hidden;
 }
 
+/* ── SCANLINES ── */
 body::after {
   content:'';
   position:fixed; inset:0;
@@ -49,185 +50,897 @@ body::after {
   pointer-events:none; z-index:999;
 }
 
+/* ── CATEGORY LOGO BACKGROUND ── */
 #bgLogo {
-  position: fixed; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none; z-index: 0;
-  transition: opacity 1.5s ease; opacity: 0;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 1.5s ease;
+  opacity: 0;
 }
-#bgLogo img { max-width:60%; max-height:60%; object-fit:contain; filter:grayscale(30%); opacity:0.08; }
 
+#bgLogo img {
+  max-width: 60%;
+  max-height: 60%;
+  object-fit: contain;
+  filter: grayscale(30%);
+  opacity: 0.08;
+}
+
+/* ── TOP HEADER ── */
 .header {
   height: 40px;
   background: linear-gradient(90deg, #0d0000 0%, #160003 50%, #0d0000 100%);
   border-bottom: 2px solid var(--red);
   box-shadow: 0 2px 16px var(--red-glow);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 14px; flex-shrink: 0; z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  flex-shrink: 0;
+  z-index: 10;
 }
+
 .header-logo {
-  background: var(--red); padding: 4px 12px;
+  background: var(--red);
+  padding: 4px 12px;
   clip-path: polygon(0 0, 100% 0, 93% 100%, 0 100%);
-  font-family: 'Oswald', sans-serif; font-size: 11px; font-weight: 700;
-  letter-spacing: 2px; color: #fff; white-space: nowrap;
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #fff;
+  white-space: nowrap;
 }
-.header-title { font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; letter-spacing:4px; color:var(--off-white); }
+
+.header-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--off-white);
+}
+
 .header-title span { color: var(--red); }
-.header-live { display:flex; align-items:center; gap:8px; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--text-mid); }
-.live-dot { width:8px; height:8px; border-radius:50%; background:var(--red); animation:blink 1.5s ease-in-out infinite; box-shadow:0 0 6px var(--red); }
+
+.header-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-mid);
+}
+
+.live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: blink 1.5s ease-in-out infinite;
+  box-shadow: 0 0 6px var(--red);
+}
+
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-.pdf-bar { background:#000d0a; border-bottom:2px solid var(--green); padding:0 12px; height:38px; display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:nowrap; }
-.pdf-file-btn { font-family:'Oswald',sans-serif; font-size:11px; font-weight:600; letter-spacing:2px; padding:5px 14px; border:1px solid var(--green); color:var(--green); background:rgba(29,185,84,0.08); cursor:pointer; text-transform:uppercase; height:32px; white-space:nowrap; flex-shrink:0; }
-.pdf-file-btn:hover { background:rgba(29,185,84,0.2); }
-.pdf-status { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-mid); letter-spacing:1px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.pdf-status.loading { color:var(--yellow); animation:blink 1s step-end infinite; }
-.pdf-status.ok      { color:var(--green); }
-.pdf-status.error   { color:var(--red); }
-
-.test-bar { height:38px; background:#130c00; border-bottom:2px solid var(--yellow); display:flex; align-items:center; gap:8px; padding:0 12px; flex-shrink:0; }
-.test-label { font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:3px; color:var(--yellow); background:rgba(245,196,0,0.1); border:1px solid rgba(245,196,0,0.3); padding:3px 8px; white-space:nowrap; }
-.test-input { background:#1a1000; border:2px solid var(--yellow); color:var(--yellow); font-family:'Share Tech Mono',monospace; font-size:13px; padding:4px 8px; outline:none; color-scheme:dark; min-width:180px; height:32px; }
-.test-btn { font-family:'Oswald',sans-serif; font-size:11px; font-weight:600; letter-spacing:2px; padding:5px 14px; border:1px solid; cursor:pointer; text-transform:uppercase; height:32px; }
-.test-btn.go   { color:#000; border-color:var(--yellow); background:var(--yellow); }
-.test-btn.live { color:var(--text-mid); border-color:var(--border-hi); background:transparent; }
-.test-btn.horn { color:var(--text-mid); border-color:var(--border-hi); background:transparent; }
-.test-indicator { display:none; align-items:center; gap:6px; margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--yellow); letter-spacing:2px; }
-.test-indicator.on { display:flex; }
-.test-dot { width:7px; height:7px; border-radius:50%; background:var(--yellow); animation:blink 1s ease-in-out infinite; }
-
-.app { display:flex; flex-direction:column; height:100vh; width:100vw; overflow:hidden; }
-.main-body { flex:1; display:grid; grid-template-columns:1.4fr 0.8fr 1.6fr; grid-template-rows:auto 1fr; gap:0; overflow:hidden; min-height:0; }
-
-@media (max-width:600px) {
-  .main-body { grid-template-columns:1fr; grid-template-rows:auto auto auto 1fr; overflow-y:auto; }
-  .col-left,.col-mid { overflow:visible; }
-  .col-right { min-height:300px; }
-  .clock-time { font-size:40px; }
-  .cd-num { font-size:34px; }
-  .current-name { font-size:16px; }
-  .header-title { font-size:12px; letter-spacing:1px; }
+/* ── PDF IMPORT BAR ── */
+.pdf-bar {
+  background: #000d0a;
+  border-bottom: 2px solid var(--green);
+  padding: 0 12px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
 }
-@media (min-width:600px) and (max-width:900px) {
-  .main-body { grid-template-columns:1fr 1fr; grid-template-rows:auto 1fr; }
-  .col-right { grid-column:1/-1; border-top:2px solid var(--border); }
-  .clock-time { font-size:clamp(36px,6vw,52px); }
-  .cd-num { font-size:clamp(30px,5vw,44px); }
-}
-@media (min-width:900px) {
-  .main-body { grid-template-columns:1.4fr 0.8fr 1.6fr; }
-  .clock-time { font-size:clamp(44px,4.5vw,72px); }
-  .cd-num { font-size:clamp(36px,4vw,64px); }
-  .current-name { font-size:clamp(15px,1.8vw,24px); }
-  .next-name { font-size:clamp(14px,1.6vw,22px); }
-}
-@media (min-width:1400px) { .sched-name{font-size:18px;} .sched-time{font-size:16px;} .sched-item{padding:10px 20px;} }
 
-.col-left,.col-mid,.col-right { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
-.col-left  { border-right:2px solid var(--border); grid-column:1; grid-row:1; align-self:start; }
-.col-mid   { border-right:2px solid var(--border); grid-column:2; grid-row:1; align-self:start; }
-.col-right { grid-column:3; grid-row:1/3; }
+.pdf-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--green);
+  background: rgba(29,185,84,0.1);
+  border: 1px solid rgba(29,185,84,0.3);
+  padding: 3px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
+.pdf-file-btn {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  padding: 5px 14px;
+  border: 1px solid var(--green);
+  color: var(--green);
+  background: rgba(29,185,84,0.08);
+  cursor: pointer;
+  text-transform: uppercase;
+  height: 32px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pdf-file-btn:hover {
+  background: rgba(29,185,84,0.2);
+}
+
+.pdf-status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-mid);
+  letter-spacing: 1px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-status.loading { color: var(--yellow); animation: blink 1s step-end infinite; }
+.pdf-status.ok      { color: var(--green); }
+.pdf-status.error   { color: var(--red); }
+
+.pdf-progress {
+  display: none;
+  height: 3px;
+  background: var(--bg3);
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+}
+
+/* ── TEST BAR ── */
+.test-bar {
+  height: 38px;
+  background: #130c00;
+  border-bottom: 2px solid var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.test-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--yellow);
+  background: rgba(245,196,0,0.1);
+  border: 1px solid rgba(245,196,0,0.3);
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.test-input {
+  background: #1a1000;
+  border: 2px solid var(--yellow);
+  color: var(--yellow);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  padding: 4px 8px;
+  outline: none;
+  color-scheme: dark;
+  min-width: 180px;
+  height: 32px;
+}
+
+.test-btn {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  padding: 5px 14px;
+  border: 1px solid;
+  cursor: pointer;
+  text-transform: uppercase;
+  height: 32px;
+}
+
+.test-btn.go {
+  color: #000;
+  border-color: var(--yellow);
+  background: var(--yellow);
+}
+
+.test-btn.live {
+  color: var(--text-mid);
+  border-color: var(--border-hi);
+  background: transparent;
+}
+
+.test-btn.horn {
+  color: var(--text-mid);
+  border-color: var(--border-hi);
+  background: transparent;
+}
+
+.test-indicator {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--yellow);
+  letter-spacing: 2px;
+}
+
+.test-indicator.on { display: flex; }
+
+.test-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--yellow);
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* ── MAIN LAYOUT ── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.main-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 1.6fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Phone portrait: single column stack */
+@media (max-width: 600px) {
+  .main-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto 1fr;
+    overflow-y: auto;
+  }
+  .col-left, .col-mid { overflow: visible; }
+  .col-right { min-height: 300px; }
+  .clock-time { font-size: 40px; }
+  .cd-num { font-size: 34px; }
+  .current-name { font-size: 16px; }
+  .header-title { font-size: 12px; letter-spacing: 1px; }
+}
+
+/* Tablet portrait (600-900px): 2 cols, schedule full width below */
+@media (min-width: 600px) and (max-width: 900px) {
+  .main-body {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .col-right {
+    grid-column: 1 / -1;
+    border-top: 2px solid var(--border);
+  }
+  .clock-time { font-size: clamp(36px, 6vw, 52px); }
+  .cd-num { font-size: clamp(30px, 5vw, 44px); }
+}
+
+/* Tablet landscape + desktop (900px+): 3 columns */
+@media (min-width: 900px) {
+  .main-body { grid-template-columns: 1.4fr 0.8fr 1.6fr; }
+  .clock-time { font-size: clamp(44px, 4.5vw, 72px); }
+  .cd-num { font-size: clamp(36px, 4vw, 64px); }
+  .current-name { font-size: clamp(15px, 1.8vw, 24px); }
+  .next-name { font-size: clamp(14px, 1.6vw, 22px); }
+}
+
+/* Large monitors (1400px+) */
+@media (min-width: 1400px) {
+  .sched-name { font-size: 18px; }
+  .sched-time { font-size: 16px; }
+  .sched-item { padding: 10px 20px; }
+}
+
+/* ── THREE COLUMNS ── */
+.col-left, .col-mid, .col-right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.col-left {
+  border-right: 2px solid var(--border);
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+}
+
+.col-mid {
+  border-right: 2px solid var(--border);
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+}
+
+.col-right {
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
+/* ── LOGO PANEL ── */
 .col-logo {
-  grid-column:1/3; grid-row:2;
-  border-top:2px solid var(--border); border-right:2px solid var(--border);
-  display:flex; flex-direction:column; align-items:stretch;
-  background:#222; overflow:hidden; min-height:200px;
+  grid-column: 1 / 3;
+  grid-row: 2;
+  border-top: 2px solid var(--border);
+  border-right: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #222222;
+  overflow: hidden;
+  min-height: 60px;
 }
-.col-logo img { max-width:70%; max-height:85%; object-fit:contain; opacity:0.9; transition:opacity 1.5s ease; }
-.col-logo .logo-placeholder { font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:3px; color:var(--text-dim); text-transform:uppercase; }
 
-.clock-panel { background:linear-gradient(180deg,#110000 0%,var(--bg2) 100%); border-bottom:2px solid var(--border); padding:6px 14px 5px; text-align:center; flex-shrink:0; overflow:hidden; height:90px; display:flex; flex-direction:column; justify-content:center; }
-.clock-time { font-family:'Share Tech Mono',monospace; font-size:clamp(28px,4.5vw,58px); color:var(--white); letter-spacing:3px; line-height:1; text-shadow:0 0 30px rgba(255,255,255,0.1),0 0 60px var(--red-glow); white-space:nowrap; overflow:hidden; }
-.clock-time.test-mode { color:var(--yellow); text-shadow:0 0 20px rgba(245,196,0,0.3); }
-.clock-sub { font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:4px; color:var(--red); margin-top:2px; text-transform:uppercase; }
+.col-logo img {
+  max-width: 70%;
+  max-height: 85%;
+  object-fit: contain;
+  opacity: 0.9;
+  transition: opacity 1.5s ease;
+}
 
-.current-panel { background:var(--bg2); border-bottom:1px solid var(--border); border-left:3px solid var(--red); box-shadow:inset 0 0 30px rgba(232,0,13,0.04); padding:8px 14px; flex-shrink:0; }
-.current-panel::after { display:none; }
-.panel-label { font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:3px; color:var(--red); text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; }
-.panel-label .badge { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text-dim); letter-spacing:1px; }
-.status-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
-.status-pill { font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px; padding:2px 8px; border:1px solid; text-transform:uppercase; }
-.status-pill.live { color:var(--green); border-color:var(--green); background:rgba(29,185,84,0.1); animation:glow-green 2s ease-in-out infinite; }
-.status-pill.break { color:var(--yellow); border-color:var(--yellow); background:rgba(245,196,0,0.08); }
-@keyframes glow-green { 0%,100%{box-shadow:0 0 6px var(--green-glow)} 50%{box-shadow:none} }
+.col-logo .logo-placeholder {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
 
-.cat-tag { font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:1.5px; padding:2px 6px; border:1px solid; text-transform:uppercase; }
-.tag-WorldSBK { color:var(--green); border-color:rgba(29,185,84,0.4); background:rgba(29,185,84,0.08); }
-.tag-WorldSSP { color:#4AABFF; border-color:rgba(74,171,255,0.4); background:rgba(74,171,255,0.08); }
-.tag-WorldWCR { color:#FF9F40; border-color:rgba(255,159,64,0.4); background:rgba(255,159,64,0.08); }
-.tag-R3 { color:#A855F7; border-color:rgba(168,85,247,0.4); background:rgba(168,85,247,0.08); }
-.tag-MARSHAL { color:var(--red); border-color:rgba(232,0,13,0.4); background:rgba(232,0,13,0.08); }
-.tag-OFFICIAL { color:var(--yellow); border-color:rgba(245,196,0,0.3); background:rgba(245,196,0,0.06); }
-.tag-TRACK { color:var(--yellow); border-color:rgba(245,196,0,0.3); background:rgba(245,196,0,0.06); }
+/* CLOCK */
+.clock-panel {
+  background: linear-gradient(180deg, #110000 0%, var(--bg2) 100%);
+  border-bottom: 2px solid var(--border);
+  padding: 6px 14px 5px;
+  text-align: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
-.current-name { font-family:'Oswald',sans-serif; font-size:clamp(16px,2.2vw,24px); font-weight:600; color:var(--white); line-height:1.15; letter-spacing:0.5px; margin-bottom:2px; }
-.current-remark { font-family:'Rajdhani',sans-serif; font-size:12px; color:var(--text-mid); margin-bottom:8px; letter-spacing:0.5px; }
-.times-row { display:flex; gap:8px; margin-bottom:8px; }
-.time-box { flex:1; background:var(--bg3); border:1px solid var(--border); padding:4px 7px; }
-.time-box-label { font-family:'Oswald',sans-serif; font-size:8px; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase; margin-bottom:2px; }
-.time-box-val { font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--off-white); letter-spacing:1px; }
-.progress-top { display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text-dim); margin-bottom:4px; }
-.progress-track { height:4px; background:var(--bg4); border:1px solid var(--border); overflow:hidden; }
-.progress-fill { height:100%; background:linear-gradient(90deg,var(--red-dark),var(--red)); transition:width 1s linear; position:relative; }
-.progress-fill::after { content:''; position:absolute; right:0; top:0; bottom:0; width:16px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4)); }
+.clock-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(28px, 4.5vw, 58px);
+  color: var(--white);
+  letter-spacing: 3px;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(255,255,255,0.1), 0 0 60px var(--red-glow);
+  white-space: nowrap;
+  overflow: hidden;
+}
 
-.signal-panel { display:none; background:#0d0900; border-bottom:1px solid rgba(245,196,0,0.3); border-left:3px solid var(--yellow); padding:7px 16px; flex-shrink:0; animation:signal-appear 0.2s ease-out; }
-.signal-panel.visible { display:flex; align-items:center; gap:10px; }
-@keyframes signal-appear { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
-.signal-icon { font-size:16px; flex-shrink:0; }
-.signal-content { flex:1; min-width:0; }
-.signal-time { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--yellow); letter-spacing:2px; }
-.signal-name { font-family:'Oswald',sans-serif; font-size:clamp(13px,1.8vw,17px); font-weight:600; color:var(--yellow-light); letter-spacing:0.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.signal-ttl { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-mid); flex-shrink:0; text-align:right; letter-spacing:1px; }
-.signal-ttl.urgent { color:var(--red); }
+.clock-time.test-mode { color: var(--yellow); text-shadow: 0 0 20px rgba(245,196,0,0.3); }
 
-.countdown-panel { background:var(--bg2); border-bottom:2px solid var(--border); border-left:3px solid var(--border-hi); padding:10px 14px; flex-shrink:0; text-align:center; height:90px; display:flex; flex-direction:column; justify-content:center; }
-.countdown-sub { font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:3px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px; }
-.countdown-digits { display:flex; align-items:center; justify-content:center; gap:4px; }
-.cd-seg { text-align:center; }
-.cd-num { font-family:'Share Tech Mono',monospace; font-size:clamp(28px,3.2vw,48px); line-height:1; color:var(--white); letter-spacing:2px; display:block; }
-.cd-num.urgent { color:var(--red); animation:urgent-glow 0.4s ease-in-out infinite alternate; }
-@keyframes urgent-glow { from{text-shadow:0 0 10px var(--red)} to{text-shadow:0 0 30px var(--red),0 0 60px var(--red-glow)} }
-.cd-unit { font-family:'Oswald',sans-serif; font-size:8px; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase; display:block; margin-top:1px; }
-.cd-sep { font-family:'Share Tech Mono',monospace; font-size:clamp(22px,2.8vw,40px); color:var(--red); line-height:1; opacity:0.5; margin-bottom:14px; animation:sep-blink 1s step-end infinite; }
+.clock-sub {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--red);
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+/* CURRENT EVENT */
+.current-panel {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  box-shadow: inset 0 0 30px rgba(232,0,13,0.04);
+  padding: 8px 14px;
+  flex-shrink: 0;
+}
+
+.current-panel::after {
+  display: none;
+}
+
+.panel-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-label .badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.status-pill {
+  font-family: 'Oswald', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 2px 8px;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+.status-pill.live {
+  color: var(--green);
+  border-color: var(--green);
+  background: rgba(29,185,84,0.1);
+  animation: glow-green 2s ease-in-out infinite;
+}
+
+.status-pill.break {
+  color: var(--yellow);
+  border-color: var(--yellow);
+  background: rgba(245,196,0,0.08);
+}
+
+@keyframes glow-green {
+  0%,100% { box-shadow: 0 0 6px var(--green-glow); }
+  50% { box-shadow: none; }
+}
+
+.cat-tag {
+  font-family: 'Oswald', sans-serif;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  padding: 2px 6px;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+.tag-WorldSBK { color: var(--green); border-color: rgba(29,185,84,0.4); background: rgba(29,185,84,0.08); }
+.tag-WorldSSP { color: #4AABFF; border-color: rgba(74,171,255,0.4); background: rgba(74,171,255,0.08); }
+.tag-WorldWCR { color: #FF9F40; border-color: rgba(255,159,64,0.4); background: rgba(255,159,64,0.08); }
+.tag-R3 { color: #A855F7; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.08); }
+.tag-MARSHAL { color: var(--red); border-color: rgba(232,0,13,0.4); background: rgba(232,0,13,0.08); }
+.tag-OFFICIAL { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
+.tag-TRACK { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
+
+.current-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(16px, 2.2vw, 24px);
+  font-weight: 600;
+  color: var(--white);
+  line-height: 1.15;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.current-remark {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.times-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.time-box {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 4px 7px;
+}
+
+.time-box-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.time-box-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  color: var(--off-white);
+  letter-spacing: 1px;
+}
+
+.progress-wrap { }
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.progress-track {
+  height: 4px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--red-dark), var(--red));
+  transition: width 1s linear;
+  position: relative;
+}
+
+.progress-fill::after {
+  content:'';
+  position:absolute; right:0; top:0; bottom:0;
+  width: 16px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+}
+
+/* SIGNAL PANEL — pillanatnyi események */
+.signal-panel {
+  display: none;
+  background: #0d0900;
+  border-bottom: 1px solid rgba(245,196,0,0.3);
+  border-left: 3px solid var(--yellow);
+  padding: 7px 16px;
+  flex-shrink: 0;
+  animation: signal-appear 0.2s ease-out;
+}
+
+.signal-panel.visible {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@keyframes signal-appear {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.signal-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.signal-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.signal-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--yellow);
+  letter-spacing: 2px;
+}
+
+.signal-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(13px, 1.8vw, 17px);
+  font-weight: 600;
+  color: var(--yellow-light);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.signal-ttl {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-mid);
+  flex-shrink: 0;
+  text-align: right;
+  letter-spacing: 1px;
+}
+
+.signal-ttl.urgent { color: var(--red); }
+
+/* COUNTDOWN PANEL */
+.countdown-panel {
+  background: var(--bg2);
+  border-bottom: 2px solid var(--border);
+  border-left: 3px solid var(--border-hi);
+  padding: 10px 14px 10px;
+  flex-shrink: 0;
+  text-align: center;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.countdown-sub {
+  font-family: 'Oswald', sans-serif;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.countdown-digits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.cd-seg { text-align: center; }
+
+.cd-num {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(28px, 3.2vw, 48px);
+  line-height: 1;
+  color: var(--white);
+  letter-spacing: 2px;
+  display: block;
+}
+
+.cd-num.urgent {
+  color: var(--red);
+  animation: urgent-glow 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes urgent-glow {
+  from { text-shadow: 0 0 10px var(--red); }
+  to   { text-shadow: 0 0 30px var(--red), 0 0 60px var(--red-glow); }
+}
+
+.cd-unit {
+  font-family: 'Oswald', sans-serif;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  display: block;
+  margin-top: 1px;
+}
+
+.cd-sep {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(22px, 2.8vw, 40px);
+  color: var(--red);
+  line-height: 1;
+  opacity: 0.5;
+  margin-bottom: 14px;
+  animation: sep-blink 1s step-end infinite;
+}
+
 @keyframes sep-blink { 0%,100%{opacity:0.5} 50%{opacity:0.1} }
 
-.next-panel { background:var(--bg2); border-left:3px solid var(--yellow); padding:8px 14px; flex:1; min-height:0; overflow:hidden; }
-.next-panel .panel-label { color:var(--yellow); }
-.next-name { font-family:'Oswald',sans-serif; font-size:18px; font-weight:500; color:var(--off-white); line-height:1.2; margin-bottom:3px; letter-spacing:0.3px; }
-.next-time { font-family:'Share Tech Mono',monospace; font-size:14px; color:var(--yellow); letter-spacing:2px; margin-top:6px; display:inline-block; border:1px solid rgba(245,196,0,0.3); background:rgba(245,196,0,0.05); padding:2px 10px; }
-.next-remark { font-family:'Rajdhani',sans-serif; font-size:12px; color:var(--text-mid); margin-top:3px; }
+/* NEXT EVENT */
+.next-panel {
+  background: var(--bg2);
+  border-left: 3px solid var(--yellow);
+  padding: 8px 14px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 
-.schedule-header { background:var(--bg3); border-bottom:2px solid var(--border); padding:0 16px; height:90px; overflow:hidden; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-.schedule-header-title { font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:3px; color:var(--red); text-transform:uppercase; }
-.schedule-header-badge { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); }
-.schedule-list { flex:1; overflow-y:auto; min-height:0; scrollbar-width:thin; scrollbar-color:var(--red) var(--bg3); }
-.schedule-list::-webkit-scrollbar { width:4px; }
-.schedule-list::-webkit-scrollbar-track { background:var(--bg3); }
-.schedule-list::-webkit-scrollbar-thumb { background:var(--red); }
+.next-panel .panel-label { color: var(--yellow); }
 
-.day-header { position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--border-hi); border-top:1px solid var(--border); padding:6px 16px; display:flex; align-items:center; gap:12px; z-index:5; }
-.day-header-name { font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:3px; color:var(--red); }
-.day-header-date { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); }
-.day-header-line { flex:1; height:1px; background:var(--border); }
+.next-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--off-white);
+  line-height: 1.2;
+  margin-bottom: 3px;
+  letter-spacing: 0.3px;
+}
 
-.sched-item { display:grid; grid-template-columns:115px 1fr; gap:8px; align-items:center; padding:7px 12px; border-bottom:1px solid var(--border); position:relative; border-left:3px solid transparent; transition:background 0.15s; overflow:hidden; min-width:0; }
-.sched-item:hover { background:var(--bg3); }
-.sched-item.t-race    { border-left-color:var(--green); background:rgba(29,185,84,0.04); }
-.sched-item.t-session { border-left-color:var(--yellow); background:rgba(245,196,0,0.03); }
-.sched-item.t-marshal { border-left-color:var(--red); background:rgba(232,0,13,0.04); }
-.sched-item.t-official { border-left-color:#444; }
-.sched-item.t-procedure { border-left-color:#333; opacity:0.75; }
-.sched-item.is-current { background:rgba(232,0,13,0.06)!important; border-left-color:var(--red)!important; opacity:1!important; }
-.sched-time { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--off-white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-.sched-time .end { font-size:10px; color:var(--text-dim); display:block; margin-top:1px; }
-.sched-content { min-width:0; overflow:hidden; }
-.sched-name { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:600; color:var(--white); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.sched-item.t-procedure .sched-name { font-size:13px; font-weight:400; color:#aaa; }
-.sched-remark { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text-dim); letter-spacing:1px; margin-top:1px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.horn-icon { font-size:11px; margin-right:3px; opacity:0.7; }
-.no-events { padding:40px; text-align:center; font-family:'Share Tech Mono',monospace; color:var(--text-dim); font-size:12px; letter-spacing:2px; }
+.next-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  color: var(--yellow);
+  letter-spacing: 2px;
+  margin-top: 6px;
+  display: inline-block;
+  border: 1px solid rgba(245,196,0,0.3);
+  background: rgba(245,196,0,0.05);
+  padding: 2px 10px;
+}
+
+.next-remark {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-top: 3px;
+}
+
+/* ── RIGHT COLUMN: SCHEDULE ── */
+/* right-col merged into col-right above */
+
+.schedule-header {
+  background: var(--bg3);
+  border-bottom: 2px solid var(--border);
+  padding: 0 16px;
+  height: 90px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.schedule-header-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--red);
+  text-transform: uppercase;
+}
+
+.schedule-header-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.schedule-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--red) var(--bg3);
+}
+
+.schedule-list::-webkit-scrollbar { width: 4px; }
+.schedule-list::-webkit-scrollbar-track { background: var(--bg3); }
+.schedule-list::-webkit-scrollbar-thumb { background: var(--red); }
+
+/* DAY HEADER */
+.day-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-hi);
+  border-top: 1px solid var(--border);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 5;
+}
+
+.day-header-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--red);
+}
+
+.day-header-date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.day-header-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* SCHEDULE ITEM */
+.sched-item {
+  display: grid;
+  grid-template-columns: 115px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.sched-item:hover { background: var(--bg3); }
+
+/* Type colours */
+.sched-item.t-race    { border-left-color: var(--green);  background: rgba(29,185,84,0.04); }
+.sched-item.t-session { border-left-color: var(--yellow); background: rgba(245,196,0,0.03); }
+.sched-item.t-marshal { border-left-color: var(--red);    background: rgba(232,0,13,0.04); }
+.sched-item.t-official{ border-left-color: #444; }
+.sched-item.t-procedure { border-left-color: #333; opacity: 0.75; }
+
+.sched-item.is-current {
+  background: rgba(232,0,13,0.06) !important;
+  border-left-color: var(--red) !important;
+  opacity: 1 !important;
+}
+
+.sched-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--off-white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sched-time .end {
+  font-size: 10px;
+  color: var(--text-dim);
+  display: block;
+  margin-top: 1px;
+}
+
+.sched-content {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sched-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sched-item.t-procedure .sched-name {
+  font-size: 13px;
+  font-weight: 400;
+  color: #aaa;
+}
+
+.sched-remark {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-top: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.horn-icon { font-size: 11px; margin-right: 3px; opacity: 0.7; }
+
+.no-events {
+  padding: 40px;
+  text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+  font-size: 12px;
+  letter-spacing: 2px;
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -240,6 +953,7 @@ body::after {
 
 <div class="app">
 
+  <!-- HEADER -->
   <div class="header">
     <div class="header-logo">RACE CONTROL</div>
     <div class="header-title" id="headerTitle">RACE CONTROL <span>DASHBOARD</span></div>
@@ -247,14 +961,15 @@ body::after {
       <div class="live-dot"></div>
       <span>RACE CONTROL</span>
       <button onclick="toggleTestBar()" id="testToggleBtn"
-        style="margin-left:12px;background:rgba(245,196,0,0.1);border:1px solid rgba(245,196,0,0.3);
-               color:rgba(245,196,0,0.7);font-family:'Oswald',sans-serif;font-size:9px;
-               letter-spacing:2px;padding:3px 8px;cursor:pointer;text-transform:uppercase;">
+        style="margin-left:12px; background:rgba(245,196,0,0.1); border:1px solid rgba(245,196,0,0.3);
+               color:rgba(245,196,0,0.7); font-family:'Oswald',sans-serif; font-size:9px;
+               letter-spacing:2px; padding:3px 8px; cursor:pointer; text-transform:uppercase;">
         ⚙ TEST
       </button>
     </div>
   </div>
 
+  <!-- IMPORT BAR -->
   <div class="pdf-bar">
     <button class="pdf-file-btn" onclick="document.getElementById('jsonFileInput').click()">
       📂 Időterv betöltése
@@ -263,9 +978,11 @@ body::after {
     <div class="pdf-status" id="pdfStatus">Töltsd be az időtervet JSON formátumban</div>
   </div>
 
+  <!-- TEST BAR -->
   <div class="test-bar" style="display:none">
     <div class="test-label">⚠ TEST MODE</div>
-    <input type="datetime-local" class="test-input" id="testDateInput" value="2026-05-02T10:20" />
+    <input type="datetime-local" class="test-input" id="testDateInput"
+      value="2026-05-02T10:20" />
     <button class="test-btn go"   onclick="activateTestMode()">▶ Set Time</button>
     <button class="test-btn live" onclick="resetTestMode()">↩ Live</button>
     <button class="test-btn horn" onclick="playHorn()">📯 Horn</button>
@@ -275,15 +992,22 @@ body::after {
     </div>
   </div>
 
+  <!-- MAIN BODY -->
   <div class="main-body">
 
+    <!-- COL 1: CLOCK + CURRENT EVENT + SIGNAL -->
     <div class="col-left">
+
       <div class="clock-panel">
         <div class="clock-time" id="clockTime">--:--:--</div>
         <div class="clock-sub" id="clockSub">Loading...</div>
       </div>
+
       <div class="current-panel">
-        <div class="panel-label">▶ CURRENT EVENT <span class="badge" id="currentIdx">—</span></div>
+        <div class="panel-label">
+          ▶ CURRENT EVENT
+          <span class="badge" id="currentIdx">—</span>
+        </div>
         <div class="status-row">
           <div class="status-pill" id="statusPill">—</div>
           <div id="sessionCategory"></div>
@@ -291,15 +1015,31 @@ body::after {
         <div class="current-name" id="currentEventName">Waiting...</div>
         <div class="current-remark" id="currentEventDetail"></div>
         <div class="times-row">
-          <div class="time-box"><div class="time-box-label">Start</div><div class="time-box-val" id="currentStart">—</div></div>
-          <div class="time-box"><div class="time-box-label">End</div><div class="time-box-val" id="currentEnd">—</div></div>
-          <div class="time-box"><div class="time-box-label">Duration</div><div class="time-box-val" id="currentDuration">—</div></div>
+          <div class="time-box">
+            <div class="time-box-label">Start</div>
+            <div class="time-box-val" id="currentStart">—</div>
+          </div>
+          <div class="time-box">
+            <div class="time-box-label">End</div>
+            <div class="time-box-val" id="currentEnd">—</div>
+          </div>
+          <div class="time-box">
+            <div class="time-box-label">Duration</div>
+            <div class="time-box-val" id="currentDuration">—</div>
+          </div>
         </div>
         <div id="progressContainer" style="display:none">
-          <div class="progress-top"><span>ELAPSED</span><span id="progressPct">0%</span></div>
-          <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+          <div class="progress-top">
+            <span>ELAPSED</span>
+            <span id="progressPct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+          </div>
         </div>
       </div>
+
+      <!-- SIGNAL: pillanatnyi esemény -->
       <div class="signal-panel" id="signalPanel">
         <div class="signal-icon" id="signalIcon">📋</div>
         <div class="signal-content">
@@ -308,42 +1048,66 @@ body::after {
         </div>
         <div class="signal-ttl" id="signalTTL">—</div>
       </div>
-    </div>
 
+    </div><!-- /col-left -->
+
+    <!-- COL 2: COUNTDOWN + NEXT EVENT -->
     <div class="col-mid">
+
       <div class="countdown-panel">
         <div class="countdown-sub" id="countdownLabel">—</div>
         <div class="countdown-digits">
-          <div class="cd-seg"><span class="cd-num" id="cdHours">00</span><span class="cd-unit">hrs</span></div>
+          <div class="cd-seg">
+            <span class="cd-num" id="cdHours">00</span>
+            <span class="cd-unit">hrs</span>
+          </div>
           <span class="cd-sep">:</span>
-          <div class="cd-seg"><span class="cd-num" id="cdMinutes">00</span><span class="cd-unit">min</span></div>
+          <div class="cd-seg">
+            <span class="cd-num" id="cdMinutes">00</span>
+            <span class="cd-unit">min</span>
+          </div>
           <span class="cd-sep">:</span>
-          <div class="cd-seg"><span class="cd-num" id="cdSeconds">00</span><span class="cd-unit">sec</span></div>
+          <div class="cd-seg">
+            <span class="cd-num" id="cdSeconds">00</span>
+            <span class="cd-unit">sec</span>
+          </div>
         </div>
       </div>
+
       <div class="next-panel">
-        <div class="panel-label">⏭ NEXT EVENT <span class="badge" id="nextEventBadge">—</span></div>
-        <div class="status-row"><div id="nextSessionCategory"></div></div>
+        <div class="panel-label">
+          ⏭ NEXT EVENT
+          <span class="badge" id="nextEventBadge">—</span>
+        </div>
+        <div class="status-row">
+          <div id="nextSessionCategory"></div>
+        </div>
         <div class="next-name" id="nextEventName">—</div>
         <div class="next-remark" id="nextEventDetail"></div>
         <div class="next-time" id="nextTimePill">—</div>
       </div>
-    </div>
 
+    </div><!-- /col-mid -->
+
+    <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
     <div class="col-logo" id="logoPanel" style="position:relative;">
-      <div class="logo-placeholder" id="logoPlaceholder" style="display:flex;align-items:center;justify-content:center;flex:1;">— Nincs aktív sorozat —</div>
-      <img id="logoPanelImg" src="" alt="" style="display:none;max-width:70%;max-height:85%;object-fit:contain;margin:auto;" />
+      <div class="logo-placeholder" id="logoPlaceholder">— Nincs aktív sorozat —</div>
+      <img id="logoPanelImg" src="" alt="" style="display:none;" />
     </div>
 
+    <!-- COL 3: SCHEDULE LIST -->
     <div class="col-right">
       <div class="schedule-header">
-        <div style="display:flex;flex-direction:column;justify-content:center;gap:3px;">
+        <div style="display:flex; flex-direction:column; justify-content:center; gap:3px;">
           <span class="schedule-header-title">Event Schedule — From Now</span>
-          <div id="scheduleHeaderDate" style="font-family:monospace;font-size:10px;color:var(--text-mid);letter-spacing:2px;"></div>
+          <div id="scheduleHeaderDate" style="font-family:monospace; font-size:10px; color:var(--text-mid); letter-spacing:2px;"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
           <button id="liveScrBtn" onclick="goLive()"
-            style="display:none;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:2px;padding:3px 10px;cursor:pointer;background:rgba(232,0,13,0.15);border:1px solid var(--red);color:var(--red);text-transform:uppercase;">
+            style="display:none; font-family:'Oswald',sans-serif; font-size:9px;
+                   letter-spacing:2px; padding:3px 10px; cursor:pointer;
+                   background:rgba(232,0,13,0.15); border:1px solid var(--red);
+                   color:var(--red); text-transform:uppercase;">
             ● LIVE
           </button>
           <span class="schedule-header-badge" id="scheduleCount">—</span>
@@ -358,520 +1122,1534 @@ body::after {
       </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /main-body -->
+
+</div><!-- /app -->
+
 
 <script>
-const SCHEDULE = [];
+// ============================================================
+// FULL SCHEDULE DATA — Superbike of Hungary 2026
+// Dates: 2026-04-29 to 2026-05-03
+// Times are CET (UTC+2 in summer)
+// Format: { date, start, end, name, remark, type, category }
+// Types: marshal, session, race, official
+// ============================================================
 
+const SCHEDULE = [];
+// Menetrend betöltése JSON importtal szükséges
+
+// ============================================================
+// HORN SOUND — Web Audio API, ~1.5s race horn
+// ============================================================
 let audioCtx = null;
+
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
+
+// Currently selected horn style (1-5)
 let currentHornStyle = 3;
+
 const HORN_PRESETS = {
-  1:{name:'Soft city horn', low:220.00,high:440.00,dist:100,dur:1.5},
-  2:{name:'Standard horn',  low:261.63,high:523.25,dist:200,dur:1.5},
-  3:{name:'Truck/bus horn', low:311.13,high:622.25,dist:300,dur:1.5},
-  4:{name:'Sport car horn', low:349.23,high:698.46,dist:350,dur:1.5},
-  5:{name:'High alarm horn',low:392.00,high:783.99,dist:400,dur:1.5},
+  1: { name: 'Soft city horn',  low: 220.00, high: 440.00, dist: 100, dur: 1.5 },  // A3 / A4 — lágy
+  2: { name: 'Standard horn',   low: 261.63, high: 523.25, dist: 200, dur: 1.5 },  // C4 / C5 — átlag autó
+  3: { name: 'Truck/bus horn',  low: 311.13, high: 622.25, dist: 300, dur: 1.5 },  // D#4 / D#5
+  4: { name: 'Sport car horn',  low: 349.23, high: 698.46, dist: 350, dur: 1.5 },  // F4 / F5 — élesebb
+  5: { name: 'High alarm horn', low: 392.00, high: 783.99, dist: 400, dur: 1.5 },  // G4 / G5 — magas
 };
+
 function playHorn(styleNum) {
-  const style = HORN_PRESETS[styleNum||currentHornStyle]||HORN_PRESETS[3];
+  const style = HORN_PRESETS[styleNum || currentHornStyle] || HORN_PRESETS[3];
   try {
-    const ctx=getAudioCtx(),duration=style.dur;
-    const osc1=ctx.createOscillator(),osc2=ctx.createOscillator();
-    const gainNode=ctx.createGain(),distortion=ctx.createWaveShaper();
-    const k=style.dist,curve=new Float32Array(256);
-    for(let i=0;i<256;i++){const x=(i*2)/256-1;curve[i]=(Math.PI+k)*x/(Math.PI+k*Math.abs(x));}
-    distortion.curve=curve;
-    osc1.type='sawtooth';osc1.frequency.setValueAtTime(style.low,ctx.currentTime);
-    osc2.type='square';osc2.frequency.setValueAtTime(style.high,ctx.currentTime);
-    gainNode.gain.setValueAtTime(0,ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5,ctx.currentTime+0.05);
-    gainNode.gain.setValueAtTime(0.5,ctx.currentTime+duration-0.2);
-    gainNode.gain.linearRampToValueAtTime(0,ctx.currentTime+duration);
-    osc1.connect(distortion);osc2.connect(distortion);distortion.connect(gainNode);gainNode.connect(ctx.destination);
-    osc1.start(ctx.currentTime);osc2.start(ctx.currentTime);
-    osc1.stop(ctx.currentTime+duration);osc2.stop(ctx.currentTime+duration);
-  } catch(e){console.warn('Horn sound error:',e);}
+    const ctx = getAudioCtx();
+    const duration = style.dur;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    const distortion = ctx.createWaveShaper();
+
+    // Waveshaper curve — strength controls horn texture harshness
+    const k = style.dist;
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) {
+      const x = (i * 2) / 256 - 1;
+      curve[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
+    }
+    distortion.curve = curve;
+
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(style.low, ctx.currentTime);
+
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(style.high, ctx.currentTime);
+
+    gainNode.gain.setValueAtTime(0.0, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+    gainNode.gain.setValueAtTime(0.5, ctx.currentTime + duration - 0.2);
+    gainNode.gain.linearRampToValueAtTime(0.0, ctx.currentTime + duration);
+
+    osc1.connect(distortion);
+    osc2.connect(distortion);
+    distortion.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    osc1.start(ctx.currentTime);
+    osc2.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + duration);
+    osc2.stop(ctx.currentTime + duration);
+  } catch(e) {
+    console.warn('Horn sound error:', e);
+  }
 }
 
-const hornFired=new Set();
+function selectHornStyle(num) {
+  currentHornStyle = num;
+  // Update visual selection
+  document.querySelectorAll('.horn-sample-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('.horn-sample-btn[data-style="' + num + '"]');
+  if (btn) btn.classList.add('active');
+  // Play preview
+  playHorn(num);
+}
+
+// Track which horn events have already fired (by event idx)
+const hornFired = new Set();
+
 function checkHornEvents() {
-  if(testModeTime===null) return;
-  const now=getNow();
-  for(let ev of processedSchedule){
-    if(!ev.horn||!ev.startDt) continue;
-    const diff=now-ev.startDt;
-    if(diff>=0&&diff<2000&&!hornFired.has(ev.idx)){hornFired.add(ev.idx);playHorn();}
-  }
-}
-let liveHornFired=new Set();
-function checkLiveHorn() {
-  if(testModeTime!==null) return;
-  const now=getNow();
-  for(let ev of processedSchedule){
-    if(!ev.horn||!ev.startDt) continue;
-    const diff=now-ev.startDt;
-    if(diff>=0&&diff<2000&&!liveHornFired.has(ev.idx)){liveHornFired.add(ev.idx);playHorn();}
+  if (testModeTime === null) return; // test mode only
+  const now = getNow();
+  for (let ev of processedSchedule) {
+    if (!ev.horn || !ev.startDt) continue;
+    const diff = now - ev.startDt;  // positive when now is AFTER event time
+    // Fire only when event time has been reached, within a 2-second window
+    if (diff >= 0 && diff < 2000 && !hornFired.has(ev.idx)) {
+      hornFired.add(ev.idx);
+      playHorn();
+    }
   }
 }
 
-function parseEventDateTime(date,timeStr) {
-  if(!timeStr) return null;
-  const parts=timeStr.split(':').map(Number);
-  const h=parts[0]||0,m=parts[1]||0,s=parts[2]||0;
-  const [y,mo,d]=date.split('-').map(Number);
-  return new Date(y,mo-1,d,h,m,s,0);
+// Also allow horn in live mode
+let liveHornFired = new Set();
+function checkLiveHorn() {
+  if (testModeTime !== null) return;
+  const now = getNow();
+  for (let ev of processedSchedule) {
+    if (!ev.horn || !ev.startDt) continue;
+    const diff = now - ev.startDt;
+    if (diff >= 0 && diff < 2000 && !liveHornFired.has(ev.idx)) {
+      liveHornFired.add(ev.idx);
+      playHorn();
+    }
+  }
 }
+
+// Test horn button handler
+function testHorn() {
+  // Unlock audio context on first user gesture
+  playHorn();
+}
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function parseEventDateTime(date, timeStr) {
+  if (!timeStr) return null;
+  const parts = timeStr.split(':').map(Number);
+  const h = parts[0] || 0;
+  const m = parts[1] || 0;
+  const s = parts[2] || 0;
+  const [y, mo, d] = date.split('-').map(Number);
+  const dt = new Date(y, mo - 1, d, h, m, s, 0);
+  return dt;
+}
+
 function toHHMMSS(totalSeconds) {
-  if(totalSeconds<0) totalSeconds=0;
-  const h=Math.floor(totalSeconds/3600),m=Math.floor((totalSeconds%3600)/60),s=totalSeconds%60;
-  return{h,m,s};
+  if (totalSeconds < 0) totalSeconds = 0;
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return { h, m, s };
 }
-function pad(n){return String(n).padStart(2,'0');}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
 function getCategoryTag(cat) {
-  const labels={'WorldSBK':'WorldSBK','WorldSSP':'WorldSSP','WorldWCR':'WorldWCR','R3':'R3 CUP','MARSHAL':'MARSHAL','OFFICIAL':'OFFICIAL','TRACK':'TRACK'};
-  const label=labels[cat];
-  if(!label) return '';
+  const labels = {
+    'WorldSBK': 'WorldSBK',
+    'WorldSSP': 'WorldSSP',
+    'WorldWCR': 'WorldWCR',
+    'R3': 'R3 CUP',
+    'MARSHAL': 'MARSHAL',
+    'OFFICIAL': 'OFFICIAL',
+    'TRACK': 'TRACK',
+  };
+  const label = labels[cat];
+  if (!label) return '';
   return `<span class="cat-tag tag-${cat}">${label}</span>`;
 }
+
 function getItemClass(ev) {
-  if(ev.type==='marshal') return 't-marshal';
-  if(ev.type==='race') return 't-race';
-  if(ev.type==='session') return 't-session';
-  if(ev.type==='procedure') return 't-procedure';
+  if (ev.type === 'marshal') return 't-marshal';
+  if (ev.type === 'race') return 't-race';
+  if (ev.type === 'session') return 't-session';
+  if (ev.type === 'procedure') return 't-procedure';
   return '';
 }
-const DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-let processedSchedule=SCHEDULE.map((ev,i)=>{
-  const startDt=parseEventDateTime(ev.date,ev.start);
-  const endDt=ev.end?parseEventDateTime(ev.date,ev.end):null;
-  return{...ev,startDt,endDt,idx:i};
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Pre-process schedule: add parsed dates
+let processedSchedule = SCHEDULE.map((ev, i) => {
+  const startDt = parseEventDateTime(ev.date, ev.start);
+  const endDt = ev.end ? parseEventDateTime(ev.date, ev.end) : null;
+  return { ...ev, startDt, endDt, idx: i };
 });
-processedSchedule.sort((a,b)=>{if(!a.startDt)return 1;if(!b.startDt)return -1;return a.startDt-b.startDt;});
-for(let i=0;i<processedSchedule.length;i++){
-  const ev=processedSchedule[i];
-  if(ev.endDt||ev.type==='procedure') continue;
-  for(let j=i+1;j<processedSchedule.length;j++){
-    const nextEv=processedSchedule[j];
-    if(!nextEv.startDt||nextEv.startDt<=ev.startDt) continue;
-    const gapMs=nextEv.startDt-ev.startDt;
-    if(gapMs>4*60*60*1000) break;
-    ev.implicitEndDt=nextEv.startDt; break;
+
+// Sort by start time so we can fill in implicit end times
+processedSchedule.sort((a, b) => {
+  if (!a.startDt) return 1;
+  if (!b.startDt) return -1;
+  return a.startDt - b.startDt;
+});
+
+// Fill implicit end time: every event without an explicit end ends when the next event starts
+// (only for sessions/races/marshal/official — procedures are momentary and stay momentary)
+// Limit: only use implicit end if next event starts within 4 hours (avoid cross-day bleed)
+for (let i = 0; i < processedSchedule.length; i++) {
+  const ev = processedSchedule[i];
+  if (ev.endDt) continue;
+  if (ev.type === 'procedure') continue;
+
+  for (let j = i + 1; j < processedSchedule.length; j++) {
+    const nextEv = processedSchedule[j];
+    if (!nextEv.startDt || nextEv.startDt <= ev.startDt) continue;
+    const gapMs = nextEv.startDt - ev.startDt;
+    if (gapMs > 4 * 60 * 60 * 1000) break; // more than 4 hours away — stop
+    ev.implicitEndDt = nextEv.startDt;
+    break;
   }
 }
-processedSchedule.forEach((ev,i)=>{ev.idx=i;});
+
+// Re-assign idx after sorting (so it matches list order)
+processedSchedule.forEach((ev, i) => { ev.idx = i; });
+
+// ============================================================
+// ============================================================
+// JSON IMPORT — közvetlen betöltés
+// ============================================================
 
 async function handleJsonUpload(event) {
-  const file=event.target.files[0]; if(!file) return;
-  const statusEl=document.getElementById('pdfStatus');
-  const setStatus=(cls,msg)=>{statusEl.className='pdf-status '+cls;statusEl.textContent=msg;};
-  setStatus('loading',`📂 Beolvasás: ${file.name} ...`);
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('pdfStatus');
+  const setStatus = (cls, msg) => {
+    statusEl.className = 'pdf-status ' + cls;
+    statusEl.textContent = msg;
+  };
+
+  setStatus('loading', `📂 Beolvasás: ${file.name} ...`);
+
   try {
-    const text=await file.text();
-    const parsed=JSON.parse(text);
-    if(!parsed.schedule||!Array.isArray(parsed.schedule)) throw new Error('Hiányzó schedule tömb');
-    if(parsed.schedule.length===0) throw new Error('A schedule tömb üres');
-    setStatus('loading',`📥 ${parsed.schedule.length} esemény betöltése...`);
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+
+    if (!parsed.schedule || !Array.isArray(parsed.schedule)) {
+      throw new Error('Hiányzó schedule tömb — nem érvényes menetrend JSON');
+    }
+    if (parsed.schedule.length === 0) {
+      throw new Error('A schedule tömb üres');
+    }
+
+    setStatus('loading', `📥 ${parsed.schedule.length} esemény betöltése...`);
     loadNewSchedule(parsed);
-    setStatus('ok',`✅ ${parsed.eventName||file.name} — ${parsed.schedule.length} esemény betöltve`);
-  } catch(err){console.error('JSON import error:',err);setStatus('error',`❌ ${err.message}`);}
-  event.target.value='';
+    setStatus('ok', `✅ ${parsed.eventName || file.name} — ${parsed.schedule.length} esemény betöltve`);
+
+  } catch (err) {
+    console.error('JSON import error:', err);
+    setStatus('error', `❌ ${err.message}`);
+  }
+
+  event.target.value = '';
+}
+
+// JSON export — az aktuális menetrendet JSON fájlként menti le
+function exportScheduleJson() {
+  const data = {
+    eventName: document.title.replace(' — Race Control', ''),
+    exportedAt: new Date().toISOString(),
+    schedule: processedSchedule.map(ev => ({
+      date: ev.date,
+      start: ev.start,
+      end: ev.end || '',
+      name: ev.name,
+      remark: ev.remark || '',
+      type: ev.type,
+      category: ev.category,
+      horn: ev.horn || false
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (data.eventName || 'schedule').replace(/\s+/g, '_') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const CLAUDE_SYSTEM_PROMPT = `Te egy versenyirányítási menetrend feldolgozó vagy.
+Kapsz egy motorsport verseny "Minute by Minute schedule" PDF-et.
+A feladatod: kinyerni az összes eseményt és visszaadni KIZÁRÓLAG valid JSON formátumban.
+
+A JSON struktúra:
+{
+  "eventName": "A verseny neve (pl. Superbike of Hungary 2026)",
+  "dateRange": "pl. 2026-04-29 to 2026-05-03",
+  "schedule": [
+    {
+      "date": "YYYY-MM-DD",
+      "start": "HH:MM" vagy "HH:MM:SS",
+      "end": "HH:MM" vagy "",
+      "name": "Esemény neve",
+      "remark": "Megjegyzés vagy üres string",
+      "type": "session" | "race" | "marshal" | "official" | "procedure",
+      "category": "WorldSBK" | "WorldSSP" | "WorldWCR" | "R3" | "MARSHAL" | "OFFICIAL" | "TRACK",
+      "horn": true | false
+    }
+  ]
+}
+
+Szabályok:
+- type="procedure": táblás jelzések (board+horn, seconds visszaszámlálás, pit lane events)
+- type="session": edzés, superpole, warm up
+- type="race": versenyrajtok (START OF THE RACE, RACE 1, RACE 2 stb.)
+- type="marshal": marshal akkreditáció, deployment, radio pick-up
+- type="official": FIM inspection, meeting, briefing
+- horn=true: csak akkor, ha a szövegben szerepel "+ horn" vagy "Horn" vagy "Board + Horn"
+- category: a kategória neve a szövegből (WorldSBK, WorldSSP, WorldWCR, R3/FIM Yamaha R3 stb.)
+- Ha a kategória nem meghatározható, használd az "OFFICIAL" értéket
+- MINDEN időponthoz tartozó eseményt vegyél fel, beleértve a másodperces visszaszámlálást is
+- Tartsd meg az összes percről-percre eseményt pontosan
+- Csak valid JSON-t adj vissza, semmi más szöveget, magyarázatot vagy markdown kódblokk jelölést`;
+
+async function handlePdfUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('pdfStatus');
+
+  const setStatus = (cls, msg) => {
+    statusEl.className = 'pdf-status ' + cls;
+    statusEl.textContent = msg;
+  };
+
+  setStatus('loading', `📄 Fájl beolvasása: ${file.name} ...`);
+
+  try {
+    // Read PDF as base64
+    const base64Data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Fájl olvasási hiba'));
+      reader.readAsDataURL(file);
+    });
+
+    setStatus('loading', `🤖 Claude elemzi a menetrendet... (ez 20-40 mp lehet)`);
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-dangerous-direct-browser-default': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        system: CLAUDE_SYSTEM_PROMPT,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/pdf',
+                data: base64Data
+              }
+            },
+            {
+              type: 'text',
+              text: 'Kérlek dolgozd fel ezt a motorsport menetrendet és add vissza a teljes JSON-t.'
+            }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      let errMsg = `HTTP ${response.status}`;
+      try {
+        const err = await response.json();
+        errMsg = err.error?.message || errMsg;
+      } catch(e) {}
+      throw new Error(errMsg);
+    }
+
+    setStatus('loading', '📊 Válasz feldolgozása...');
+
+    const data = await response.json();
+    const rawText = data.content.map(c => c.text || '').join('');
+
+    if (!rawText) throw new Error('Üres válasz az API-tól');
+
+    // Clean and parse JSON — handle markdown code blocks
+    const clean = rawText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      // Try to extract JSON object from text
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        throw new Error('JSON értelmezési hiba: ' + e.message);
+      }
+    }
+
+    if (!parsed.schedule || !Array.isArray(parsed.schedule)) {
+      throw new Error('Hiányzó schedule tömb a válaszban');
+    }
+
+    if (parsed.schedule.length === 0) {
+      throw new Error('A schedule tömb üres');
+    }
+
+    setStatus('loading', `📥 ${parsed.schedule.length} esemény betöltése...`);
+
+    loadNewSchedule(parsed);
+
+    setStatus('ok', `✅ ${parsed.eventName || file.name} — ${parsed.schedule.length} esemény betöltve`);
+
+  } catch (err) {
+    console.error('PDF import error:', err);
+    setStatus('error', `❌ ${err.message}`);
+  }
+
+  event.target.value = '';
 }
 
 function loadNewSchedule(parsed) {
-  const newRaw=parsed.schedule.map((ev,i)=>{
-    const startDt=parseEventDateTime(ev.date,ev.start);
-    const endDt=ev.end?parseEventDateTime(ev.date,ev.end):null;
-    return{...ev,startDt,endDt,idx:i};
+  // Convert parsed schedule to processedSchedule format
+  const newRaw = parsed.schedule.map((ev, i) => {
+    const startDt = parseEventDateTime(ev.date, ev.start);
+    const endDt = ev.end ? parseEventDateTime(ev.date, ev.end) : null;
+    return { ...ev, startDt, endDt, idx: i };
   });
-  newRaw.sort((a,b)=>{if(!a.startDt)return 1;if(!b.startDt)return -1;return a.startDt-b.startDt;});
-  for(let i=0;i<newRaw.length;i++){
-    const ev=newRaw[i];
-    if(ev.endDt||ev.type==='procedure') continue;
-    for(let j=i+1;j<newRaw.length;j++){
-      const nextEv=newRaw[j];
-      if(!nextEv.startDt||nextEv.startDt<=ev.startDt) continue;
-      const gapMs=nextEv.startDt-ev.startDt;
-      if(gapMs>4*60*60*1000) break;
-      ev.implicitEndDt=nextEv.startDt; break;
+
+  // Sort by start time
+  newRaw.sort((a, b) => {
+    if (!a.startDt) return 1;
+    if (!b.startDt) return -1;
+    return a.startDt - b.startDt;
+  });
+
+  // Fill implicit end times
+  for (let i = 0; i < newRaw.length; i++) {
+    const ev = newRaw[i];
+    if (ev.endDt || ev.type === 'procedure') continue;
+    for (let j = i + 1; j < newRaw.length; j++) {
+      const nextEv = newRaw[j];
+      if (!nextEv.startDt || nextEv.startDt <= ev.startDt) continue;
+      const gapMs = nextEv.startDt - ev.startDt;
+      if (gapMs > 4 * 60 * 60 * 1000) break;
+      ev.implicitEndDt = nextEv.startDt;
+      break;
     }
   }
-  newRaw.forEach((ev,i)=>{ev.idx=i;});
-  processedSchedule.length=0;
-  newRaw.forEach(ev=>processedSchedule.push(ev));
-  hornFired.clear(); liveHornFired.clear();
-  categoryLogos=parsed.categoryLogos||{};
-  currentBgCategory=null;
-  if(parsed.eventName){
-    const parts=parsed.eventName.toUpperCase().split(' ');
-    const last=parts.pop();
-    document.getElementById('headerTitle').innerHTML=parts.join(' ')+' <span>'+last+'</span>';
-    document.getElementById('headerTitle').previousElementSibling.textContent=parsed.circuit||'RACE CONTROL';
+
+  // Re-index
+  newRaw.forEach((ev, i) => { ev.idx = i; });
+
+  // Replace global schedule
+  processedSchedule.length = 0;
+  newRaw.forEach(ev => processedSchedule.push(ev));
+
+  // Reset horn tracking
+  hornFired.clear();
+  liveHornFired.clear();
+
+  // Kategória logók betöltése
+  categoryLogos = parsed.categoryLogos || {};
+  currentBgCategory = null; // reset hogy újra kiértékelje
+
+  // Update header with event name
+  if (parsed.eventName) {
+    const parts = parsed.eventName.toUpperCase().split(' ');
+    // Highlight last word in red
+    const last = parts.pop();
+    document.getElementById('headerTitle').innerHTML =
+      parts.join(' ') + ' <span>' + last + '</span>';
+    document.getElementById('headerTitle').previousElementSibling.textContent =
+      parsed.circuit || 'RACE CONTROL';
   }
-  if(parsed.dateRange){
-    const dates=parsed.dateRange.match(/(\d{4}-\d{2}-\d{2})/g);
-    if(dates&&dates.length>=1) document.getElementById('testDateInput').value=dates[0]+'T09:00';
-  } else if(newRaw.length>0&&newRaw[0].startDt){
-    document.getElementById('testDateInput').value=newRaw[0].date+'T09:00';
+
+  // Update test bar date to first event in new schedule
+  if (parsed.dateRange) {
+    const dates = parsed.dateRange.match(/(\d{4}-\d{2}-\d{2})/g);
+    if (dates && dates.length >= 1) {
+      const input = document.getElementById('testDateInput');
+      input.value = dates[0] + 'T09:00';
+    }
+  } else if (newRaw.length > 0 && newRaw[0].startDt) {
+    // Fallback: use first event's date
+    const firstDate = newRaw[0].date;
+    const input = document.getElementById('testDateInput');
+    input.value = firstDate + 'T09:00';
   }
-  buildSchedule(); updateDashboard();
+
+  // Rebuild dashboard
+  buildSchedule();
+  updateDashboard();
 }
 
 // ============================================================
-// MOTOGP PANEL
 // ============================================================
-const PROXY='https://motogp-proxy.porkolab-jozsef.workers.dev/';
-const MOTOGP_CATEGORIES=['MotoGP','Moto2','Moto3'];
-const SEASON_UUIDS={'2026':'e88b4e43-2209-47aa-8e83-0e0b1cedde6e','2025':'ae6c6f0d-c652-44f8-94aa-420fc5b3dab4','2024':'dd12382e-1d9f-46ee-a5f7-c5104db28e43','2023':'db8dc197-c7b2-4c1b-b3a4-6dc534c023ef'};
-const CAT_UUIDS={'MotoGP':'e8c110ad-64aa-4e8e-8a86-f2f152f6a942','Moto2':'549640b8-fd9c-4245-acfd-60e4bc38b25c','Moto3':'954f7e65-2ef2-4423-b949-4961cc603e45'};
-const SEASONS=['2026','2025','2024','2023'];
-const SEASON_EVENTS={
-  '2026':[{code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},{code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},{code:'CAT',name:'Catalonia'},{code:'ITA',name:'Italy'},{code:'HUN',name:'Hungary'},{code:'CZE',name:'Czech Republic'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},{code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},{code:'AUT',name:'Austria'},{code:'JPN',name:'Japan'},{code:'INA',name:'Indonesia'},{code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},{code:'VAL',name:'Valencia'}],
-  '2025':[{code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},{code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},{code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'ITA',name:'Italy'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},{code:'CZE',name:'Czech Republic'},{code:'AUT',name:'Austria'},{code:'HUN',name:'Hungary'},{code:'RSM',name:'San Marino'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},{code:'VAL',name:'Valencia'}],
-  '2024':[{code:'QAT',name:'Qatar'},{code:'POR',name:'Portugal'},{code:'USA',name:'USA'},{code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},{code:'CAT',name:'Catalonia'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},{code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},{code:'EMI',name:'Emilia Romagna'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},{code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}],
-  '2023':[{code:'POR',name:'Portugal'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},{code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},{code:'GER',name:'Germany'},{code:'NED',name:'Netherlands'},{code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'CAT',name:'Catalonia'},{code:'RSM',name:'San Marino'},{code:'IND',name:'India'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},{code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}]
+// 4. PANEL — LOGÓ + EREDMÉNYEK (automatikus, gomb nélkül)
+// ============================================================
+const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
+const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
+const WSBK_CATEGORIES = ['WorldSBK', 'WorldSSP', 'WorldWCR', 'R3', 'WorldSPB'];
+const SEASON_UUIDS = {
+  '2026': 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e',
+  '2025': 'ae6c6f0d-c652-44f8-94aa-420fc5b3dab4',
+  '2024': 'dd12382e-1d9f-46ee-a5f7-c5104db28e43',
+  '2023': 'db8dc197-c7b2-4c1b-b3a4-6dc534c023ef'
+};
+const CAT_UUIDS = {
+  'MotoGP': 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942',
+  'Moto2':  '549640b8-fd9c-4245-acfd-60e4bc38b25c',
+  'Moto3':  '954f7e65-2ef2-4423-b949-4961cc603e45'
+};
+const SEASONS = ['2026', '2025', '2024', '2023'];
+const SEASON_EVENTS = {
+  '2026': [
+    {code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},
+    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
+    {code:'CAT',name:'Catalonia'},{code:'ITA',name:'Italy'},{code:'HUN',name:'Hungary'},
+    {code:'CZE',name:'Czech Republic'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
+    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},
+    {code:'AUT',name:'Austria'},{code:'JPN',name:'Japan'},{code:'INA',name:'Indonesia'},
+    {code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},
+    {code:'VAL',name:'Valencia'}
+  ],
+  '2025': [
+    {code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
+    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
+    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'ITA',name:'Italy'},
+    {code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},{code:'CZE',name:'Czech Republic'},
+    {code:'AUT',name:'Austria'},{code:'HUN',name:'Hungary'},{code:'RSM',name:'San Marino'},
+    {code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},
+    {code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},{code:'VAL',name:'Valencia'}
+  ],
+  '2024': [
+    {code:'QAT',name:'Qatar'},{code:'POR',name:'Portugal'},{code:'USA',name:'USA'},
+    {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
+    {code:'CAT',name:'Catalonia'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
+    {code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'ARA',name:'Aragon'},
+    {code:'RSM',name:'San Marino'},{code:'EMI',name:'Emilia Romagna'},{code:'INA',name:'Indonesia'},
+    {code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},
+    {code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}
+  ],
+  '2023': [
+    {code:'POR',name:'Portugal'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
+    {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
+    {code:'GER',name:'Germany'},{code:'NED',name:'Netherlands'},{code:'GBR',name:'Great Britain'},
+    {code:'AUT',name:'Austria'},{code:'CAT',name:'Catalonia'},{code:'RSM',name:'San Marino'},
+    {code:'IND',name:'India'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},
+    {code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},{code:'MAL',name:'Malaysia'},
+    {code:'VAL',name:'Valencia'}
+  ]
 };
 
-let selectedYear='2026',selectedEventCode='VAL',selectedCat='MotoGP',autoCat='MotoGP',selectedSession='RAC';
-let autoTimer=null,fetchInterval=null,isFetching=false;
+let selectedYear = '2026';
+let selectedEventCode = 'FRA';
+let selectedCat = 'MotoGP';
+let autoCat = 'MotoGP';
+let selectedSession = 'RAC';
+let autoTimer = null;
+let fetchInterval = null;
+let isFetching = false;
 
-const SESSION_TYPES_MOTOGP=['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
-const SESSION_TYPES_OTHER =['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
-function getSessionTypes(){return selectedCat==='MotoGP'?SESSION_TYPES_MOTOGP:SESSION_TYPES_OTHER;}
+const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
+const SESSION_TYPES_OTHER  = ['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
+function getSessionTypes() {
+  return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER;
+}
 
+// Panel inicializálás — oldalbetöltéskor automatikusan indul
 function initResultsPanel() {
-  const{current,next}=findCurrentAndNext(getNow());
-  const activeCat=(current&&current.category)||(next&&next.category);
-  if(MOTOGP_CATEGORIES.includes(activeCat)){autoCat=activeCat;selectedCat=activeCat;}
-  selectedYear='2026';
-  selectedEventCode=(SEASON_EVENTS['2026']||[]).slice(-1)[0].code;
-  renderPanel(); doFetch();
-  fetchInterval=setInterval(doFetch,30000);
+  // Auto kategória a menetrendből
+  const { current, next } = findCurrentAndNext(getNow());
+  const activeCat = (current && current.category) || (next && next.category);
+  if (MOTOGP_CATEGORIES.includes(activeCat)) {
+    autoCat = activeCat;
+    selectedCat = activeCat;
+  }
+  // Automatikusan az aktuális szezon és legutóbbi futam
+  selectedYear = '2026';
+  const evs = SEASON_EVENTS['2026'] || [];
+  const now = new Date();
+  // Select latest event that has passed
+  selectedEventCode = evs[evs.length - 1].code; // fallback to last
+  
+  renderPanel();
+  doFetch();
+  fetchInterval = setInterval(doFetch, 30000);
 }
 
 function resetAutoTimer() {
   clearTimeout(autoTimer);
-  autoTimer=setTimeout(()=>{
-    // *** FIX 3: WSBK módban ne váltson vissza ***
-    if(activeChampionship==='wsbk') return;
-    const{current,next}=findCurrentAndNext(getNow());
-    const activeCat=(current&&current.category)||(next&&next.category);
-    if(MOTOGP_CATEGORIES.includes(activeCat)){selectedCat=activeCat;}else{selectedCat=autoCat;}
-    selectedSession='RAC';
-    renderPanel(); doFetch();
-  },30000);
+  autoTimer = setTimeout(() => {
+    // Visszatér az aktív sorozathoz
+    const { current, next } = findCurrentAndNext(getNow());
+    const activeCat = (current && current.category) || (next && next.category);
+    if (MOTOGP_CATEGORIES.includes(activeCat)) {
+      selectedCat = activeCat;
+    } else {
+      selectedCat = autoCat;
+    }
+    selectedSession = 'RAC';
+    renderPanel();
+    doFetch();
+  }, 30000);
 }
 
-function switchYear(year){selectedYear=year;const evs=SEASON_EVENTS[year]||[];selectedEventCode=evs.length?evs[evs.length-1].code:'';resetAutoTimer();renderPanel();doFetch();}
-function switchEventCode(code){selectedEventCode=code;resetAutoTimer();doFetch();}
-function switchCat(cat){selectedCat=cat;if(selectedSession==='SPR'&&cat!=='MotoGP')selectedSession='RAC';resetAutoTimer();renderPanel();doFetch();}
-function switchSession(sess){selectedSession=sess;resetAutoTimer();renderPanel();doFetch();}
+function switchYear(year) {
+  selectedYear = year;
+  const evs = SEASON_EVENTS[year] || [];
+  selectedEventCode = evs.length ? evs[evs.length-1].code : '';
+  resetAutoTimer();
+  renderPanel();
+  doFetch();
+}
+function switchEventCode(code) {
+  selectedEventCode = code;
+  resetAutoTimer();
+  doFetch();
+}
+function switchCat(cat) {
+  selectedCat = cat;
+  // Reset session if SPR not available
+  if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
+  resetAutoTimer();
+  renderPanel();
+  doFetch();
+}
+function switchSession(sess) {
+  selectedSession = sess;
+  resetAutoTimer();
+  renderPanel(); // újrarajzol hogy a gomb kiemelés frissüljön
+  doFetch();
+}
 
 function renderPanel() {
-  const panel=document.getElementById('logoPanel'); if(!panel) return;
-  const img=document.getElementById('logoPanelImg'),ph=document.getElementById('logoPlaceholder');
-  if(img) img.style.display='none'; if(ph) ph.style.display='none';
-  let tp=document.getElementById('timingPanel');
-  if(!tp){tp=document.createElement('div');tp.id='timingPanel';panel.appendChild(tp);}
-  tp.style.cssText='width:100%;flex:1;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
-  const evList=SEASON_EVENTS[selectedYear]||[];
-  function catLogo(cat){return getLogoUrl(cat)||'';}
-  const{current,next}=findCurrentAndNext(getNow());
-  const schedCat=(current&&current.category)||(next&&next.category);
-  const isAuto=cat=>MOTOGP_CATEGORIES.includes(schedCat)&&cat===schedCat;
+  const panel = document.getElementById('logoPanel');
+  if (!panel) return;
+  const img = document.getElementById('logoPanelImg');
+  const ph  = document.getElementById('logoPlaceholder');
+  if (img) img.style.display = 'none';
+  if (ph)  ph.style.display  = 'none';
 
-  // *** FIX 1: váltó gombok az activeChampionship alapján ***
-  var mgActive=(activeChampionship!=='wsbk');
-  var champRow='<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
-  champRow+='<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid '+(mgActive?'var(--green)':'transparent')+';background:'+(mgActive?'rgba(29,185,84,0.15)':'transparent')+';color:'+(mgActive?'var(--green)':'var(--text-dim)')+';">MotoGP</button>';
-  champRow+='<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid '+(!mgActive?'var(--red)':'transparent')+';background:'+(!mgActive?'rgba(255,50,50,0.15)':'transparent')+';color:'+(!mgActive?'var(--red)':'var(--text-dim)')+';">WSBK</button>';
-  champRow+='</div>';
-  tp.innerHTML=champRow;
+  let tp = document.getElementById('timingPanel');
+  if (!tp) {
+    tp = document.createElement('div');
+    tp.id = 'timingPanel';
+    panel.appendChild(tp);
+  }
+  tp.style.cssText = 'width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
 
-  tp.insertAdjacentHTML('beforeend',`
+  const evList = SEASON_EVENTS[selectedYear] || [];
+
+  // Get logo URLs for all 3 categories
+  function catLogo(cat) { return getLogoUrl(cat) || ''; }
+
+  // Active category from schedule
+  const { current, next } = findCurrentAndNext(getNow());
+  const schedCat = (current && current.category) || (next && next.category);
+  const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
+
+  // ROW 0: MotoGP / WSBK valto
+  var champRow = '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
+  champRow += '<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--green);background:rgba(29,185,84,0.15);color:var(--green);">MotoGP</button>';
+  champRow += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">WSBK</button>';
+  champRow += '</div>';
+  tp.innerHTML = champRow;
+  tp.insertAdjacentHTML('beforeend', `
+    <!-- ROW 1: Szezon + helyszín + 3 logó -->
     <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <!-- Szezon + helyszín -->
       <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
-        <select onchange="switchYear(this.value)" style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);border:1px solid var(--red);padding:2px 4px;cursor:pointer;border-radius:2px;width:60px;">
+        <select onchange="switchYear(this.value)"
+          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);
+          border:1px solid var(--red);padding:2px 4px;cursor:pointer;border-radius:2px;width:60px;">
           ${SEASONS.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
         </select>
-        <select onchange="switchEventCode(this.value)" style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--off-white);border:1px solid rgba(255,255,255,0.3);padding:2px 4px;cursor:pointer;border-radius:2px;width:120px;">
+        <select onchange="switchEventCode(this.value)"
+          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--off-white);
+          border:1px solid rgba(255,255,255,0.3);padding:2px 4px;cursor:pointer;border-radius:2px;width:120px;">
           ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
         </select>
       </div>
+
+      <!-- 3 kategória logó mint választó -->
       <div style="display:flex;flex:1;gap:4px;justify-content:flex-end;">
-        ${MOTOGP_CATEGORIES.map(cat=>{
-          const active=cat===selectedCat,auto=isAuto(cat),logo=catLogo(cat);
-          return `<button onclick="switchCat('${cat}')" style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;background:${active?'rgba(29,185,84,0.2)':'rgba(255,255,255,0.03)'};border-color:${active?'var(--green)':'rgba(255,255,255,0.15)'};position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
+        ${MOTOGP_CATEGORIES.map(cat => {
+          const active = cat === selectedCat;
+          const auto = isAuto(cat);
+          const logo = catLogo(cat);
+          return `<button onclick="switchCat('${cat}')"
+            style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;
+            background:${active?'rgba(29,185,84,0.2)':'rgba(255,255,255,0.03)'};
+            border-color:${active?'var(--green)':'rgba(255,255,255,0.15)'};
+            position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
             ${auto?`<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>`:''}
-            ${logo?`<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);>${cat}</span>'">`:`<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'};">${cat}</span>`}
+            ${logo
+              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);\'>${cat}</span>'">`
+              : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'};">${cat}</span>`
+            }
           </button>`;
         }).join('')}
       </div>
     </div>
+
+    <!-- ROW 2: Session gombok -->
     <div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">
-      ${getSessionTypes().map(sess=>{const active=sess===selectedSession;return `<button onclick="switchSession('${sess}')" style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;}).join('')}
-      <button onclick="switchSession('STANDINGS')" style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STD</button>
+      ${getSessionTypes().map(sess => {
+        const active = sess === selectedSession;
+        return `<button onclick="switchSession('${sess}')"
+          style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+          padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
+          background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
+          border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};
+          color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
+      }).join('')}
+      <button onclick="switchSession('STANDINGS')"
+        style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+        padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
+        background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
+        border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
+        color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STD</button>
     </div>
+
+    <!-- ROW 3: Eredmény -->
     <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
       <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
     </div>
   `);
 }
 
-// *** FIX 2: doFetch() WSBK módban ne fusson ***
+
 async function doFetch() {
-  if(isFetching) return;
-  if(activeChampionship==='wsbk') return;
-  isFetching=true;
-  const rd=document.getElementById('timingResults');
-  if(!rd){isFetching=false;return;}
-  rd.innerHTML='<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
+  if (isFetching) return;
+  isFetching = true;
+  const rd = document.getElementById('timingResults');
+  if (!rd) { isFetching = false; return; }
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
   try {
-    if(selectedSession==='STANDINGS'){await doStandings(rd);}else{await doResults(rd);}
-  } catch(e){rd.innerHTML=`<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;}
-  finally{isFetching=false;}
+    if (selectedSession === 'STANDINGS') {
+      await doStandings(rd);
+    } else {
+      await doResults(rd);
+    }
+  } catch(e) {
+    rd.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
+  } finally {
+    isFetching = false;
+  }
 }
 
 async function apiGet(path) {
-  const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),8000);
-  try{const r=await fetch(PROXY+path,{signal:ctrl.signal});clearTimeout(t);if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
-  catch(e){clearTimeout(t);throw e.name==='AbortError'?new Error('Időtúllépés'):e;}
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const r = await fetch(PROXY + path, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch(e) {
+    clearTimeout(t);
+    throw e.name === 'AbortError' ? new Error('Időtúllépés') : e;
+  }
 }
 
 async function doResults(rd) {
-  const seasonUuid=SEASON_UUIDS[selectedYear]; if(!seasonUuid) throw new Error('Ismeretlen szezon');
-  if(selectedYear==='2026'){
-    try{const live=await apiGet('timing-gateway/livetiming-lite');
-      if(live&&live.head&&live.rider&&Object.keys(live.rider).length>0){
-        const liveCat=(live.head.category||'').replace('™','');
-        if(liveCat.toLowerCase().includes(selectedCat.toLowerCase())||selectedCat.toLowerCase().includes(liveCat.toLowerCase())){showLive(rd,live);return;}
+  const seasonUuid = SEASON_UUIDS[selectedYear];
+  if (!seasonUuid) throw new Error('Ismeretlen szezon');
+
+  // Try live timing first (only for current year)
+  if (selectedYear === '2026') {
+    try {
+      const live = await apiGet('timing-gateway/livetiming-lite');
+      if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
+        const liveCat = (live.head.category || '').replace('™','');
+        if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
+            selectedCat.toLowerCase().includes(liveCat.toLowerCase())) {
+          showLive(rd, live);
+          return;
+        }
       }
-    }catch(e){}
+    } catch(e) { /* no live */ }
   }
-  const events=await apiGet(`events?seasonUuid=${seasonUuid}&isFinished=true`);
-  const races=events.filter(e=>!e.test); if(!races.length) throw new Error('Nincs befejezett futam');
-  const ev=races.find(e=>(e.short_name||'').toUpperCase()===selectedEventCode.toUpperCase()||(e.additional_name||'').toUpperCase()===selectedEventCode.toUpperCase())||races[races.length-1];
-  const sessions=await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
-  if(!sessions.length) throw new Error('Nincs session');
-  const sessTypeMap={'FP1':['FP','FP1','P1'],'FP2':['FP2','P2'],'PR':['PR','P'],'Q1':['Q1'],'Q2':['Q2','Q'],'SPR':['SPR','S'],'WUP':['WUP','WU','W'],'RAC':['RAC','R']};
-  const typeCodes=sessTypeMap[selectedSession]||[selectedSession];
-  let sess=sessions.find(s=>typeCodes.some(code=>(s.type||'').toUpperCase()===code.toUpperCase()));
-  if(!sess){const fp=sessions.filter(s=>(s.type||'').toUpperCase().includes('FP')||(s.type||'').toUpperCase()==='P');if(selectedSession==='FP1')sess=fp[0];else if(selectedSession==='FP2')sess=fp[1]||fp[0];const q=sessions.filter(s=>(s.type||'').toUpperCase().includes('Q'));if(selectedSession==='Q1')sess=q[0];else if(selectedSession==='Q2')sess=q[1]||q[0];}
-  if(!sess){const fin=sessions.filter(s=>s.status==='Finished');sess=fin.length?fin[fin.length-1]:sessions[sessions.length-1];}
-  const cls=await apiGet(`session/${sess.id}/classification?test=false`);
-  showResults(rd,cls.classification||cls,ev.name||ev.short_name,sess.type||sess.name,selectedCat);
+
+  // Get events
+  const events = await apiGet(`events?seasonUuid=${seasonUuid}&isFinished=true`);
+  const races = events.filter(e => !e.test);
+  if (!races.length) throw new Error('Nincs befejezett futam');
+  const ev = races.find(e =>
+    (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
+    (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase()
+  ) || races[races.length - 1];
+
+  const sessions = await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
+  if (!sessions.length) throw new Error('Nincs session');
+
+  // Map session type
+  const sessTypeMap = {
+    'FP1':['FP','FP1','P1'],'FP2':['FP2','P2'],'PR':['PR','P'],
+    'Q1':['Q1'],'Q2':['Q2','Q'],'SPR':['SPR','S'],
+    'WUP':['WUP','WU','W'],'RAC':['RAC','R']
+  };
+  const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
+  let sess = sessions.find(s => typeCodes.some(code =>
+    (s.type||'').toUpperCase() === code.toUpperCase()
+  ));
+  if (!sess) {
+    const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
+    if (selectedSession === 'FP1') sess = fpSessions[0];
+    else if (selectedSession === 'FP2') sess = fpSessions[1] || fpSessions[0];
+    const qSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('Q'));
+    if (selectedSession === 'Q1') sess = qSessions[0];
+    else if (selectedSession === 'Q2') sess = qSessions[1] || qSessions[0];
+  }
+  if (!sess) {
+    const finished = sessions.filter(s => s.status === 'Finished');
+    sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
+  }
+
+  const cls = await apiGet(`session/${sess.id}/classification?test=false`);
+  const riders = cls.classification || cls;
+  showResults(rd, riders, ev.name || ev.short_name, sess.type || sess.name, selectedCat);
 }
 
 async function doStandings(rd) {
-  const seasonUuid=SEASON_UUIDS[selectedYear]; if(!seasonUuid) throw new Error('Ismeretlen szezon');
-  try{
-    const xmlUrl=`https://resources.motogp.com/files/results/${selectedYear}/${selectedEventCode}/${selectedCat}/RAC/worldstanding.XML`;
-    const r=await fetch(xmlUrl);
-    if(r.ok){const xml=await r.text();showStandingsXml(rd,new DOMParser().parseFromString(xml,'text/xml'));return;}
-  }catch(e){}
-  const data=await apiGet(`standings?seasonUuid=${seasonUuid}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
-  const riders=data.classification||data; if(!riders||!riders.length) throw new Error('Nincs pontállás');
-  showStandings(rd,riders);
+  const seasonUuid = SEASON_UUIDS[selectedYear];
+  if (!seasonUuid) throw new Error('Ismeretlen szezon');
+
+  // Try XML worldstanding first
+  try {
+    const xmlUrl = `https://resources.motogp.com/files/results/${selectedYear}/${selectedEventCode}/${selectedCat}/RAC/worldstanding.XML`;
+    const r = await fetch(xmlUrl);
+    if (r.ok) {
+      const xml = await r.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
+      showStandingsXml(rd, doc);
+      return;
+    }
+  } catch(e) {}
+
+  // Fallback: API standings
+  const data = await apiGet(`standings?seasonUuid=${seasonUuid}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
+  const riders = data.classification || data;
+  if (!riders || !riders.length) throw new Error('Nincs pontállás');
+  showStandings(rd, riders);
 }
 
-function showLive(el,data) {
-  const h=data.head,riders=Object.values(data.rider).filter(r=>r.pos>0).sort((a,b)=>a.pos-b.pos);
-  const status=h.session_status_id==='R'?'🔴 LIVE':'🏁 '+(h.session_shortname||'');
-  let html=`<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;"><span style="color:var(--green);">${h.category} · ${h.session_name}</span><span>${status}</span></div>`;
-  html+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i)=>{const pc=r.pos===1?'#f5c400':r.pos===2?'#aaa':r.pos===3?'#cd7f32':'var(--off-white)';html+=`<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}"><td style="padding:2px 3px;color:${pc};width:20px;">${r.pos}</td><td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider_number}</td><td style="padding:2px 3px;color:${r.trac_status==='T'?'var(--green)':'var(--white)'}">${r.rider_surname}</td><td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap_first>0?'+'+r.gap_first:'—'}</td><td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.lap_time}</td></tr>`;});
-  el.innerHTML=html+'</table>';
-}
-function showResults(el,riders,evName,sessType,cat) {
-  if(!riders||!riders.length){el.innerHTML='<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>';return;}
-  const sl=sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'||sessType==='Q2'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
-  let html=`<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;"><span style="color:var(--green);">${cat}</span> · ${evName} · ${sl}</div>`;
-  html+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i)=>{const pos=r.position||(i+1),pc=pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';html+=`<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}"><td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td><td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td><td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td><td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap?.first||r.gap||''}</td><td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.best_lap?.time||r.time||''}</td></tr>`;});
-  el.innerHTML=html+'</table>';
-}
-function showStandings(el,riders) {
-  const leader=riders[0]?.points||0;
-  let html=`<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;"><span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
-  html+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i)=>{const pos=r.position||(i+1),pc=pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';html+=`<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}"><td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td><td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td><td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td><td style="padding:2px 3px;text-align:right;color:${pos===1?'#f5c400':'var(--green)'};font-weight:bold;">${r.points||0}</td><td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${i===0?'—':'-'+(leader-(r.points||0))}</td></tr>`;});
-  el.innerHTML=html+'</table>';
-}
-function showStandingsXml(el,doc) {
-  const entries=Array.from(doc.querySelectorAll('Standing,ClassificationEntry,Entry,Rider'));
-  if(!entries.length){el.innerHTML='<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>';return;}
-  const leader=parseFloat(entries[0]?.getAttribute('Points')||entries[0]?.getAttribute('points')||0);
-  let html=`<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;"><span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
-  html+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  entries.slice(0,20).forEach((e,i)=>{const pos=e.getAttribute('Position')||e.getAttribute('position')||(i+1),num=e.getAttribute('RacingNumber')||e.getAttribute('Number')||'',name=e.getAttribute('Rider')||e.getAttribute('RiderName')||e.getAttribute('name')||'—',pts=parseFloat(e.getAttribute('Points')||e.getAttribute('points')||0),gap=i===0?'—':`-${(leader-pts).toFixed(1)}`,pc=pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';html+=`<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}"><td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td><td style="padding:2px 3px;color:var(--text-mid);width:22px;">${num}</td><td style="padding:2px 3px;color:var(--white)">${name}</td><td style="padding:2px 3px;text-align:right;color:${pos==1?'#f5c400':'var(--green)'};font-weight:bold;">${pts}</td><td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${gap}</td></tr>`;});
-  el.innerHTML=html+'</table>';
+function showLive(el, data) {
+  const h = data.head;
+  const riders = Object.values(data.rider).filter(r => r.pos > 0).sort((a,b) => a.pos - b.pos);
+  const status = h.session_status_id === 'R' ? '🔴 LIVE' : '🏁 ' + (h.session_shortname || '');
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">
+    <span style="color:var(--green);">${h.category} · ${h.session_name}</span>
+    <span>${status}</span></div>`;
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.slice(0,20).forEach((r,i) => {
+    const pc = r.pos===1?'#f5c400':r.pos===2?'#aaa':r.pos===3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${r.pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider_number}</td>
+      <td style="padding:2px 3px;color:${r.trac_status==='T'?'var(--green)':'var(--white)'}">${r.rider_surname}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap_first>0?'+'+r.gap_first:'—'}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.lap_time}</td>
+    </tr>`;
+  });
+  el.innerHTML = html + '</table>';
 }
 
+function showResults(el, riders, evName, sessType, cat) {
+  if (!riders || !riders.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>'; return; }
+  const sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'||sessType==='Q2'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
+    <span style="color:var(--green);">${cat}</span> · ${evName} · ${sl}</div>`;
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.slice(0,20).forEach((r,i) => {
+    const pos = r.position||(i+1);
+    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
+      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap?.first||r.gap||''}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.best_lap?.time||r.time||''}</td>
+    </tr>`;
+  });
+  el.innerHTML = html + '</table>';
+}
+
+function showStandings(el, riders) {
+  const leader = riders[0]?.points || 0;
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
+    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.slice(0,20).forEach((r,i) => {
+    const pos = r.position||(i+1);
+    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
+      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
+      <td style="padding:2px 3px;text-align:right;color:${pos===1?'#f5c400':'var(--green)'};font-weight:bold;">${r.points||0}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${i===0?'—':'-'+(leader-(r.points||0))}</td>
+    </tr>`;
+  });
+  el.innerHTML = html + '</table>';
+}
+
+function showStandingsXml(el, doc) {
+  const entries = Array.from(doc.querySelectorAll('Standing, ClassificationEntry, Entry, Rider'));
+  if (!entries.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>'; return; }
+  const leader = parseFloat(entries[0]?.getAttribute('Points') || entries[0]?.getAttribute('points') || 0);
+  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
+    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  entries.slice(0,20).forEach((e,i) => {
+    const pos = e.getAttribute('Position') || e.getAttribute('position') || (i+1);
+    const num = e.getAttribute('RacingNumber') || e.getAttribute('Number') || '';
+    const name = e.getAttribute('Rider') || e.getAttribute('RiderName') || e.getAttribute('name') || '—';
+    const pts = parseFloat(e.getAttribute('Points') || e.getAttribute('points') || 0);
+    const gap = i===0?'—':`-${(leader-pts).toFixed(1)}`;
+    const pc = pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';
+    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
+      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
+      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${num}</td>
+      <td style="padding:2px 3px;color:var(--white)">${name}</td>
+      <td style="padding:2px 3px;text-align:right;color:${pos==1?'#f5c400':'var(--green)'};font-weight:bold;">${pts}</td>
+      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${gap}</td>
+    </tr>`;
+  });
+  el.innerHTML = html + '</table>';
+}
+
+// LISTA GÖRGETÉS — szabad görgetés + LIVE gomb
 // ============================================================
-// SCROLL
-// ============================================================
-let userScrolled=false,scrollTimer=null;
+let userScrolled = false;
+let scrollTimer = null;
+
 function initScrollTracking() {
-  const body=document.getElementById('scheduleBody'); if(!body) return;
-  body.addEventListener('scroll',()=>{userScrolled=true;document.getElementById('liveScrBtn').style.display='block';clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{goLive();},30000);},{passive:true});
+  const body = document.getElementById('scheduleBody');
+  if (!body) return;
+  body.addEventListener('scroll', () => {
+    userScrolled = true;
+    document.getElementById('liveScrBtn').style.display = 'block';
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => { goLive(); }, 30000);
+  }, { passive: true });
 }
+
 function goLive() {
-  userScrolled=false;document.getElementById('liveScrBtn').style.display='none';
-  const body=document.getElementById('scheduleBody'),currentEl=body?body.querySelector('.is-current'):null,nextEl=body?body.querySelector('.is-next'):null,target=currentEl||nextEl;
-  if(target&&body){const hh=document.querySelector('.schedule-header')?document.querySelector('.schedule-header').offsetHeight:0;body.scrollTo({top:target.offsetTop-hh,behavior:'smooth'});}
-  else if(body) body.scrollTop=0;
-}
-
-function toggleTestBar() {
-  const bar=document.querySelector('.test-bar'),btn=document.getElementById('testToggleBtn'),hidden=bar.style.display==='none';
-  bar.style.display=hidden?'flex':'none';btn.style.color=hidden?'var(--yellow)':'rgba(245,196,0,0.7)';btn.style.borderColor=hidden?'var(--yellow)':'rgba(245,196,0,0.3)';btn.style.background=hidden?'rgba(245,196,0,0.15)':'rgba(245,196,0,0.1)';
-}
-
-const BUILTIN_LOGOS={'MotoGP':'https://porkolabjozsef-gif.github.io/RC_pwa/motogp.png','Moto2':'https://porkolabjozsef-gif.github.io/RC_pwa/moto2.png','Moto3':'https://porkolabjozsef-gif.github.io/RC_pwa/moto3.png','WorldSBK':'https://porkolabjozsef-gif.github.io/RC_pwa/worldsbk.png','WorldSSP':'https://porkolabjozsef-gif.github.io/RC_pwa/worldssp.png','WorldWCR':'https://porkolabjozsef-gif.github.io/RC_pwa/worldwcr.png','R3':'https://porkolabjozsef-gif.github.io/RC_pwa/r3.png','WorldSPB':'https://porkolabjozsef-gif.github.io/RC_pwa/worldspb.png'};
-let categoryLogos={},currentBgCategory=null;
-function getLogoUrl(category){if(categoryLogos[category])return categoryLogos[category];if(BUILTIN_LOGOS[category])return BUILTIN_LOGOS[category];return null;}
-function updateBgLogo(category) {
-  if(category===currentBgCategory) return; currentBgCategory=category;
-  const url=getLogoUrl(category),panelImg=document.getElementById('logoPanelImg'),placeholder=document.getElementById('logoPlaceholder');
-  if(!url){if(panelImg){panelImg.style.display='none';panelImg.src='';}if(placeholder)placeholder.style.display='block';return;}
-  if(panelImg){if(placeholder)placeholder.style.display='none';panelImg.style.display='block';panelImg.style.opacity='1';panelImg.style.transition='opacity 1s ease';panelImg.onerror=()=>{panelImg.style.display='none';if(placeholder){placeholder.textContent=category;placeholder.style.display='block';placeholder.style.fontSize='32px';placeholder.style.letterSpacing='6px';placeholder.style.color='var(--text-mid)';}};panelImg.src=url;}
-}
-
-let testModeTime=null,testModeOffset=0,testModeStartedAt=null;
-function getNow(){if(testModeTime===null)return new Date();const elapsed=Date.now()-testModeStartedAt;return new Date(testModeTime.getTime()+elapsed);}
-function activateTestMode(){const val=document.getElementById('testDateInput').value;if(!val)return;testModeTime=new Date(val);testModeStartedAt=Date.now();hornFired.clear();document.getElementById('testModeIndicator').classList.add('visible');document.getElementById('testModeTime').textContent=val.replace('T',' ');document.getElementById('clockTime').classList.add('test-mode');buildSchedule();}
-function resetTestMode(){testModeTime=null;testModeStartedAt=null;liveHornFired.clear();document.getElementById('testModeIndicator').classList.remove('visible');document.getElementById('clockTime').classList.remove('test-mode');buildSchedule();}
-
-function updateClock() {
-  const now=getNow();
-  document.getElementById('clockTime').textContent=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
-  const dayName=DAY_NAMES[now.getDay()],dateStr=now.getDate()+' '+MONTH_NAMES[now.getMonth()]+' '+now.getFullYear();
-  document.getElementById('clockSub').textContent=dayName.toUpperCase()+' '+dateStr+(testModeTime?' — TEST MODE':' — CET');
-  const schedHdr=document.getElementById('scheduleHeaderDate');if(schedHdr)schedHdr.textContent=dayName.toUpperCase()+' '+dateStr;
-  document.getElementById('clockTime').classList.toggle('test-mode',testModeTime!==null);
-}
-
-function findCurrentAndNext(now) {
-  let next=null,currentSession=null,currentProcedure=null;
-  for(let ev of processedSchedule){
-    if(!ev.startDt) continue;
-    const started=now>=ev.startDt,isProcedure=ev.type==='procedure';
-    let effectiveEnd=ev.endDt||ev.implicitEndDt||null,ended;
-    if(effectiveEnd){ended=now>=effectiveEnd;}
-    else if(isProcedure){ended=(now-ev.startDt)>60*1000;}
-    else if(ev.type==='race'||ev.type==='session'){
-      let nextStart=null;
-      for(let j=ev.idx+1;j<processedSchedule.length;j++){const nev=processedSchedule[j];if(nev.startDt&&nev.type!=='procedure'&&nev.startDt>ev.startDt){nextStart=nev.startDt;break;}}
-      ended=nextStart?now>=nextStart:(now-ev.startDt)>4*60*60*1000;
-    }else{ended=(now-ev.startDt)>30*60*1000;}
-    if(!started){if(!next)next=ev;continue;}
-    if(ended) continue;
-    if(isProcedure){if(!currentProcedure||ev.startDt>currentProcedure.startDt)currentProcedure=ev;}
-    else{if(!currentSession)currentSession=ev;}
+  userScrolled = false;
+  document.getElementById('liveScrBtn').style.display = 'none';
+  const body = document.getElementById('scheduleBody');
+  const currentEl = body ? body.querySelector('.is-current') : null;
+  const nextEl    = body ? body.querySelector('.is-next') : null;
+  const target = currentEl || nextEl;
+  if (target && body) {
+    // Kézzel számítjuk az offsetet a sticky fejléc miatt
+    const headerHeight = document.querySelector('.schedule-header') ? 
+      document.querySelector('.schedule-header').offsetHeight : 0;
+    const targetTop = target.offsetTop - headerHeight;
+    body.scrollTo({ top: targetTop, behavior: 'smooth' });
+  } else if (body) {
+    body.scrollTop = 0;
   }
-  return{current:currentSession||currentProcedure||null,signal:currentProcedure||null,next};
 }
 
-function updateDashboard() {
-  const now=getNow(),{current,signal,next}=findCurrentAndNext(now);
-  const activeCategory=(current&&current.category)||(next&&next.category)||null;
-  updateBgLogo(activeCategory);
-  const signalPanel=document.getElementById('signalPanel');
-  if(signal){signalPanel.classList.add('visible');document.getElementById('signalIcon').textContent=signal.horn?'📯':'📋';document.getElementById('signalName').textContent=signal.name;document.getElementById('signalTime').textContent=signal.start;const el=Math.floor((now-signal.startDt)/1000),rem=Math.max(0,60-el);document.getElementById('signalTTL').textContent=rem+'s';document.getElementById('signalTTL').classList.toggle('urgent',rem<15);}
-  else{signalPanel.classList.remove('visible');}
-  if(current){
-    document.getElementById('statusPill').textContent='LIVE';document.getElementById('statusPill').className='status-pill live';
-    document.getElementById('sessionCategory').innerHTML=getCategoryTag(current.category);
-    document.getElementById('currentEventName').textContent=current.name;document.getElementById('currentEventDetail').textContent=current.remark||'';
-    document.getElementById('currentStart').textContent=current.start;document.getElementById('currentEnd').textContent=current.end||'—';
-    const effectiveEnd=current.endDt||current.implicitEndDt;
-    if(current.startDt&&effectiveEnd){const totalMs=effectiveEnd-current.startDt,elapsedMs=now-current.startDt,pct=Math.min(100,Math.round((elapsedMs/totalMs)*100));document.getElementById('currentDuration').textContent=Math.round(totalMs/60000)+' min';document.getElementById('progressContainer').style.display='block';document.getElementById('progressFill').style.width=pct+'%';document.getElementById('progressPct').textContent=pct+'%';}
-    else{document.getElementById('currentDuration').textContent='—';document.getElementById('progressContainer').style.display='none';}
-    document.getElementById('currentIdx').textContent=processedSchedule.filter(e=>e.startDt&&e.startDt<=now).length+' / '+processedSchedule.length;
-  }else if(next){
-    document.getElementById('statusPill').textContent='BREAK';document.getElementById('statusPill').className='status-pill break';
-    document.getElementById('sessionCategory').innerHTML=getCategoryTag(next.category);
-    document.getElementById('currentEventName').textContent='No active session';document.getElementById('currentEventDetail').textContent='Next: '+next.name;
-    document.getElementById('currentStart').textContent='—';document.getElementById('currentEnd').textContent='—';document.getElementById('currentDuration').textContent='—';
-    document.getElementById('progressContainer').style.display='none';document.getElementById('currentIdx').textContent='—';
-  }else{
-    document.getElementById('statusPill').textContent='ENDED';document.getElementById('statusPill').className='status-pill break';
-    document.getElementById('sessionCategory').innerHTML='';document.getElementById('currentEventName').textContent='Event concluded';document.getElementById('currentEventDetail').textContent='All sessions completed.';
-    document.getElementById('currentStart').textContent='—';document.getElementById('currentEnd').textContent='—';document.getElementById('currentDuration').textContent='—';
-    document.getElementById('progressContainer').style.display='none';document.getElementById('currentIdx').textContent=processedSchedule.length+' / '+processedSchedule.length;
-  }
-  const sessionForCountdown=(current&&current.type!=='procedure')?current:null,effectiveEndForCountdown=sessionForCountdown?(sessionForCountdown.endDt||sessionForCountdown.implicitEndDt):null;
-  let targetDt=null,cdLabelText='';
-  if(sessionForCountdown&&effectiveEndForCountdown){targetDt=effectiveEndForCountdown;cdLabelText='TIME REMAINING';}
-  else if(next){targetDt=next.startDt;cdLabelText='TIME UNTIL NEXT';}
-  if(targetDt){const diffMs=targetDt-now,totalSec=Math.max(0,Math.floor(diffMs/1000)),{h,m,s}=toHHMMSS(totalSec);document.getElementById('countdownLabel').textContent=cdLabelText;document.getElementById('cdHours').textContent=pad(h);document.getElementById('cdMinutes').textContent=pad(m);document.getElementById('cdSeconds').textContent=pad(s);const urgent=totalSec<180;['cdHours','cdMinutes','cdSeconds'].forEach(id=>document.getElementById(id).classList.toggle('urgent',urgent));}
-  else{document.getElementById('countdownLabel').textContent='No upcoming events';['cdHours','cdMinutes','cdSeconds'].forEach(id=>{document.getElementById(id).textContent='00';document.getElementById(id).classList.remove('urgent');});}
-  if(next){
-    document.getElementById('nextEventName').textContent=next.name;document.getElementById('nextEventDetail').textContent=next.remark||'';
-    document.getElementById('nextSessionCategory').innerHTML=getCategoryTag(next.category);
-    document.getElementById('nextTimePill').textContent=next.start+(next.end?' → '+next.end:'');
-    const nowDay=now.toISOString().slice(0,10),sameDayNext=next.date===nowDay||(next.startDt&&next.startDt.getDate()===now.getDate()&&next.startDt.getMonth()===now.getMonth());
-    if(sameDayNext){document.getElementById('nextEventBadge').textContent='TODAY';}
-    else{const[y,mo,d]=next.date.split('-').map(Number);document.getElementById('nextEventBadge').textContent=DAY_NAMES[new Date(y,mo-1,d).getDay()].slice(0,3).toUpperCase()+' '+d+' '+MONTH_NAMES[mo-1].toUpperCase();}
-  }else{document.getElementById('nextEventName').textContent='No upcoming events';document.getElementById('nextEventDetail').textContent='Schedule complete';document.getElementById('nextSessionCategory').innerHTML='';document.getElementById('nextTimePill').textContent='—';document.getElementById('nextEventBadge').textContent='—';}
-}
-
-function buildSchedule() {
-  const now=getNow(),body=document.getElementById('scheduleBody'),countBadge=document.getElementById('scheduleCount');
-  const groups={};let futureCount=0;
-  for(let ev of processedSchedule){
-    if(!ev.startDt) continue;
-    let isPast=false;
-    if(now<ev.startDt){isPast=false;}
-    else if(ev.endDt&&now>ev.endDt){isPast=true;}
-    else if(!ev.endDt&&ev.implicitEndDt&&now>ev.implicitEndDt){isPast=true;}
-    else if(!ev.endDt&&!ev.implicitEndDt&&ev.type==='procedure'&&(now-ev.startDt)>60*1000){isPast=true;}
-    else if(!ev.endDt&&!ev.implicitEndDt&&ev.type!=='procedure'&&(now-ev.startDt)>30*60*1000){isPast=true;}
-    if(isPast) continue;
-    if(!groups[ev.date])groups[ev.date]=[];groups[ev.date].push(ev);futureCount++;
-  }
-  countBadge.textContent=futureCount+' events remaining';
-  if(futureCount===0){body.innerHTML='<div class="no-events">✅ Minden esemény véget ért.</div>';return;}
-  let html='';
-  const{current,next}=findCurrentAndNext(now);
-  for(let date of Object.keys(groups).sort()){
-    const[y,mo,d]=date.split('-').map(Number),dt=new Date(y,mo-1,d);
-    html+=`<div class="day-header"><span class="day-header-name">${DAY_NAMES[dt.getDay()].toUpperCase()}</span><span class="day-header-date">${d+' '+MONTH_NAMES[mo-1].toUpperCase()+' '+y}</span><div class="day-header-line"></div></div>`;
-    for(let ev of groups[date]){
-      const isCurrent=current&&current.idx===ev.idx,isNext=next&&next.idx===ev.idx;
-      const typeClass=getItemClass(ev),currentClass=isCurrent?' is-current':(isNext?' is-next':'');
-      const tag=getCategoryTag(ev.category),timeDisplay=ev.end?`${ev.start}<span class="end-time">→ ${ev.end}</span>`:ev.start;
-      html+=`<div class="sched-item ${typeClass}${currentClass}"><div class="sched-time">${timeDisplay}</div><div class="sched-content"><div class="sched-name">${tag}${ev.horn?'<span class="horn-icon">📯</span> ':''}${ev.name}</div>${ev.remark?`<div class="sched-remark">${ev.remark}</div>`:''}</div></div>`;
+// ============================================================
+// KILÉPÉS
+function confirmExit() {
+  if (confirm('Biztosan kilép a Race Control dashboardból?')) {
+    // Android PWA-ban: visszalép a home screenre
+    if (window.AndroidBridge) {
+      // Native Android WebView esetén
+      window.AndroidBridge.exitApp();
+    } else {
+      // PWA: history back vagy home screen
+      window.history.go(-(window.history.length - 1));
+      setTimeout(() => { window.location.href = 'about:blank'; }, 100);
     }
   }
-  body.innerHTML=html;
-  const target=body.querySelector('.is-current')||body.querySelector('.is-next');
-  if(target&&!userScrolled){setTimeout(()=>{target.scrollIntoView({behavior:'smooth',block:'start'});},300);}
 }
 
-let wakeLock=null;
-async function requestWakeLock(){try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen');}}catch(err){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWakeLock();});
+// TEST BAR toggle
+function toggleTestBar() {
+  const bar = document.querySelector('.test-bar');
+  const btn = document.getElementById('testToggleBtn');
+  const hidden = bar.style.display === 'none';
+  bar.style.display = hidden ? 'flex' : 'none';
+  btn.style.color = hidden ? 'var(--yellow)' : 'rgba(245,196,0,0.7)';
+  btn.style.borderColor = hidden ? 'var(--yellow)' : 'rgba(245,196,0,0.3)';
+  btn.style.background = hidden ? 'rgba(245,196,0,0.15)' : 'rgba(245,196,0,0.1)';
+}
+
+// ── CATEGORY LOGOS ──────────────────────────────────────────
+// Beépített logó könyvtár — kategória neve alapján automatikus
+const BUILTIN_LOGOS = {
+  'MotoGP':   'https://porkolabjozsef-gif.github.io/RC_pwa/motogp.png',
+  'Moto2':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto2.png',
+  'Moto3':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto3.png',
+  'WorldSBK': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldsbk.png',
+  'WorldSSP': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldssp.png',
+  'WorldWCR': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldwcr.png',
+  'R3':       'https://porkolabjozsef-gif.github.io/RC_pwa/r3.png',
+  'WorldSPB': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldspb.png',
+};
+
+let categoryLogos = {};
+let currentBgCategory = null;
+
+function getLogoUrl(category) {
+  // 1. JSON-ban megadott egyedi logó (ha van)
+  if (categoryLogos[category]) return categoryLogos[category];
+  // 2. Beépített könyvtár
+  if (BUILTIN_LOGOS[category]) return BUILTIN_LOGOS[category];
+  // 3. Nincs logó
+  return null;
+}
+
+function updateBgLogo(category) {
+  if (category === currentBgCategory) return;
+  currentBgCategory = category;
+
+  const url = getLogoUrl(category);
+  const panelImg = document.getElementById('logoPanelImg');
+  const placeholder = document.getElementById('logoPlaceholder');
+
+  if (!url) {
+    if (panelImg) { panelImg.style.display = 'none'; panelImg.src = ''; }
+    if (placeholder) placeholder.style.display = 'block';
+    return;
+  }
+
+  if (panelImg) {
+    if (placeholder) placeholder.style.display = 'none';
+    panelImg.style.display = 'block';
+    panelImg.style.opacity = '1';
+    panelImg.style.transition = 'opacity 1s ease';
+    panelImg.onerror = () => {
+      panelImg.style.display = 'none';
+      if (placeholder) {
+        placeholder.textContent = category;
+        placeholder.style.display = 'block';
+        placeholder.style.fontSize = '32px';
+        placeholder.style.letterSpacing = '6px';
+        placeholder.style.color = 'var(--text-mid)';
+      }
+    };
+    panelImg.src = url;
+  }
+}
+
+// TEST MODE
+// ============================================================
+let testModeTime = null; // null = live, Date = frozen test time
+let testModeOffset = 0;  // ms offset from real time if we want running test clock
+let testModeStartedAt = null;
+
+function getNow() {
+  if (testModeTime === null) return new Date();
+  // Run the clock forward from the set test time
+  const elapsed = Date.now() - testModeStartedAt;
+  return new Date(testModeTime.getTime() + elapsed);
+}
+
+function activateTestMode() {
+  const val = document.getElementById('testDateInput').value;
+  if (!val) return;
+  testModeTime = new Date(val);
+  testModeStartedAt = Date.now();
+
+  hornFired.clear();
+  document.getElementById('testModeIndicator').classList.add('visible');
+  document.getElementById('testModeTime').textContent = val.replace('T', ' ');
+  document.getElementById('clockTime').classList.add('test-mode');
+  buildSchedule();
+}
+
+function resetTestMode() {
+  testModeTime = null;
+  testModeStartedAt = null;
+  liveHornFired.clear();
+  document.getElementById('testModeIndicator').classList.remove('visible');
+  document.getElementById('clockTime').classList.remove('test-mode');
+  buildSchedule();
+}
+
+function setQuick(val) {
+  document.getElementById('testDateInput').value = val;
+  activateTestMode();
+}
+
+// ============================================================
+// CLOCK
+// ============================================================
+function updateClock() {
+  const now = getNow();
+  document.getElementById('clockTime').textContent =
+    pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+
+  const dayName = DAY_NAMES[now.getDay()];
+  const dateStr = now.getDate() + ' ' + MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('clockSub').textContent = dayName.toUpperCase() + ' ' + dateStr + (testModeTime ? ' — TEST MODE' : ' — CET');
+  const schedHdr = document.getElementById('scheduleHeaderDate');
+  if (schedHdr) schedHdr.textContent = dayName.toUpperCase() + ' ' + dateStr;
+  document.getElementById('clockTime').classList.toggle('test-mode', testModeTime !== null);
+}
+
+// ============================================================
+// FIND CURRENT / NEXT EVENT
+// ============================================================
+function findCurrentAndNext(now) {
+  // Rules:
+  // 1. Find the "next" event = first event that hasn't started yet
+  // 2. Find "current" candidates = events that have started but not ended
+  //    - Procedure (no duration): current for max 60 seconds, then gone
+  //    - Session/race/marshal/official WITH explicit endDt: current until endDt,
+  //      BUT if the next event has already started (overlap), next event wins
+  //    - Session/race with only implicitEndDt: same rule
+  //    - No endDt, no implicitEndDt, not procedure: 30 min fallback
+  // 3. Among candidates: most recent procedure wins over a running session
+  //    (a board signal is more immediate than the background session)
+  // 4. If next event has started (its startDt <= now), it becomes current immediately
+
+  let next = null;
+  let currentSession = null;
+  let currentProcedure = null;
+
+  for (let ev of processedSchedule) {
+    if (!ev.startDt) continue;
+
+    const started = now >= ev.startDt;
+    const isProcedure = ev.type === 'procedure';
+
+    // Determine effective end
+    let effectiveEnd = ev.endDt || ev.implicitEndDt || null;
+
+    let ended;
+    if (effectiveEnd) {
+      ended = now >= effectiveEnd;
+    } else if (isProcedure) {
+      ended = (now - ev.startDt) > 60 * 1000;   // 60s max for procedures
+    } else if (ev.type === 'race' || ev.type === 'session') {
+      // Race/session without end time: stays active until next event starts
+      let nextStart = null;
+      for (let j = ev.idx + 1; j < processedSchedule.length; j++) {
+        const nev = processedSchedule[j];
+        if (nev.startDt && nev.type !== 'procedure' && nev.startDt > ev.startDt) {
+          nextStart = nev.startDt;
+          break;
+        }
+      }
+      ended = nextStart ? now >= nextStart : (now - ev.startDt) > 4 * 60 * 60 * 1000;
+    } else {
+      ended = (now - ev.startDt) > 30 * 60 * 1000; // 30 min fallback for others
+    }
+
+    if (!started) {
+      // This is a future event
+      if (!next) next = ev;
+      continue;
+    }
+
+    if (ended) continue; // already past
+
+    // Event is active (started, not ended)
+    if (isProcedure) {
+      // Keep the MOST RECENT active procedure
+      if (!currentProcedure || ev.startDt > currentProcedure.startDt) {
+        currentProcedure = ev;
+      }
+    } else {
+      // Session/race/marshal/official: first one found (sorted by start)
+      if (!currentSession) currentSession = ev;
+    }
+  }
+
+  // If the next event has already started, it should be current
+  // (handles the case where two events overlap and the newer one wins)
+  // This is already handled by the loop above — the newer started event
+  // will be found as currentSession/Procedure if it's in the schedule.
+
+  // Priority: most recent procedure wins (board signal = immediate action)
+  // Fall back to session if no active procedure
+  // current = stable session/race shown in main panel (with countdown)
+  // signal  = momentary procedure shown in mini signal panel (max 60s)
+  const current = currentSession || null;
+  const signal  = currentProcedure || null;
+
+  // If no session is active, fall back: show the signal in current panel too
+  // (e.g. before day's first session starts)
+  const displayCurrent = current || signal || null;
+
+  return { current: displayCurrent, signal, next };
+}
+
+// ============================================================
+// UPDATE DASHBOARD
+// ============================================================
+function updateDashboard() {
+  const now = getNow();
+  const { current, signal, next } = findCurrentAndNext(now);
+
+  // Háttér logó frissítése az aktuális kategória alapján
+  const activeCategory = (current && current.category) || (next && next.category) || null;
+  updateBgLogo(activeCategory);
+
+  // --- SIGNAL PANEL (pillanatnyi esemény) ---
+  const signalPanel = document.getElementById('signalPanel');
+  const signalIcon  = document.getElementById('signalIcon');
+  const signalName  = document.getElementById('signalName');
+  const signalTime  = document.getElementById('signalTime');
+  const signalTTL   = document.getElementById('signalTTL');
+
+  if (signal) {
+    signalPanel.classList.add('visible');
+    signalIcon.textContent = signal.horn ? '📯' : '📋';
+    signalName.textContent = signal.name;
+    signalTime.textContent = signal.start;
+    // How many seconds since the signal started
+    const elapsed = Math.floor((now - signal.startDt) / 1000);
+    const remaining = Math.max(0, 60 - elapsed);
+    signalTTL.textContent = remaining + 's';
+    signalTTL.classList.toggle('urgent', remaining < 15);
+  } else {
+    signalPanel.classList.remove('visible');
+  }
+
+  // --- CURRENT EVENT PANEL ---
+  const statusPill = document.getElementById('statusPill');
+  const sessionCategory = document.getElementById('sessionCategory');
+  const currentEventName = document.getElementById('currentEventName');
+  const currentEventDetail = document.getElementById('currentEventDetail');
+  const currentStart = document.getElementById('currentStart');
+  const currentEnd = document.getElementById('currentEnd');
+  const currentDuration = document.getElementById('currentDuration');
+  const progressContainer = document.getElementById('progressContainer');
+  const progressFill = document.getElementById('progressFill');
+  const progressPct = document.getElementById('progressPct');
+  const currentEventIndex = document.getElementById('currentIdx');
+
+  if (current) {
+    statusPill.textContent = 'LIVE';
+    statusPill.className = 'status-pill live';
+    sessionCategory.innerHTML = getCategoryTag(current.category);
+    currentEventName.textContent = current.name;
+    currentEventDetail.textContent = current.remark || '';
+    currentStart.textContent = current.start;
+    currentEnd.textContent = current.end || '—';
+
+    const effectiveEnd = current.endDt || current.implicitEndDt;
+    if (current.startDt && effectiveEnd) {
+      const totalMs = effectiveEnd - current.startDt;
+      const elapsedMs = now - current.startDt;
+      const pct = Math.min(100, Math.round((elapsedMs / totalMs) * 100));
+      const totalMin = Math.round(totalMs / 60000);
+      currentDuration.textContent = totalMin + ' min';
+      progressContainer.style.display = 'block';
+      progressFill.style.width = pct + '%';
+      progressPct.textContent = pct + '%';
+    } else {
+      currentDuration.textContent = '—';
+      progressContainer.style.display = 'none';
+    }
+
+    const pos = processedSchedule.filter(e => e.startDt && e.startDt <= now).length;
+    const total = processedSchedule.length;
+    currentEventIndex.textContent = pos + ' / ' + total;
+
+  } else if (next) {
+    statusPill.textContent = 'BREAK';
+    statusPill.className = 'status-pill break';
+    sessionCategory.innerHTML = getCategoryTag(next.category);
+    currentEventName.textContent = 'No active session';
+    currentEventDetail.textContent = 'Next: ' + next.name;
+    currentStart.textContent = '—';
+    currentEnd.textContent = '—';
+    currentDuration.textContent = '—';
+    progressContainer.style.display = 'none';
+    currentEventIndex.textContent = '—';
+
+  } else {
+    statusPill.textContent = 'ENDED';
+    statusPill.className = 'status-pill break';
+    sessionCategory.innerHTML = '';
+    currentEventName.textContent = 'Event concluded';
+    currentEventDetail.textContent = 'All sessions completed.';
+    currentStart.textContent = '—';
+    currentEnd.textContent = '—';
+    currentDuration.textContent = '—';
+    progressContainer.style.display = 'none';
+    currentEventIndex.textContent = processedSchedule.length + ' / ' + processedSchedule.length;
+  }
+
+  // --- COUNTDOWN PANEL ---
+  const countdownLabel = document.getElementById('countdownLabel');
+  const cdHours = document.getElementById('cdHours');
+  const cdMinutes = document.getElementById('cdMinutes');
+  const cdSeconds = document.getElementById('cdSeconds');
+
+  // Countdown tracks the active SESSION end — not the momentary signal
+  const sessionForCountdown = (current && current.type !== 'procedure') ? current : null;
+  const effectiveEndForCountdown = sessionForCountdown
+    ? (sessionForCountdown.endDt || sessionForCountdown.implicitEndDt)
+    : null;
+  let targetDt = null;
+  let cdLabelText = '';
+
+  if (sessionForCountdown && effectiveEndForCountdown) {
+    targetDt = effectiveEndForCountdown;
+    cdLabelText = 'TIME REMAINING';
+  } else if (next) {
+    targetDt = next.startDt;
+    cdLabelText = 'TIME UNTIL NEXT';
+  }
+
+  if (targetDt) {
+    const diffMs = targetDt - now;
+    const totalSec = Math.max(0, Math.floor(diffMs / 1000));
+    const { h, m, s } = toHHMMSS(totalSec);
+
+    countdownLabel.textContent = cdLabelText;
+    cdHours.textContent = pad(h);
+    cdMinutes.textContent = pad(m);
+    cdSeconds.textContent = pad(s);
+
+    const urgent = totalSec < 180;
+    [cdHours, cdMinutes, cdSeconds].forEach(el => {
+      el.classList.toggle('urgent', urgent);
+    });
+  } else {
+    countdownLabel.textContent = 'No upcoming events';
+    cdHours.textContent = '00';
+    cdMinutes.textContent = '00';
+    cdSeconds.textContent = '00';
+    [cdHours, cdMinutes, cdSeconds].forEach(el => el.classList.remove('urgent'));
+  }
+
+  // --- NEXT EVENT PANEL ---
+  const nextEventName = document.getElementById('nextEventName');
+  const nextEventDetail = document.getElementById('nextEventDetail');
+  const nextSessionCategory = document.getElementById('nextSessionCategory');
+  const nextTimePill = document.getElementById('nextTimePill');
+  const nextEventBadge = document.getElementById('nextEventBadge');
+
+  if (next) {
+    nextEventName.textContent = next.name;
+    nextEventDetail.textContent = next.remark || '';
+    nextSessionCategory.innerHTML = getCategoryTag(next.category);
+    nextTimePill.textContent = next.start + (next.end ? ' → ' + next.end : '');
+    // Show date if next event is on different day
+    const nowDay = now.toISOString().slice(0,10);
+    const sameDayNext = next.date === nowDay ||
+      (next.startDt && next.startDt.getDate() === now.getDate() && next.startDt.getMonth() === now.getMonth());
+    if (sameDayNext) {
+      nextEventBadge.textContent = 'TODAY';
+    } else {
+      const [y, mo, d] = next.date.split('-').map(Number);
+      const dayName = DAY_NAMES[new Date(y, mo-1, d).getDay()].slice(0,3).toUpperCase();
+      nextEventBadge.textContent = dayName + ' ' + d + ' ' + MONTH_NAMES[mo-1].toUpperCase();
+    }
+  } else {
+    nextEventName.textContent = 'No upcoming events';
+    nextEventDetail.textContent = 'Schedule complete';
+    nextSessionCategory.innerHTML = '';
+    nextTimePill.textContent = '—';
+    nextEventBadge.textContent = '—';
+  }
+}
+
+// ============================================================
+// BUILD SCHEDULE LIST
+// ============================================================
+function buildSchedule() {
+  const now = getNow();
+  const body = document.getElementById('scheduleBody');
+  const countBadge = document.getElementById('scheduleCount');
+
+  // Group by date, filter out fully past events
+  const groups = {};
+  let futureCount = 0;
+  let currentFound = false;
+
+  for (let ev of processedSchedule) {
+    if (!ev.startDt) continue;
+
+    // Determine if past — only filter events that have actually started AND ended
+    let isPast = false;
+    if (now < ev.startDt) {
+      isPast = false; // jövőbeli esemény, soha nem past
+    } else if (ev.endDt && now > ev.endDt) {
+      isPast = true;
+    } else if (!ev.endDt && ev.implicitEndDt && now > ev.implicitEndDt) {
+      isPast = true;
+    } else if (!ev.endDt && !ev.implicitEndDt && ev.type === 'procedure' && (now - ev.startDt) > 60 * 1000) {
+      isPast = true;
+    } else if (!ev.endDt && !ev.implicitEndDt && ev.type !== 'procedure' && (now - ev.startDt) > 30 * 60 * 1000) {
+      isPast = true;
+    }
+
+    if (isPast) continue;
+
+    if (!groups[ev.date]) groups[ev.date] = [];
+    groups[ev.date].push(ev);
+    futureCount++;
+  }
+
+  countBadge.textContent = futureCount + ' events remaining';
+
+  if (futureCount === 0) {
+    body.innerHTML = '<div class="no-events">✅ Minden esemény véget ért.</div>';
+    return;
+  }
+
+  let html = '';
+  const { current, next } = findCurrentAndNext(now);
+
+  for (let date of Object.keys(groups).sort()) {
+    const [y, mo, d] = date.split('-').map(Number);
+    const dt = new Date(y, mo - 1, d);
+    const dayName = DAY_NAMES[dt.getDay()].toUpperCase();
+    const dateLabel = d + ' ' + MONTH_NAMES[mo - 1].toUpperCase() + ' ' + y;
+
+    html += `<div class="day-header">
+      <span class="day-header-name">${dayName}</span>
+      <span class="day-header-date">${dateLabel}</span>
+      <div class="day-header-line"></div>
+    </div>`;
+
+    for (let ev of groups[date]) {
+      const isCurrent = current && current.idx === ev.idx;
+      const isNext = next && next.idx === ev.idx;
+      const typeClass = getItemClass(ev);
+      const currentClass = isCurrent ? ' is-current' : (isNext ? ' is-next' : '');
+      const tag = getCategoryTag(ev.category);
+
+      const timeDisplay = ev.end
+        ? `${ev.start}<span class="end-time">→ ${ev.end}</span>`
+        : ev.start;
+
+      const durationDisplay = (ev.startDt && ev.endDt)
+        ? Math.round((ev.endDt - ev.startDt) / 60000) + ' min'
+        : '';
+
+      html += `<div class="sched-item ${typeClass}${currentClass}">
+        <div class="sched-time">${timeDisplay}</div>
+        <div class="sched-content">
+          <div class="sched-name">${tag}${ev.horn ? '<span class="horn-icon" title="Horn signal">📯</span> ' : ''}${ev.name}</div>
+          ${ev.remark ? `<div class="sched-remark">${ev.remark}</div>` : ''}
+        </div>
+        <div style="display:none">${durationDisplay}</div>
+      </div>`;
+    }
+  }
+
+  body.innerHTML = html;
+
+  // Auto-scroll only if user hasn't manually scrolled
+  const currentEl = body.querySelector('.is-current');
+  const nextEl = body.querySelector('.is-next');
+  const target = currentEl || nextEl;
+  if (target && !userScrolled) {
+    setTimeout(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+// ============================================================
+// WAKE LOCK — képernyő ébren tartása
+// ============================================================
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      console.log('Wake Lock aktív — kijelző ébren marad');
+    }
+  } catch (err) {
+    console.warn('Wake Lock nem elérhető:', err);
+  }
+}
+
+// Ha a felhasználó visszatér az apphoz, újra kér Wake Lock-ot
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    requestWakeLock();
+  }
+});
+
 requestWakeLock();
 
-if(processedSchedule.length===0){
-  document.getElementById('currentEventName').textContent='Nincs betöltött menetrend';
-  document.getElementById('currentEventDetail').textContent='Töltsd be a JSON fájlt a zöld sávban';
-  document.getElementById('nextEventName').textContent='—';
-  document.getElementById('pdfStatus').textContent='⬆ Töltsd be az időtervet JSON formátumban';
+// ============================================================
+// Init
+if (processedSchedule.length === 0) {
+  // No schedule loaded — show empty state
+  document.getElementById('currentEventName').textContent = 'Nincs betöltött menetrend';
+  document.getElementById('currentEventDetail').textContent = 'Töltsd be a JSON fájlt a zöld sávban';
+  document.getElementById('nextEventName').textContent = '—';
+  document.getElementById('pdfStatus').textContent = '⬆ Töltsd be az időtervet JSON formátumban';
 }
 
-updateClock();updateDashboard();buildSchedule();initScrollTracking();initResultsPanel();
-setInterval(updateClock,1000);setInterval(updateDashboard,1000);setInterval(buildSchedule,1000);
-setInterval(checkHornEvents,100);setInterval(checkLiveHorn,100);
+updateClock();
+updateDashboard();
+buildSchedule();
+initScrollTracking();
+initResultsPanel();
 
-if('serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').then(()=>console.log('SW aktív')).catch(err=>console.warn('SW hiba:',err));}
+setInterval(updateClock, 1000);
+setInterval(updateDashboard, 1000);
+setInterval(buildSchedule, 1000);
+setInterval(checkHornEvents, 100);
+setInterval(checkLiveHorn, 100);
+
+// PWA Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js')
+    .then(() => console.log('Service Worker aktív'))
+    .catch(err => console.warn('SW hiba:', err));
+}
 </script>
   <script src="wsbk.js"></script>
 </body>
