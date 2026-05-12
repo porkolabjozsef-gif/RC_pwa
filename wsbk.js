@@ -75,18 +75,15 @@ function wsbkCacheSet(type,data) {
 // ============================================================
 // HELPERS
 // ============================================================
-function getWsbkSessions()    { return WSBK_SESSIONS_BY_SERIES[wsbkSeries]||WSBK_SESSIONS_BY_SERIES.SBK; }
-function getWsbkSeriesList()  {
+function getWsbkSessions()   { return WSBK_SESSIONS_BY_SERIES[wsbkSeries]||WSBK_SESSIONS_BY_SERIES.SBK; }
+function getWsbkSeriesList() {
   var ev=(WSBK_EVENTS[wsbkYear]||[]).find(function(e){return e.code===wsbkEvent;});
   return ev&&ev.series?ev.series:['SBK','SSP','WCR','SPB','R3'];
 }
-function getWsbkUrlCode()     { return WSBK_SERIES_URL[wsbkSeries]||wsbkSeries; }
-
+function getWsbkUrlCode() { return WSBK_SERIES_URL[wsbkSeries]||wsbkSeries; }
 function getWsbkProxyUrl(sessCode) {
-  // sessCode===null → standings
-  if (!sessCode) {
+  if(!sessCode)
     return WSBK_PROXY+wsbkYear+'/'+wsbkEvent+'/'+getWsbkUrlCode()+'/001/STD/ChampionshipStandings.pdf';
-  }
   return WSBK_PROXY+wsbkYear+'/'+wsbkEvent+'/'+getWsbkUrlCode()+'/'+sessCode+'/CLA/Results.pdf';
 }
 
@@ -94,7 +91,7 @@ function getWsbkProxyUrl(sessCode) {
 // SWITCH CHAMPIONSHIP
 // ============================================================
 function switchChampionship(champ) {
-  activeChampionship = champ;
+  activeChampionship=champ;
   var panel=document.getElementById('logoPanel'); if(!panel) return;
   var tp=document.getElementById('timingPanel');
   if(!tp){tp=document.createElement('div');tp.id='timingPanel';panel.appendChild(tp);}
@@ -105,7 +102,7 @@ function switchChampionship(champ) {
 }
 
 // ============================================================
-// RENDER WSBK PANEL SHELL
+// RENDER WSBK PANEL
 // ============================================================
 function renderWsbkPanel(panelEl) {
   var evList=WSBK_EVENTS[wsbkYear]||[];
@@ -113,13 +110,11 @@ function renderWsbkPanel(panelEl) {
   var sessions=getWsbkSessions();
   var h='';
 
-  // Row 0: MotoGP / WSBK váltó
   h+='<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
   h+='<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">MotoGP</button>';
-  h+='<button onclick="switchChampionship(\'wsbk\')"   style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--red);background:rgba(255,50,50,0.15);color:var(--red);">WSBK</button>';
+  h+='<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--red);background:rgba(255,50,50,0.15);color:var(--red);">WSBK</button>';
   h+='</div>';
 
-  // Row 1: Év + helyszín selector + sorozat logók
   h+='<div style="display:flex;align-items:stretch;flex-shrink:0;border-bottom:1px solid var(--border);">';
   h+='<div style="display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid var(--border);">';
   h+='<select onchange="wsbkYear=this.value;wsbkEvent=(WSBK_EVENTS[this.value]||[])[0].code;wsbkSeries=\'SBK\';wsbkSession=\'001\';wsbkSessionLabel=\'R1\';renderWsbkPanel(document.getElementById(\'timingPanel\'));" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--red);border:none;border-bottom:1px solid var(--border);padding:4px 6px;cursor:pointer;width:90px;">';
@@ -129,167 +124,151 @@ function renderWsbkPanel(panelEl) {
   evList.forEach(function(e){h+='<option value="'+e.code+'"'+(e.code===wsbkEvent?' selected':'')+'>'+e.name+'</option>';});
   h+='</select></div>';
 
-  // Sorozat logó gombok
   seriesList.forEach(function(s){
     var active=s===wsbkSeries;
     var logo=typeof getLogoUrl==='function'?(getLogoUrl(WSBK_SERIES_LABELS[s])||getLogoUrl(s)||''):'';
-    h+='<button onclick="wsbkSeries=\''+s+'\';wsbkSession=getWsbkSessions()[0].code;wsbkSessionLabel=getWsbkSessions()[0].label;renderWsbkPanel(document.getElementById(\'timingPanel\'));"'
-      +' style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);'
-      +'background:'+(active?'rgba(29,185,84,0.1)':'transparent')+';padding:4px 2px;'
-      +'display:flex;align-items:center;justify-content:center;'
-      +'outline:'+(active?'2px solid rgba(29,185,84,0.7)':'2px solid transparent')+';outline-offset:-2px;">';
-    if(logo){h+='<img src="'+logo+'" style="max-height:24px;max-width:90%;object-fit:contain;opacity:'+(active?'1':'0.5')+';" onerror="this.style.display=\'none\'">';}
-    else{h+='<span style="font-family:Oswald,sans-serif;font-size:8px;color:'+(active?'var(--green)':'var(--text-dim)')+'">'+( WSBK_SERIES_LABELS[s]||s)+'</span>';}
+    h+='<button onclick="wsbkSeries=\''+s+'\';wsbkSession=getWsbkSessions()[0].code;wsbkSessionLabel=getWsbkSessions()[0].label;renderWsbkPanel(document.getElementById(\'timingPanel\'));" style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);background:'+(active?'rgba(29,185,84,0.1)':'transparent')+';padding:4px 2px;display:flex;align-items:center;justify-content:center;outline:'+(active?'2px solid rgba(29,185,84,0.7)':'2px solid transparent')+';outline-offset:-2px;">';
+    if(logo) h+='<img src="'+logo+'" style="max-height:24px;max-width:90%;object-fit:contain;opacity:'+(active?'1':'0.5')+';" onerror="this.style.display=\'none\'">';
+    else h+='<span style="font-family:Oswald,sans-serif;font-size:8px;color:'+(active?'var(--green)':'var(--text-dim)')+'">'+( WSBK_SERIES_LABELS[s]||s)+'</span>';
     h+='</button>';
   });
   h+='</div>';
 
-  // Row 2: Session gombok
   h+='<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
   sessions.forEach(function(sess){
     var active=sess.label===wsbkSessionLabel;
     var isStd=sess.label==='STD';
     var ac=isStd?'var(--green)':'var(--yellow)';
     var ab=isStd?'rgba(29,185,84,0.2)':'rgba(245,196,0,0.2)';
-    h+='<button onclick="wsbkSession=\''+sess.code+'\';wsbkSessionLabel=\''+sess.label+'\';renderWsbkPanel(document.getElementById(\'timingPanel\'));"'
-      +' style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;'
-      +'border-bottom:'+(active?'3px solid '+ac:'3px solid transparent')+';'
-      +'background:'+(active?ab:'transparent')+';color:'+(active?ac:'var(--text-dim)')+';">'+sess.label+'</button>';
+    h+='<button onclick="wsbkSession=\''+sess.code+'\';wsbkSessionLabel=\''+sess.label+'\';renderWsbkPanel(document.getElementById(\'timingPanel\'));" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:'+(active?'3px solid '+ac:'3px solid transparent')+';background:'+(active?ab:'transparent')+';color:'+(active?ac:'var(--text-dim)')+';">'+sess.label+'</button>';
   });
   h+='</div>';
 
-  // Eredmény terület
-  h+='<div id="wsbkResults" style="flex:1;overflow:auto;padding:8px;">'
-    +'<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);">\u23f3 BET\u00d6LT\u00c9S...</div>'
-    +'</div>';
-
+  h+='<div id="wsbkResults" style="flex:1;overflow:auto;padding:8px;"><div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);">\u23f3 BET\u00d6LT\u00c9S...</div></div>';
   panelEl.innerHTML=h;
 
-  // Jövőbeli futam check
   var evInfo=(WSBK_EVENTS[wsbkYear]||[]).find(function(e){return e.code===wsbkEvent;});
   var rd=document.getElementById('wsbkResults');
   if(evInfo&&evInfo.dateEnd&&new Date(evInfo.dateEnd)>new Date()){
     rd.innerHTML='<div style="text-align:center;padding:16px;">'
       +'<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">'+evInfo.name.toUpperCase()+'</div>'
       +'<div style="font-family:Oswald,sans-serif;font-size:16px;color:var(--yellow);">'+evInfo.date.replace(/-/g,'.')+' \u2013 '+evInfo.dateEnd.replace(/-/g,'.')+'</div>'
-      +'<div style="font-size:9px;color:var(--text-dim);margin-top:6px;">MEG NEM ZAJLOTT LE</div>'
-      +'</div>';
+      +'<div style="font-size:9px;color:var(--text-dim);margin-top:6px;">MEG NEM ZAJLOTT LE</div></div>';
     return;
   }
 
-  if(wsbkSessionLabel==='STD'){loadWsbkStandings(rd);}
-  else{loadWsbkSession(rd);}
+  if(wsbkSessionLabel==='STD') loadWsbkStandings(rd);
+  else loadWsbkSession(rd);
 }
 
 // ============================================================
-// PDF LETÖLTÉS ÉS SZÖVEG KINYERÉS
-// pdfjsLib.getDocument() + CORS proxy → arrayBuffer → soronkénti szöveg
+// PDF FETCH — teljes szöveg kinyerése egyetlen stringbe
+// A pdf.js pozíció-alapú szövegkinyerésnél az elemek
+// NINCS garantált sorrendben — ezért X+Y koordináta alapján
+// rendezzük és szavakra bontjuk, majd a parsernekátadjuk.
 // ============================================================
-function wsbkFetchPdf(url, maxPages, onLines, onError) {
+function wsbkFetchPdfText(url, maxPages, onText, onError) {
   if(typeof pdfjsLib==='undefined'){onError('pdf.js N/A');return;}
   pdfjsLib.getDocument(url).promise.then(function(pdf){
-    var count=Math.min(pdf.numPages, maxPages||pdf.numPages);
+    var count=Math.min(pdf.numPages,maxPages||1);
     var nums=[]; for(var i=1;i<=count;i++) nums.push(i);
     return nums.reduce(function(p,num){
       return p.then(function(acc){
-        return pdf.getPage(num).then(function(page){return page.getTextContent();})
-          .then(function(tc){
-            // Y-koordináta alapú soronkénti összerakás
-            var lines=[]; var lastY=null;
-            tc.items.forEach(function(item){
-              var s=item.str; if(!s||!s.trim()) return;
-              var y=Math.round(item.transform[5]);
-              if(lastY===null||Math.abs(y-lastY)>3){lines.push(s.trim());lastY=y;}
-              else{lines[lines.length-1]+=' '+s.trim();}
-            });
-            acc.push.apply(acc,lines);
-            return acc;
+        return pdf.getPage(num).then(function(page){
+          return page.getTextContent({normalizeWhitespace:true});
+        }).then(function(tc){
+          // Rendezés: fentről lefelé (Y csökkenő), balról jobbra (X növekvő)
+          var items=tc.items.slice().sort(function(a,b){
+            var dy=Math.round(b.transform[5])-Math.round(a.transform[5]);
+            return dy!==0?dy:a.transform[4]-b.transform[4];
           });
+          var words=items.map(function(it){return it.str.trim();}).filter(Boolean);
+          acc.push(words.join(' '));
+          return acc;
+        });
       });
     },Promise.resolve([]));
-  }).then(function(lines){onLines(lines);}).catch(function(e){onError(e&&e.message?e.message:'fetch hiba');});
+  }).then(function(pages){onText(pages.join(' '));})
+    .catch(function(e){onError(e&&e.message?e.message:'fetch error');});
 }
 
 // ============================================================
-// SESSION EREDMÉNYEK BETÖLTÉSE
+// SESSION BETÖLTÉSE
 // ============================================================
 function loadWsbkSession(rd) {
   var cached=wsbkCacheGet('ses');
   if(cached&&cached.length>=3){renderSessionTable(rd,cached);return;}
   rd.innerHTML=wsbkLoadingHtml();
-  wsbkFetchPdf(getWsbkProxyUrl(wsbkSession),1,function(lines){
-    var rows=parseSessionPdf(lines);
+  wsbkFetchPdfText(getWsbkProxyUrl(wsbkSession),1,function(text){
+    var rows=parseSessionText(text);
     if(rows&&rows.length>=3){wsbkCacheSet('ses',rows);renderSessionTable(rd,rows);}
     else{rd.innerHTML=wsbkNoDataHtml();}
   },function(){rd.innerHTML=wsbkNoDataHtml();});
 }
 
 // ============================================================
-// SESSION PDF PARSER
+// SESSION PARSER — a tényleges szöveg alapján
 //
-// Race (R1/SPR/R2) - tényleges PDF szöveg:
-//   "1 1 11 N. BULEGA ITA Aruba... Ducati... 21 1'38.783 275,5 1'38.094 281,3"
-//    ^pos ^grid ^num ^init ^sur  ^nat                    ^laptime
+// Rendezett szövegben minden sor:
+//   WUP/SUP/FP: "1 11 N. BULEGA ITA ... 1'38.215 5 149,366 279,1"
+//   RACE:       "1 1 11 N. BULEGA ITA ... 21 1'38.783 275,5 1'38.094 281,3"
 //
-// SUP/FP/WUP - tényleges PDF szöveg:
-//   "1 11 N. BULEGA ITA Aruba... Ducati... 1'38.094 6 149,550 281,3"
-//    ^pos ^num ^init ^sur ^nat                ^laptime
-//
-// Közös minta: "SZÁM [SZÁM] SZÁM BETŰ. NAGYBETŰ NAT"
+// Kulcsminta: SZÁM SZÁM [SZÁM] BETŰ. NAGYBETŰS NAT
+// ahol BETŰ. = "N." "I." "S." stb. (kezdőbetű pont)
 // ============================================================
-function parseSessionPdf(lines) {
+function parseSessionText(text) {
   var rows=[];
   var seen={};
 
-  // Fő minta: sor elején 1-2 digit (pos), opcionálisan grid digit,
-  // majd rajtszám, majd "X. SURNAME NAT"
-  // Race:  /^(\d{1,2})\s+(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-']+)\s+([A-Z]{3})\s+(.*)/
-  // SUP/FP: /^(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-']+)\s+([A-Z]{3})\s+(.*)/
+  // Fő regex: befogja mind a race (grid van) mind a nem-race (nincs grid) formát
+  // Pos: \d{1,2}
+  // Opcionális grid: (?:\d{1,2}\s+)?
+  // Rajtszám: \d{1,3}
+  // Initial: [A-Z]\.
+  // Surname: [A-Z][A-Z\-']+  (nagybetűs, lehet kötőjeles)
+  // NAT: [A-Z]{3}
+  // A sorban valahol később: időeredmény X'XX.XXX formátumban
+  var re=new RegExp(
+    '(\\d{1,2})\\s+(?:\\d{1,2}\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-\\']+)\\s+([A-Z]{3})'+
+    '[^\']*'+ // csapat, motor, IND, lapcount stb.
+    '(\\d\'\\d{2}\\.\\d{3})', // időeredmény
+    'g'
+  );
 
-  var reRace = /^(\d{1,2})\s+(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-']+)\s+([A-Z]{3})\s+(.*)/;
-  var reSess = /^(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-']+)\s+([A-Z]{3})\s+(.*)/;
-  // Időmérő formátum: 1'38.783
-  var reTime = /(\d'[\d]+\.[\d]+)/;
+  var m;
+  while((m=re.exec(text))!==null){
+    var pos=parseInt(m[1]);
+    var num=parseInt(m[2]);
+    var init=m[3];
+    var sur=m[4];
+    var nat=m[5];
+    var lap=m[6];
+    if(pos<1||pos>60) continue;
+    var key=num+'_'+pos;
+    if(seen[key]) continue;
+    seen[key]=1;
 
-  lines.forEach(function(line){
-    var pos,num,init,sur,nat,rest,laptime,gap;
-
-    // Race sor?
-    var m=reRace.exec(line);
-    if(m){
-      pos=parseInt(m[1]); num=parseInt(m[3]); init=m[4]; sur=m[5]; nat=m[6]; rest=m[7];
-    } else {
-      m=reSess.exec(line);
-      if(m){pos=parseInt(m[1]); num=parseInt(m[2]); init=m[3]; sur=m[4]; nat=m[5]; rest=m[6];}
-    }
-    if(!m) return;
-    if(pos<1||pos>60) return;
-
-    // Laptime kinyerése a rest részből
-    var tm=reTime.exec(rest||'');
-    laptime=tm?tm[1]:'';
-
-    // Gap: race esetén az első szám a rest-ben ami nem laptime
-    gap='';
-    if(rest){
-      // gap: "2.538" vagy "1'07.187" — az első szám a rest elején (IND és class betűk után)
-      var gm=rest.match(/\b(\d{1,2}'\d{2}\.\d+|\d+\.\d{3})\b/);
-      if(gm&&gm[1]!==laptime) gap=gm[1];
-    }
+    // Gap: race esetén a lap előtti szövegből kiszedünk egy számot
+    // ami lehet "2.538" vagy "1'07.187"
+    var gap='';
+    var before=text.slice(Math.max(0,m.index),m.index+m[0].length-lap.length);
+    var gm=before.match(/\b(\d{1,2}'\d{2}\.\d+|\d+\.\d{3})\b/g);
+    if(gm&&gm.length>0) gap=gm[gm.length-1];
+    if(gap===lap) gap='';
 
     var name=init+'. '+sur.charAt(0)+sur.slice(1).toLowerCase();
-    var key=pos+'_'+num;
-    if(!seen[key]){seen[key]=1;rows.push({pos:pos,num:num,name:name,nat:nat,lap:laptime,gap:gap});}
-  });
+    rows.push({pos:pos,num:num,name:name,nat:nat,lap:lap,gap:gap});
+  }
 
-  // RET sorok
-  lines.forEach(function(line){
-    var m=line.match(/^RET\s+(?:\d+\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-']+)\s+([A-Z]{3})/);
-    if(!m) return;
+  // RET — "RET \d \d{1,3} X. SURNAME NAT"
+  var reRet=new RegExp('RET\\s+(?:\\d+\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-\\']+)\\s+([A-Z]{3})','g');
+  while((m=reRet.exec(text))!==null){
     var num=parseInt(m[1]);
     var key='RET_'+num;
-    if(!seen[key]){seen[key]=1;rows.push({pos:'RET',num:num,name:m[2]+'. '+m[3].charAt(0)+m[3].slice(1).toLowerCase(),nat:m[4],lap:'',gap:'DNF'});}
-  });
+    if(seen[key]) continue;
+    seen[key]=1;
+    rows.push({pos:'RET',num:num,name:m[2]+'. '+m[3].charAt(0)+m[3].slice(1).toLowerCase(),nat:m[4],lap:'',gap:'DNF'});
+  }
 
   rows.sort(function(a,b){
     if(a.pos==='RET') return 1; if(b.pos==='RET') return -1; return a.pos-b.pos;
@@ -300,9 +279,9 @@ function parseSessionPdf(lines) {
 // ============================================================
 // SESSION TÁBLÁZAT
 // ============================================================
-function renderSessionTable(rd, rows) {
+function renderSessionTable(rd,rows){
   var label=WSBK_SERIES_LABELS[wsbkSeries]||wsbkSeries;
-  var isRace=(wsbkSessionLabel==='R1'||wsbkSessionLabel==='R2'||wsbkSessionLabel==='SPR');
+  var isRace=wsbkSessionLabel==='R1'||wsbkSessionLabel==='R2'||wsbkSessionLabel==='SPR';
   var out='<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:5px;letter-spacing:1px;">'
     +'<span style="color:var(--yellow);">'+label+'</span> '+wsbkSessionLabel+' \u00b7 '+wsbkEvent+' '+wsbkYear+'</div>';
   out+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
@@ -325,53 +304,77 @@ function renderSessionTable(rd, rows) {
 // ============================================================
 // STANDINGS BETÖLTÉSE
 // ============================================================
-function loadWsbkStandings(rd) {
+function loadWsbkStandings(rd){
   var cached=wsbkCacheGet('std');
   if(cached&&cached.length>=3){renderStandingsTable(rd,cached);return;}
   rd.innerHTML=wsbkLoadingHtml();
-  wsbkFetchPdf(getWsbkProxyUrl(null),99,function(lines){
-    var riders=parseStandingsPdf(lines);
+  wsbkFetchPdfText(getWsbkProxyUrl(null),99,function(text){
+    var riders=parseStandingsText(text);
     if(riders&&riders.length>=3){wsbkCacheSet('std',riders);renderStandingsTable(rd,riders);}
     else{renderEmbeddedStandings(rd);}
   },function(){renderEmbeddedStandings(rd);});
 }
 
 // ============================================================
-// STANDINGS PDF PARSER
+// STANDINGS PARSER
 //
-// Tényleges szöveg (Y-koordináta alapú soronkénti):
-//   " 1 BULEGA 211"
-//   "Nicolo (ITA) 12 25 25 12 25 25 25 10 8 1"
-//   " 2 LECUONA 137 74"
-//   "Iker (ESP) 9 20 20 9 20 20 20 11 5"
+// Rendezett szövegben:
+//   "... 1 BULEGA 211 2 LECUONA 137 74 3 LOWES 89 122 48 ..."
+// és párhuzamosan a keresztnevekhez:
+//   "... Nicolo (ITA) ... Iker (ESP) ..."
+//
+// Legmegbízhatóbb: a sorrendből kinyerjük a
+// "SZÁM NAGYBETŰS_SZÓVAL SZÁM" mintát
+// ahol a SZÁM = pozíció (1..60) és a rákövetkező SZÁM = pontszám
 // ============================================================
-function parseStandingsPdf(lines) {
+function parseStandingsText(text) {
   var riders=[];
-  // Sor 1: "POS NAGYBETŰS_VEZETÉKNÉV PONTSZÁM [lemaradás...]"
-  var re1=/^(\d{1,2})\s+([A-Z][A-Z\-]{1,20})\s+(\d{1,3})(?:\s[\d ]*)?$/;
-  // Sor 2: "Keresztnév (NAT) ..."
-  var re2=/^([A-Z][a-zA-Z\-]+(?:\s[A-Z][a-zA-Z\-]+)?)\s+\([A-Z]{2,3}\)/;
+  var seen={};
 
-  for(var i=0;i<lines.length-1;i++){
-    var m1=re1.exec(lines[i].trim());
-    if(!m1) continue;
-    var pos=parseInt(m1[1]),last=m1[2],pts=parseInt(m1[3]);
+  // Minta a standings PDF rendezett szövegéből:
+  // pozíció NAGY_VEZÉKNÉV pontszám [lemaradás...]
+  // pl: "1 BULEGA 211" "2 LECUONA 137 74"
+  // A rendezés után ezek sorban jönnek, de közéjük kerül más szöveg is.
+  // Ezért: keressük a "(\d{1,2}) ([A-Z]{2,}) (\d{1,3})" mintát
+  // ahol az első szám 1-60 közt van, a harmadik szám > 0
+  var re=/\b(\d{1,2})\s+([A-Z][A-Z\-]{1,20})\s+(\d{1,3})\b/g;
+  var m;
+  while((m=re.exec(text))!==null){
+    var pos=parseInt(m[1]);
+    var last=m[2];
+    var pts=parseInt(m[3]);
     if(pos<1||pos>60||pts<1||pts>900) continue;
-    var m2=re2.exec((lines[i+1]||'').trim());
-    var first=m2?m2[1]:'';
-    var name=first?first+' '+last.charAt(0)+last.slice(1).toLowerCase():last.charAt(0)+last.slice(1).toLowerCase();
-    if(!riders.find(function(r){return r.pos===pos;})){
-      riders.push({pos:pos,name:name,pts:pts});
-    }
+    // Kizárjuk a zajos találatokat: ha a "szó" ismert zaj-szó
+    var noiseWords=['ITA','ESP','GBR','USA','AUS','POR','FRA','GER','NED','BEL','JPN','THA','INA','MAL',
+                    'SUP','WUP','IND','SBK','SSP','WCR','SPB','CLA','STD'];
+    if(noiseWords.indexOf(last)>=0) continue;
+    if(seen[pos]) continue;
+    seen[pos]=1;
+
+    // Keresztnév keresése a közelben (következő "Szó (NAT)" minta)
+    var after=text.slice(m.index+m[0].length,m.index+m[0].length+80);
+    var nm=after.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/);
+    var first=nm?nm[1]:'';
+    var name=first?first+' '+last.charAt(0)+last.slice(1).toLowerCase()
+                  :last.charAt(0)+last.slice(1).toLowerCase();
+    riders.push({pos:pos,name:name,pts:pts});
   }
+
+  // Szanity: legyen folyamatos pozíciósorrend (1,2,3...)
   riders.sort(function(a,b){return a.pos-b.pos;});
-  return riders;
+  // Csak az első összefüggő sorozatot tartjuk meg (1-től N-ig hiányok nélkül)
+  var clean=[];
+  for(var i=0;i<riders.length;i++){
+    if(riders[i].pos===i+1) clean.push(riders[i]);
+    else break;
+  }
+  return clean.length>=3?clean:riders.slice(0,30);
 }
 
 // ============================================================
 // STANDINGS TÁBLÁZAT
 // ============================================================
-function renderStandingsTable(rd, riders) {
+function renderStandingsTable(rd,riders){
   var label=WSBK_SERIES_LABELS[wsbkSeries]||wsbkSeries;
   var leader=riders[0].pts;
   var out='<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:5px;letter-spacing:1px;">'
@@ -394,9 +397,9 @@ function renderStandingsTable(rd, riders) {
 }
 
 // ============================================================
-// EMBEDDED FALLBACK — HUN 2026 utáni adatok
+// EMBEDDED FALLBACK
 // ============================================================
-function renderEmbeddedStandings(rd) {
+function renderEmbeddedStandings(rd){
   var data=WSBK_STANDINGS_EMBEDDED[wsbkSeries]||[];
   var label=WSBK_SERIES_LABELS[wsbkSeries]||wsbkSeries;
   if(!data.length){rd.innerHTML=wsbkNoDataHtml();return;}
@@ -420,14 +423,11 @@ function renderEmbeddedStandings(rd) {
   rd.innerHTML=out;
 }
 
-// ============================================================
-// UI HELPERS
-// ============================================================
 function wsbkLoadingHtml(){return '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);letter-spacing:2px;padding:8px;">\u23f3 BET\u00d6LT\u00c9S...</div>';}
 function wsbkNoDataHtml() {return '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);padding:8px;">Nincs adat</div>';}
 
 // ============================================================
-// EMBEDDED STANDINGS — HUN 2026 UTÁN (2026-05-03)
+// EMBEDDED STANDINGS — HUN 2026 UTÁN
 // ============================================================
 var WSBK_STANDINGS_EMBEDDED = {
   SBK: [
@@ -479,9 +479,6 @@ var WSBK_STANDINGS_EMBEDDED = {
   ]
 };
 
-// ============================================================
-// INIT — pdf.js worker
-// ============================================================
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof pdfjsLib!=='undefined'){
     pdfjsLib.GlobalWorkerOptions.workerSrc=
