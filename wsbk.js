@@ -230,8 +230,8 @@ function parseSessionText(text) {
   // A sorban valahol később: időeredmény X'XX.XXX formátumban
   var re=new RegExp(
     '(\\d{1,2})\\s+(?:\\d{1,2}\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-]+)\\s+([A-Z]{3})'+
-    '[^0-9]*'+ // csapat, motor, IND, lapcount stb.
-    "(\\d'\\d{2}\\.\\d{3})", // időeredmény
+    '[^0-9]*'+
+    "(\\d'\\d{2}\\.\\d{3})",
     'g'
   );
 
