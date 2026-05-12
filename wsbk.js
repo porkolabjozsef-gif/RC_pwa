@@ -352,57 +352,19 @@ function parseWsbkStandingsPdf(rd, text, eventName) {
   var riders = [];
   var plain = text.replace(/\s+/g, ' ').trim();
 
-  // R3 PDF structure: SURNAME Firstname (NAT) num pts gap gap
-  // e.g. "OKUNUKI Kakeru (JPN) 4 25 0 0"
-  // Position is implicit (order in list) or explicit before surname
-
-  // Pattern 1: pos + SURNAME Firstname (NAT) + num + pts
-  var re1 = /(\d{1,2})\s+([A-Z]{2,})\s+([A-Z][a-z]+)\s+\([A-Z]{3}\)\s+\d+\s+(\d{1,3})/g;
+  // R3 PDF structure: "25 25 BOCANEGRA 1 1 Aymon (BRA) 5"
+  // Pattern: pts pts SURNAME pos pos Firstname (NAT) num
+  var re = /(\d{1,3})\s+\d{1,3}\s+([A-Z]{2,})\s+(\d{1,2})\s+\d{1,2}\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{3}\)\s+\d+/g;
   var m;
-  while ((m = re1.exec(plain)) !== null) {
-    var pos = parseInt(m[1]);
-    if (pos >= 1 && pos <= 50) {
-      riders.push({pos: pos, name: m[3] + ' ' + m[2], pts: parseInt(m[4])});
+  while ((m = re.exec(plain)) !== null) {
+    var pts = parseInt(m[1]);
+    var surname = m[2];
+    var pos = parseInt(m[3]);
+    var firstname = m[4];
+    if (pos >= 1 && pos <= 50 && pts <= 500) {
+      riders.push({pos: pos, name: firstname + ' ' + surname, pts: pts});
     }
     if (riders.length >= 20) break;
-  }
-
-  // Pattern 2: SURNAME Firstname (NAT) without explicit pos
-  if (!riders.length) {
-    var re2 = /([A-Z]{2,})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{3}\)\s+\d+\s+(\d{1,3})/g;
-    var pos2 = 1;
-    while ((m = re2.exec(plain)) !== null) {
-      var pts = parseInt(m[3]);
-      if (pts <= 500) {
-        riders.push({pos: pos2++, name: m[2] + ' ' + m[1], pts: pts});
-      }
-      if (riders.length >= 20) break;
-    }
-  }
-
-  // Pattern 3: generic mixed case with nat in parens
-  if (!riders.length) {
-    var re3 = /([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)\s+\([A-Z]{3}\)\s+\d+\s+(\d{1,3})/g;
-    var pos3 = 1;
-    while ((m = re3.exec(plain)) !== null) {
-      var pts3 = parseInt(m[2]);
-      if (pts3 <= 500 && m[1].length > 3) {
-        riders.push({pos: pos3++, name: m[1], pts: pts3});
-      }
-      if (riders.length >= 20) break;
-    }
-  }
-
-  // Pattern 4: pos name nat pts (standard)
-  if (!riders.length) {
-    var re4 = /\b(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
-    while ((m = re4.exec(plain)) !== null) {
-      var pos4 = parseInt(m[1]);
-      if (pos4 >= 1 && pos4 <= 50) {
-        riders.push({pos: pos4, name: m[2], pts: parseInt(m[3])});
-      }
-      if (riders.length >= 20) break;
-    }
   }
 
   riders.sort(function(a,b) { return a.pos - b.pos; });
@@ -414,7 +376,6 @@ function parseWsbkStandingsPdf(rd, text, eventName) {
   });
 
   if (!riders.length) {
-    // Show raw text for debugging
     rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
       + plain.substring(0, 600).replace(/</g,'&lt;') + '</div>';
     return;
