@@ -237,12 +237,17 @@ function loadWsbkPdf(panelEl) {
   }
 
   pdfjsLib.getDocument(url).promise.then(function(pdf) {
-    // Use position-based extraction to reconstruct rows
-    return pdf.getPage(1).then(function(page) {
-      return page.getTextContent({normalizeWhitespace: false});
-    });
-  }).then(function(tc) {
-    parseWsbkResultsByPosition(rd, tc.items);
+    var pages = [];
+    for (var i = 1; i <= Math.min(pdf.numPages, 2); i++) {
+      pages.push(pdf.getPage(i).then(function(page) {
+        return page.getTextContent().then(function(tc) {
+          return tc.items.map(function(item) { return item.str; }).join(' ');
+        });
+      }));
+    }
+    return Promise.all(pages);
+  }).then(function(texts) {
+    parseWsbkResults(rd, texts.join(' '));
   }).catch(function(e) {
     rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Hiba: ' + e.message + '</div>';
   });
@@ -290,6 +295,94 @@ function parseWsbkR3Standings(rd, text) {
 function parseWsbkPdf(rd, text) {
   parseWsbkResults(rd, text);
 }
+
+function parseWsbkResults(rd, text) {
+  var riders = [];
+  var plain = text.replace(/\s+/g, ' ').trim();
+
+  // Structure: pos grid num Initial.SURNAME NAT team bike laps [gap rel] racetime speed bestlap speed
+  // Leader:    1 4 6 M. HERRERA ESP ... 9 1'52.686 196,0 1'52.264 194,2
+  // Others:    2 2 36 B. NEILA ESP ... 9 0.263 0.263 1'52.626 195,3 1'53.969 194,9
+
+  var riderRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+([A-Z])\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
+  var matches = [];
+  var m;
+  while ((m = riderRe.exec(plain)) !== null) {
+    var pos = parseInt(m[1]);
+    if (pos >= 1 && pos <= 30) {
+      matches.push({
+        pos: pos,
+        num: m[2],
+        name: m[4],
+        nat: m[5],
+        index: m.index,
+        end: m.index + m[0].length
+      });
+    }
+  }
+
+  var timeRe = /\d{1,3}'\d{2}\.\d{3}/g;
+  var gapRe = /\b(\d+\.\d{3})\b/g;
+
+  matches.forEach(function(rider, i) {
+    var segEnd = (i < matches.length-1) ? matches[i+1].index : rider.end + 400;
+    var segment = plain.slice(rider.end, Math.min(segEnd, rider.end + 400));
+
+    // Find all times in segment
+    var times = [];
+    var t;
+    timeRe.lastIndex = 0;
+    while ((t = timeRe.exec(segment)) !== null) {
+      times.push(t[0]);
+    }
+
+    // Race time = first time, best lap = last time
+    var raceTime = times.length > 0 ? times[0] : '';
+    var bestLap = times.length > 1 ? times[times.length-1] : raceTime;
+
+    // Gap: first decimal number in segment (not a time)
+    var gap = '';
+    if (i > 0) {
+      gapRe.lastIndex = 0;
+      var g = gapRe.exec(segment);
+      if (g) gap = '+' + g[1];
+    }
+
+    riders.push({pos: rider.pos, num: rider.num, name: rider.name, nat: rider.nat, time: raceTime, gap: gap});
+  });
+
+  var seen = {};
+  riders = riders.filter(function(r) {
+    if (seen[r.pos]) return false;
+    seen[r.pos] = true;
+    return true;
+  });
+  riders.sort(function(a,b) { return a.pos - b.pos; });
+
+  if (!riders.length) {
+    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;">'
+      + plain.substring(0, 400).replace(/</g,'&lt;') + '</div>';
+    return;
+  }
+
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--green);">' + label + '</span> - ' + wsbkEvent + ' - ' + wsbkSessionLabel + '</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.forEach(function(r, i) {
+    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;">' + r.num + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);font-size:8px;">' + r.nat + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.time + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:8px;">' + r.gap + '</td>'
+      + '</tr>';
+  });
+  rd.innerHTML = html + '</table>';
+}
+
 
 function parseWsbkResultsByPosition(rd, items) {
   // Group items by Y position (row)
@@ -671,38 +764,43 @@ function parseWsbkResults(rd, text) {
   var riders = [];
   var plain = text.replace(/\s+/g, ' ').trim();
 
-  // WSBK Results PDF structure:
-  // pos grid num Initial.SURNAME NAT team bike laps [gap rel] time speed bestlap speed
-  // e.g. "1 4 6 M. HERRERA ESP Terra Vita GRT Yamaha ... 9 1'52.686 196,0 1'52.264 194,2"
-  // e.g. "2 2 36 B. NEILA ESP ... 9 0.263 0.263 1'52.626 195,3 1'53.969 194,9"
-
-  // Find all time patterns: digits'digits.digits
+  // Find all times with positions
   var timeRe = /(\d{1,3}'\d{2}\.\d{3})/g;
   var allTimes = [];
   var tm;
   while ((tm = timeRe.exec(plain)) !== null) {
-    allTimes.push({time: tm[1], index: tm.index});
+    allTimes.push({time: tm[1], index: tm.index, used: false});
   }
 
-  // Find rider entries: pos + grid + num + Initial.SURNAME + NAT
-  // Pattern: 1-2 digit pos, 1-2 digit grid, 1-3 digit num, Initial.SURNAME, 3-letter NAT
-  var riderRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+[A-Z]\.\s*([A-Z]+)\s+([A-Z]{3})\s/g;
+  // Find rider entries: pos grid num Initial.SURNAME NAT
+  var riderRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+[A-Z]\.\s*([A-Z]{2,})\s+[A-Z]{3}\b/g;
   var m;
   while ((m = riderRe.exec(plain)) !== null) {
     var pos = parseInt(m[1]);
+    if (pos < 1 || pos > 30) continue;
     var num = m[2];
     var surname = m[3];
-    if (pos < 1 || pos > 30) continue;
-
-    // Find times after this rider entry
     var afterIdx = m.index + m[0].length;
-    var riderTimes = allTimes.filter(function(t) {
-      return t.index > afterIdx && t.index < afterIdx + 300;
-    });
 
-    // First time = race time (or gap for non-leaders), last time = best lap
-    var bestLap = riderTimes.length >= 2 ? riderTimes[riderTimes.length-1].time :
-                  riderTimes.length === 1 ? riderTimes[0].time : '';
+    // Find next unused time after this rider
+    var bestLap = '';
+    for (var i = 0; i < allTimes.length; i++) {
+      if (allTimes[i].index > afterIdx && !allTimes[i].used) {
+        // Skip the race time (first time), use second time (best lap)
+        // Mark first as used, take second
+        allTimes[i].used = true;
+        // Look for next time (best lap)
+        for (var j = i+1; j < allTimes.length; j++) {
+          if (allTimes[j].index < afterIdx + 400 && !allTimes[j].used) {
+            bestLap = allTimes[j].time;
+            allTimes[j].used = true;
+            break;
+          }
+        }
+        if (!bestLap && allTimes[i]) bestLap = allTimes[i].time;
+        break;
+      }
+    }
 
     riders.push({pos: pos, num: num, name: surname, time: bestLap});
     if (riders.length >= 25) break;
@@ -718,8 +816,8 @@ function parseWsbkResults(rd, text) {
   riders.sort(function(a,b) { return a.pos - b.pos; });
 
   if (!riders.length) {
-    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;overflow:auto;">'
-      + plain.substring(0, 600).replace(/</g,'&lt;') + '</div>';
+    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;">'
+      + plain.substring(0, 400).replace(/</g,'&lt;') + '</div>';
     return;
   }
 
