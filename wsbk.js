@@ -315,52 +315,37 @@ function loadWsbkStandings(rd) {
 function parseWsbkStandingsHtml(rd, html) {
   var riders = [];
 
-  // The page has 4 standings sections: WorldSBK, WorldSSP, WorldWCR, WorldSPB
-  // Find the right section based on wsbkSeries
-  var sectionMap = {SBK:'WorldSBK', SSP:'WorldSSP', WCR:'WorldWCR', SPB:'WorldSPB', R3:'R3'};
-  var sectionName = sectionMap[wsbkSeries] || 'WorldSBK';
-
-  // Find the section in HTML
-  var sectionIdx = html.indexOf(sectionName);
-  if (sectionIdx === -1) sectionIdx = 0;
-
-  // Find next section after our target
-  var nextSectionIdx = html.length;
-  Object.values(sectionMap).forEach(function(name) {
-    if (name !== sectionName) {
-      var idx = html.indexOf(name, sectionIdx + sectionName.length);
-      if (idx > sectionIdx && idx < nextSectionIdx) nextSectionIdx = idx;
-    }
-  });
-
-  var sectionHtml = html.slice(sectionIdx, nextSectionIdx);
-
-  // Extract rider rows - look for name + points pattern
-  // Pattern: full name in caps + number (points)
-  var riderRe = /([A-Z][A-Z\s]{3,}?)\s*<\/[^>]+>\s*(?:<[^>]+>\s*)*(\d+(?:\.\d+)?)\s*(?:pts?|points?)?/gi;
+  // Extract from table: rider link + pos + points
+  // Pattern: /en/rider/Name Surname/ID ... | pos | points |
+  var riderLinkRe = /\/en\/rider\/([^/]+)\/\d+[^>]*>([^<]+)<\/a>[\s\S]{1,500}?<\/td>\s*<td[^>]*>\s*(\d+)\s*<\/td>\s*<td[^>]*>\s*(\d+)\s*<\/td>/g;
   var m;
-  var pos = 1;
-
-  // Alternative: find all text nodes with names and numbers
-  // Strip all HTML tags to get plain text
-  var plain = sectionHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-
-  // Match: FIRSTNAME LASTNAME followed by number
-  var plainRe = /([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+(\d+(?:\.\d+)?)/g;
-  var pm;
-  while ((pm = plainRe.exec(plain)) !== null) {
-    var name = pm[1].trim();
-    var pts = parseFloat(pm[2]);
-    // Skip section headers and non-rider text
-    if (['WORLDSBK','WORLDSSP','WORLDWCR','WORLDSPB','VIEW FULL'].some(function(s) { return name.indexOf(s) > -1; })) continue;
-    if (name.length < 5 || name.length > 40) continue;
-    if (pts > 500) continue;
-    riders.push({pos: pos++, name: name, pts: pts});
+  while ((m = riderLinkRe.exec(html)) !== null) {
+    var name = m[2].trim();
+    var pos = parseInt(m[3]);
+    var pts = parseInt(m[4]);
+    if (pos >= 1 && pos <= 50 && name.length > 2) {
+      riders.push({pos: pos, name: name, pts: pts});
+    }
     if (riders.length >= 25) break;
   }
 
+  // Fallback: simpler link extraction
   if (!riders.length) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba - ' + sectionName + '</div>';
+    var linkRe = /\/en\/rider\/[^"]+"\s*>\s*([A-Z][A-Z\s]+?)\s*<\/a>/g;
+    var pos = 1;
+    while ((m = linkRe.exec(html)) !== null) {
+      var name = m[1].trim();
+      if (name.length > 3 && !['WORLDSBK','WORLDSSP','WORLDWCR','WORLDSPB'].includes(name)) {
+        riders.push({pos: pos++, name: name, pts: 0});
+      }
+      if (riders.length >= 25) break;
+    }
+  }
+
+  riders.sort(function(a,b) { return a.pos - b.pos; });
+
+  if (!riders.length) {
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba</div>';
     return;
   }
 
@@ -371,7 +356,7 @@ function parseWsbkStandingsHtml(rd, html) {
   out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.forEach(function(r, i) {
     var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
-    var gap = i===0 ? '' : '-'+(leader-r.pts);
+    var gap = i===0 ? '' : (leader-r.pts > 0 ? '-'+(leader-r.pts) : '');
     out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
       + '<td style="padding:2px 3px;color:var(--white);overflow:hidden;">' + r.name + '</td>'
