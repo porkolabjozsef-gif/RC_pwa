@@ -189,17 +189,31 @@ function wsbkFetchPdfText(url, maxPages, onText, onError) {
 }
 
 // ============================================================
-// SESSION BETÖLTÉSE
+// SESSION BETÖLTÉSE — Worker JSON végponton keresztül
 // ============================================================
 function loadWsbkSession(rd) {
   var cached=wsbkCacheGet('ses');
   if(cached&&cached.length>=3){renderSessionTable(rd,cached);return;}
   rd.innerHTML=wsbkLoadingHtml();
-  wsbkFetchPdfText(getWsbkProxyUrl(wsbkSession),1,function(text){
-    var rows=parseSessionText(text);
+  if(typeof pdfjsLib==='undefined'){rd.innerHTML=wsbkNoDataHtml();return;}
+  var url=getWsbkProxyUrl(wsbkSession);
+  pdfjsLib.getDocument(url).promise.then(function(pdf){
+    var nums=[]; for(var i=1;i<=Math.min(pdf.numPages,1);i++) nums.push(i);
+    return nums.reduce(function(p,num){
+      return p.then(function(acc){
+        return pdf.getPage(num).then(function(page){return page.getTextContent();})
+          .then(function(tc){
+            var words=tc.items.map(function(it){return it.str;}).filter(function(s){return s.trim();});
+            acc.push(words.join(' '));
+            return acc;
+          });
+      });
+    },Promise.resolve([]));
+  }).then(function(pages){
+    var rows=parseSessionText(pages.join(' '));
     if(rows&&rows.length>=3){wsbkCacheSet('ses',rows);renderSessionTable(rd,rows);}
     else{rd.innerHTML=wsbkNoDataHtml();}
-  },function(){rd.innerHTML=wsbkNoDataHtml();});
+  }).catch(function(){rd.innerHTML=wsbkNoDataHtml();});
 }
 
 // ============================================================
@@ -327,25 +341,38 @@ function loadWsbkStandings(rd) {
   // Azonnal embedded adat
   renderEmbeddedStandings(rd);
 
-  // Háttérben: Worker JSON végpont
+  // Háttérben: pdf.js parse a legutóbbi futam standings PDF-jéből
+  if(typeof pdfjsLib === 'undefined') return;
   var latest = getLatestFinishedEvent();
   if(!latest) return;
 
-  var jsonUrl = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-std/'
-    + wsbkYear + '/' + latest.code + '/' + wsbkSeries;
+  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
+    + wsbkYear + '/' + latest.code + '/'
+    + (WSBK_SERIES_URL[wsbkSeries] || wsbkSeries)
+    + '/001/STD/ChampionshipStandings.pdf';
 
-  fetch(jsonUrl)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if(!data.riders || data.riders.length < 3) return;
-      // Validáció
-      var riders = data.riders;
-      if(riders[0].pts < riders[riders.length-1].pts) return;
-      renderStandingsTable(rd, riders, latest.code);
-    })
-    .catch(function(){
-      // Marad az embedded
-    });
+  pdfjsLib.getDocument(url).promise.then(function(pdf){
+    var nums=[]; for(var i=1;i<=pdf.numPages;i++) nums.push(i);
+    return nums.reduce(function(p,num){
+      return p.then(function(acc){
+        return pdf.getPage(num).then(function(page){return page.getTextContent();})
+          .then(function(tc){
+            var words=tc.items.map(function(it){return it.str;}).filter(function(s){return s.trim();});
+            acc.push(words.join(' '));
+            return acc;
+          });
+      });
+    },Promise.resolve([]));
+  }).then(function(pages){
+    var riders=parseStandingsText(pages.join(' '));
+    if(!riders||riders.length<5) return;
+    var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
+    if(riders[0].pts!==maxPts) return;
+    for(var i=1;i<Math.min(riders.length,5);i++){
+      if(riders[i].pts>riders[i-1].pts) return;
+    }
+    renderStandingsTable(rd,riders,latest.code);
+  }).catch(function(){});
 }
 
 function getLatestFinishedEvent() {
