@@ -2,121 +2,105 @@
 // WSBK MODULE - Race Control Dashboard
 // ============================================================
 
-var WSBK_PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk/';
+var WSBK_PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/';
 
 var WSBK_SERIES_LABELS = {
   SBK: 'WorldSBK', SSP: 'WorldSSP', WCR: 'WorldWCR',
-  R3: 'R3 Cup', SPB: 'WorldSPB'
+  R3: 'R3 bLU cRU', SPB: 'WorldSPB'
 };
 
-// Session listak sorozatonkent
-// SBK: FP1, FP2, FP3, SUP, WUP, R1, SPR, R2
-// SSP: FP, SUP, WUP, R1, R2
-// WCR: FP, SUP, WUP, R1, R2
-// SPB: FP, SUP, WUP, R1, R2  
-// R3:  R1, R2
-var WSBK_SESSIONS_BY_SERIES = {
-  SBK: [
-    {code:'L1A',label:'FP1',sub:'CLA',file:'Results.pdf'},
-    {code:'L2A',label:'FP2',sub:'CLA',file:'Results.pdf'},
-    {code:'L3A',label:'FP3',sub:'CLA',file:'Results.pdf'},
-    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
-    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
-    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
-    {code:'002',label:'SPR',sub:'CLA',file:'Results.pdf'},
-    {code:'003',label:'R2', sub:'CLA',file:'Results.pdf'},
-    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
-  ],
-  SSP: [
-    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
-    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
-    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
-    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
-    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
-    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
-  ],
-  WCR: [
-    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
-    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
-    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
-    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
-    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
-    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
-  ],
-  SPB: [
-    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
-    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
-    {code:'W1A',label:'WUP',sub:'CLA',file:'Results.pdf'},
-    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
-    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
-    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
-  ],
-  R3: [
-    {code:'L1A',label:'FP', sub:'CLA',file:'Results.pdf'},
-    {code:'Q1A',label:'SUP',sub:'CLA',file:'Results.pdf'},
-    {code:'001',label:'R1', sub:'CLA',file:'Results.pdf'},
-    {code:'002',label:'R2', sub:'CLA',file:'Results.pdf'},
-    {code:'STD',label:'STD',sub:'STD',file:'ChampionshipStandings.pdf'}
-  ]
-};
-function getWsbkSessions() {
-  return WSBK_SESSIONS_BY_SERIES[wsbkSeries] || WSBK_SESSIONS_BY_SERIES.SBK;
-}
-
-// Map display series code to URL series code
-var WSBK_SERIES_URL_CODE = {
+var WSBK_SERIES_URL = {
   SBK: 'SBK', SSP: 'SSP', WCR: 'WCR', SPB: 'SPB', R3: 'YR3EC'
 };
-function getWsbkSeriesUrlCode() {
-  return WSBK_SERIES_URL_CODE[wsbkSeries] || wsbkSeries;
-}
+
+var WSBK_SESSIONS_BY_SERIES = {
+  SBK: [
+    {code:'L1A',label:'FP1'},{code:'L2A',label:'FP2'},{code:'L3A',label:'FP3'},
+    {code:'Q1A',label:'SUP'},{code:'W1A',label:'WUP'},
+    {code:'001',label:'R1'},{code:'002',label:'SPR'},{code:'003',label:'R2'},
+    {code:'STD',label:'STD'}
+  ],
+  SSP: [
+    {code:'L1A',label:'FP'},{code:'Q1A',label:'SUP'},{code:'W1A',label:'WUP'},
+    {code:'001',label:'R1'},{code:'002',label:'R2'},{code:'STD',label:'STD'}
+  ],
+  WCR: [
+    {code:'L1A',label:'FP'},{code:'Q1A',label:'SUP'},{code:'W1A',label:'WUP'},
+    {code:'001',label:'R1'},{code:'002',label:'R2'},{code:'STD',label:'STD'}
+  ],
+  SPB: [
+    {code:'L1A',label:'FP'},{code:'Q1A',label:'SUP'},{code:'W1A',label:'WUP'},
+    {code:'001',label:'R1'},{code:'002',label:'R2'},{code:'STD',label:'STD'}
+  ],
+  R3: [
+    {code:'L1A',label:'FP'},{code:'Q1A',label:'SUP'},
+    {code:'001',label:'R1'},{code:'002',label:'R2'},{code:'STD',label:'STD'}
+  ]
+};
 
 var WSBK_EVENTS = {
   '2026': [
-    {code:'AUS',name:'Australian Round',           date:'2026-02-20',dateEnd:'2026-02-22',series:['SBK','SSP']},
-    {code:'POR',name:'Pirelli Portuguese Round',   date:'2026-03-27',dateEnd:'2026-03-29',series:['SBK','SSP','WCR','SPB']},
-    {code:'NED',name:'Pirelli Dutch Round',        date:'2026-04-17',dateEnd:'2026-04-19',series:['SBK','SSP','WCR','SPB']},
-    {code:'HUN',name:'Motul Hungarian Round',      date:'2026-05-01',dateEnd:'2026-05-03',series:['SBK','SSP','WCR','R3']},
-    {code:'CZE',name:'Czech Round',                date:'2026-05-15',dateEnd:'2026-05-17',series:['SBK','SSP','SPB']},
-    {code:'ARA',name:'Aragon Round',               date:'2026-05-29',dateEnd:'2026-05-31',series:['SBK','SSP','SPB','R3']},
+    {code:'AUS',name:'Australian Round',          date:'2026-02-20',dateEnd:'2026-02-22',series:['SBK','SSP']},
+    {code:'POR',name:'Pirelli Portuguese Round',  date:'2026-03-27',dateEnd:'2026-03-29',series:['SBK','SSP','WCR','SPB']},
+    {code:'NED',name:'Pirelli Dutch Round',       date:'2026-04-17',dateEnd:'2026-04-19',series:['SBK','SSP','WCR','SPB']},
+    {code:'HUN',name:'Motul Hungarian Round',     date:'2026-05-01',dateEnd:'2026-05-03',series:['SBK','SSP','WCR','R3']},
+    {code:'CZE',name:'Czech Round',               date:'2026-05-15',dateEnd:'2026-05-17',series:['SBK','SSP','SPB']},
+    {code:'ARA',name:'Aragon Round',              date:'2026-05-29',dateEnd:'2026-05-31',series:['SBK','SSP','SPB','R3']},
     {code:'ITA',name:'Pirelli Emilia Romagna Round',date:'2026-06-12',dateEnd:'2026-06-14',series:['SBK','SSP','WCR','SPB']},
-    {code:'GBR',name:'Prosecco DOC UK Round',      date:'2026-07-10',dateEnd:'2026-07-12',series:['SBK','SSP','WCR','R3']},
-    {code:'FRA',name:'Acerbis French Round',       date:'2026-09-04',dateEnd:'2026-09-06',series:['SBK','SSP','WCR','SPB','R3']},
-    {code:'CRE',name:'Italian Round',              date:'2026-09-18',dateEnd:'2026-09-20',series:['SBK','SSP','SPB','R3']},
-    {code:'EST',name:'Tissot Estoril Round',       date:'2026-10-09',dateEnd:'2026-10-11',series:['SBK','SSP','WCR','SPB','R3']},
-    {code:'JER',name:'Pirelli Spanish Round',      date:'2026-10-16',dateEnd:'2026-10-18',series:['SBK','SSP','WCR','SPB']}
+    {code:'GBR',name:'Prosecco DOC UK Round',     date:'2026-07-10',dateEnd:'2026-07-12',series:['SBK','SSP','WCR','R3']},
+    {code:'FRA',name:'Acerbis French Round',      date:'2026-09-04',dateEnd:'2026-09-06',series:['SBK','SSP','WCR','SPB','R3']},
+    {code:'CRE',name:'Italian Round',             date:'2026-09-18',dateEnd:'2026-09-20',series:['SBK','SSP','SPB','R3']},
+    {code:'EST',name:'Tissot Estoril Round',      date:'2026-10-09',dateEnd:'2026-10-11',series:['SBK','SSP','WCR','SPB','R3']},
+    {code:'JER',name:'Pirelli Spanish Round',     date:'2026-10-16',dateEnd:'2026-10-18',series:['SBK','SSP','WCR','SPB']}
   ],
   '2025': [
-    {code:'AUS',name:'Australian Round',           date:'2025-02-21',dateEnd:'2025-02-23',series:['SBK','SSP','R3']},
-    {code:'POR',name:'Portuguese Round',           date:'2025-03-28',dateEnd:'2025-03-30',series:['SBK','SSP','R3']},
-    {code:'NED',name:'Dutch Round',                date:'2025-04-11',dateEnd:'2025-04-13',series:['SBK','SSP','WCR','R3']},
-    {code:'ITA',name:'Italian Round',              date:'2025-05-02',dateEnd:'2025-05-04',series:['SBK','SSP','WCR','R3']},
-    {code:'MOS',name:'Czech Round',                date:'2025-05-16',dateEnd:'2025-05-18',series:['SBK','SSP','R3']},
-    {code:'RSM',name:'Emilia Romagna Round',       date:'2025-06-13',dateEnd:'2025-06-15',series:['SBK','SSP','WCR','R3']},
-    {code:'GBR',name:'UK Round',                   date:'2025-07-11',dateEnd:'2025-07-13',series:['SBK','SSP','WCR','R3']},
-    {code:'HUN',name:'Hungarian Round',            date:'2025-07-25',dateEnd:'2025-07-27',series:['SBK','SSP','WCR','R3']},
-    {code:'FRA',name:'French Round',               date:'2025-09-05',dateEnd:'2025-09-07',series:['SBK','SSP','WCR','R3']},
-    {code:'ARA',name:'Aragon Round',               date:'2025-09-26',dateEnd:'2025-09-28',series:['SBK','SSP','R3']},
-    {code:'EST',name:'Estoril Round',              date:'2025-10-10',dateEnd:'2025-10-12',series:['SBK','SSP','R3']},
-    {code:'ESP',name:'Spanish Round',              date:'2025-10-17',dateEnd:'2025-10-19',series:['SBK','SSP','WCR','R3']}
+    {code:'AUS',name:'Australian Round',          date:'2025-02-21',dateEnd:'2025-02-23',series:['SBK','SSP','R3']},
+    {code:'POR',name:'Portuguese Round',          date:'2025-03-28',dateEnd:'2025-03-30',series:['SBK','SSP','R3']},
+    {code:'NED',name:'Dutch Round',               date:'2025-04-11',dateEnd:'2025-04-13',series:['SBK','SSP','WCR','R3']},
+    {code:'ITA',name:'Italian Round',             date:'2025-05-02',dateEnd:'2025-05-04',series:['SBK','SSP','WCR','R3']},
+    {code:'MOS',name:'Czech Round',               date:'2025-05-16',dateEnd:'2025-05-18',series:['SBK','SSP','R3']},
+    {code:'RSM',name:'Emilia Romagna Round',      date:'2025-06-13',dateEnd:'2025-06-15',series:['SBK','SSP','WCR','R3']},
+    {code:'GBR',name:'UK Round',                  date:'2025-07-11',dateEnd:'2025-07-13',series:['SBK','SSP','WCR','R3']},
+    {code:'HUN',name:'Hungarian Round',           date:'2025-07-25',dateEnd:'2025-07-27',series:['SBK','SSP','WCR','R3']},
+    {code:'FRA',name:'French Round',              date:'2025-09-05',dateEnd:'2025-09-07',series:['SBK','SSP','WCR','R3']},
+    {code:'ARA',name:'Aragon Round',              date:'2025-09-26',dateEnd:'2025-09-28',series:['SBK','SSP','R3']},
+    {code:'EST',name:'Estoril Round',             date:'2025-10-10',dateEnd:'2025-10-12',series:['SBK','SSP','R3']},
+    {code:'ESP',name:'Spanish Round',             date:'2025-10-17',dateEnd:'2025-10-19',series:['SBK','SSP','WCR','R3']}
   ]
 };
 
+var activeChampionship = 'motogp';
 var wsbkYear = '2026';
 var wsbkEvent = 'HUN';
 var wsbkSeries = 'SBK';
 var wsbkSession = '001';
 var wsbkSessionLabel = 'R1';
-var wsbkSessionSub = 'CLA';
-var wsbkSessionFile = 'Results.pdf';
 
-function getWsbkSeries() {
+function getWsbkSessions() {
+  return WSBK_SESSIONS_BY_SERIES[wsbkSeries] || WSBK_SESSIONS_BY_SERIES.SBK;
+}
+
+function getWsbkSeriesList() {
   var evList = WSBK_EVENTS[wsbkYear] || [];
   var ev = evList.find(function(e) { return e.code === wsbkEvent; });
   return ev && ev.series ? ev.series : ['SBK','SSP','WCR','SPB','R3'];
 }
 
+function getWsbkUrlCode() {
+  return WSBK_SERIES_URL[wsbkSeries] || wsbkSeries;
+}
+
+function getWsbkPdfUrl(sessionCode) {
+  return 'https://resources.worldsbk.com/files/results/'
+    + wsbkYear + '/' + wsbkEvent + '/' + getWsbkUrlCode()
+    + '/' + sessionCode + '/CLA/Results.pdf';
+}
+
+// ============================================================
+// SWITCH CHAMPIONSHIP
+// ============================================================
 function switchChampionship(champ) {
+  activeChampionship = champ;
   var panel = document.getElementById('logoPanel');
   if (!panel) return;
   var tp = document.getElementById('timingPanel');
@@ -130,45 +114,50 @@ function switchChampionship(champ) {
   var ph = document.getElementById('logoPlaceholder');
   if (img) img.style.display = 'none';
   if (ph) ph.style.display = 'none';
+
   if (champ === 'wsbk') {
     renderWsbkPanel(tp);
-    loadWsbkPdf(tp);
   } else {
     renderPanel();
     doFetch();
   }
 }
 
+// ============================================================
+// RENDER WSBK PANEL
+// ============================================================
 function renderWsbkPanel(panelEl) {
   var evList = WSBK_EVENTS[wsbkYear] || [];
-  var seriesList = getWsbkSeries();
+  var seriesList = getWsbkSeriesList();
+  var sessions = getWsbkSessions();
   var html = '';
 
-  // Row 0: Bajnoksag valto
+  // Row 0: Championship switcher
   html += '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
   html += '<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">MotoGP</button>';
   html += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--red);background:rgba(255,50,50,0.15);color:var(--red);">WSBK</button>';
   html += '</div>';
 
-  // Row 1: Ev + helyszin + sorozat logok
+  // Row 1: Year + Event + Series logos
   html += '<div style="display:flex;align-items:stretch;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);">';
   html += '<div style="display:flex;flex-direction:column;gap:0;flex-shrink:0;border-right:1px solid var(--border);">';
-  html += '<select onchange="wsbkYear=this.value;wsbkEvent=(WSBK_EVENTS[this.value]||[])[0].code;wsbkSeries=\'SBK\';var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);loadWsbkPdf(tp);" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--red);border:none;border-bottom:1px solid var(--border);padding:4px 6px;cursor:pointer;width:90px;">';
+  html += '<select onchange="wsbkYear=this.value;wsbkEvent=(WSBK_EVENTS[this.value]||[])[0].code;wsbkSeries=\'SBK\';wsbkSessionLabel=\'R1\';var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--red);border:none;border-bottom:1px solid var(--border);padding:4px 6px;cursor:pointer;width:90px;">';
   Object.keys(WSBK_EVENTS).sort().reverse().forEach(function(y) {
     html += '<option value="' + y + '"' + (y === wsbkYear ? ' selected' : '') + '>' + y + '</option>';
   });
   html += '</select>';
-  html += '<select onchange="wsbkEvent=this.value;if(!getWsbkSeries().includes(wsbkSeries))wsbkSeries=getWsbkSeries()[0];var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);loadWsbkPdf(tp);" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--off-white);border:none;padding:4px 6px;cursor:pointer;width:90px;flex:1;">';
+  html += '<select onchange="wsbkEvent=this.value;if(!getWsbkSeriesList().includes(wsbkSeries))wsbkSeries=getWsbkSeriesList()[0];var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);" style="font-family:Oswald,sans-serif;font-size:10px;background:#1a1a1a;color:var(--off-white);border:none;padding:4px 6px;cursor:pointer;width:90px;flex:1;">';
   evList.forEach(function(e) {
     html += '<option value="' + e.code + '"' + (e.code === wsbkEvent ? ' selected' : '') + '>' + e.name + '</option>';
   });
   html += '</select>';
   html += '</div>';
 
+  // Series logos
   seriesList.forEach(function(s) {
     var active = s === wsbkSeries;
-    var logo = typeof getLogoUrl === 'function' ? (getLogoUrl(s) || getLogoUrl(WSBK_SERIES_LABELS[s]) || '') : '';
-    html += '<button onclick="wsbkSeries=\'' + s + '\';var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);loadWsbkPdf(tp);" style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);background:' + (active ? 'rgba(29,185,84,0.1)' : 'transparent') + ';padding:4px 2px;display:flex;align-items:center;justify-content:center;outline:' + (active ? '2px solid rgba(29,185,84,0.7)' : '2px solid transparent') + ';outline-offset:-2px;">';
+    var logo = typeof getLogoUrl === 'function' ? (getLogoUrl(WSBK_SERIES_LABELS[s]) || getLogoUrl(s) || '') : '';
+    html += '<button onclick="wsbkSeries=\'' + s + '\';wsbkSession=getWsbkSessions()[0].code;wsbkSessionLabel=getWsbkSessions()[0].label;var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);" style="flex:1;cursor:pointer;border:none;border-left:1px solid var(--border);background:' + (active ? 'rgba(29,185,84,0.1)' : 'transparent') + ';padding:4px 2px;display:flex;align-items:center;justify-content:center;outline:' + (active ? '2px solid rgba(29,185,84,0.7)' : '2px solid transparent') + ';outline-offset:-2px;">';
     if (logo) {
       html += '<img src="' + logo + '" style="max-height:24px;max-width:90%;object-fit:contain;opacity:' + (active ? '1' : '0.5') + ';" onerror="this.style.display=\'none\'">';
     } else {
@@ -178,67 +167,85 @@ function renderWsbkPanel(panelEl) {
   });
   html += '</div>';
 
-  // Row 2: Session gombok
-  var mainSessions = getWsbkSessions().filter(function(s) { return s.label !== 'STD'; });
+  // Row 2: Session buttons
   html += '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
-  mainSessions.forEach(function(sess) {
+  sessions.forEach(function(sess) {
     var active = sess.label === wsbkSessionLabel;
-    html += '<button onclick="wsbkSession=\'' + sess.code + '\';wsbkSessionLabel=\'' + sess.label + '\';wsbkSessionSub=\'' + sess.sub + '\';wsbkSessionFile=\'' + sess.file + '\';var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);loadWsbkPdf(tp);" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:' + (active ? '3px solid var(--yellow)' : '3px solid transparent') + ';background:' + (active ? 'rgba(245,196,0,0.2)' : 'transparent') + ';color:' + (active ? 'var(--yellow)' : 'var(--text-dim)') + ';">' + sess.label + '</button>';
+    var isStd = sess.label === 'STD';
+    var activeColor = isStd ? 'var(--green)' : 'var(--yellow)';
+    var activeBg = isStd ? 'rgba(29,185,84,0.2)' : 'rgba(245,196,0,0.2)';
+    html += '<button onclick="wsbkSession=\'' + sess.code + '\';wsbkSessionLabel=\'' + sess.label + '\';var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:' + (active ? '3px solid ' + activeColor : '3px solid transparent') + ';background:' + (active ? activeBg : 'transparent') + ';color:' + (active ? activeColor : 'var(--text-dim)') + ';">' + sess.label + '</button>';
   });
-  var stdActive = wsbkSessionLabel === 'STD';
-  html += '<button onclick="wsbkSession=\'001\';wsbkSessionLabel=\'STD\';wsbkSessionSub=\'STD\';wsbkSessionFile=\'ChampionshipStandings.pdf\';var tp=document.getElementById(\'timingPanel\');renderWsbkPanel(tp);loadWsbkPdf(tp);" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:' + (stdActive ? '3px solid var(--green)' : '3px solid transparent') + ';background:' + (stdActive ? 'rgba(29,185,84,0.2)' : 'transparent') + ';color:' + (stdActive ? 'var(--green)' : 'var(--text-dim)') + ';">STD</button>';
   html += '</div>';
 
-  html += '<div id="wsbkResults" style="flex:1;overflow:auto;padding:4px 8px;"><div style="color:var(--text-mid);font-size:10px;padding:4px;">Betoltes...</div></div>';
-  panelEl.innerHTML = html;
-}
+  // Results area
+  html += '<div id="wsbkResults" style="flex:1;overflow:auto;padding:8px;">';
 
-function loadWsbkPdf(panelEl) {
-  var rd = document.getElementById('wsbkResults');
-  if (!rd) return;
-
-  var evList = WSBK_EVENTS[wsbkYear] || [];
   var evInfo = evList.find(function(e) { return e.code === wsbkEvent; });
-  if (evInfo && evInfo.dateEnd) {
-    var evDate = new Date(evInfo.dateEnd);
-    evDate.setHours(23, 59, 59);
-    if (evDate > new Date()) {
-      var d1 = evInfo.date.replace(/-/g, '.');
-      var d2 = evInfo.dateEnd.replace(/-/g, '.');
-      rd.innerHTML = '<div style="text-align:center;padding:16px;">'
-        + '<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">' + evInfo.name.toUpperCase() + '</div>'
-        + '<div style="font-family:Oswald,sans-serif;font-size:16px;color:var(--yellow);">' + d1 + ' - ' + d2 + '</div>'
-        + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px;">MEG NEM ZAJLOTT LE</div>'
+  if (evInfo && evInfo.dateEnd && new Date(evInfo.dateEnd) > new Date()) {
+    // Future event
+    var d1 = evInfo.date.replace(/-/g, '.');
+    var d2 = evInfo.dateEnd.replace(/-/g, '.');
+    html += '<div style="text-align:center;padding:16px;">'
+      + '<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">' + evInfo.name.toUpperCase() + '</div>'
+      + '<div style="font-family:Oswald,sans-serif;font-size:16px;color:var(--yellow);">' + d1 + ' - ' + d2 + '</div>'
+      + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;">MEG NEM ZAJLOTT LE</div>'
+      + '</div>';
+  } else if (wsbkSessionLabel === 'STD') {
+    html += '<div style="color:var(--text-mid);font-size:10px;">&#9203; Betoltes...</div>';
+  } else {
+    // PDF open button
+    var sess = sessions.find(function(s) { return s.label === wsbkSessionLabel; });
+    if (sess) {
+      var pdfUrl = getWsbkPdfUrl(sess.code);
+      var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+      html += '<div style="text-align:center;padding:20px 10px;">'
+        + '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text-mid);margin-bottom:12px;letter-spacing:1px;">'
+        + label + ' &middot; ' + wsbkEvent + ' &middot; ' + wsbkSessionLabel + '</div>'
+        + '<a href="' + pdfUrl + '" target="_blank" style="display:inline-block;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:2px;padding:10px 20px;cursor:pointer;border:1px solid var(--green);background:rgba(29,185,84,0.1);color:var(--green);text-decoration:none;">&#128196; EREDMENYEK PDF</a>'
         + '</div>';
-      return;
     }
   }
+  html += '</div>';
 
-  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Betoltese...</div>';
+  panelEl.innerHTML = html;
 
-  // STD: use worldsbk.com HTML standings for all series
+  // Load standings if STD
   if (wsbkSessionLabel === 'STD') {
-    loadWsbkStandings(rd);
+    var rd = document.getElementById('wsbkResults');
+    if (rd) loadWsbkStandings(rd);
+  }
+}
+
+// ============================================================
+// STANDINGS
+// ============================================================
+function loadWsbkStandings(rd) {
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">&#9203; Pontallas betoltese...</div>';
+
+  var evList = WSBK_EVENTS[wsbkYear] || [];
+  var now = new Date();
+  var pastEvents = evList.filter(function(e) { return new Date(e.dateEnd) < now; });
+  var latestEvent = pastEvents.length ? pastEvents[pastEvents.length-1] : null;
+
+  if (!latestEvent) {
+    renderEmbeddedStandings(rd);
     return;
   }
 
-  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/' + wsbkYear + '/' + wsbkEvent + '/' + getWsbkSeriesUrlCode()
-    + '/' + wsbkSession + '/' + wsbkSessionSub + '/' + wsbkSessionFile;
+  var url = WSBK_PROXY + wsbkYear + '/' + latestEvent.code + '/' + getWsbkUrlCode() + '/001/STD/ChampionshipStandings.pdf';
 
   if (typeof pdfjsLib === 'undefined') {
-    // Retry after 1 second
-    setTimeout(function() { loadWsbkPdf(panelEl); }, 1000);
-    rd.innerHTML = '<div style="color:var(--text-mid);font-size:9px;padding:4px;">PDF.js betoltese...</div>';
+    setTimeout(function() { loadWsbkStandings(rd); }, 1000);
     return;
   }
-  
   if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   }
 
   pdfjsLib.getDocument(url).promise.then(function(pdf) {
     var pages = [];
-    for (var i = 1; i <= Math.min(pdf.numPages, 2); i++) {
+    for (var i = 1; i <= Math.min(pdf.numPages, 3); i++) {
       pages.push(pdf.getPage(i).then(function(page) {
         return page.getTextContent().then(function(tc) {
           return tc.items.map(function(item) { return item.str; }).join(' ');
@@ -247,42 +254,73 @@ function loadWsbkPdf(panelEl) {
     }
     return Promise.all(pages);
   }).then(function(texts) {
-    parseWsbkResults(rd, texts.join(' '));
-  }).catch(function(e) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Hiba: ' + e.message + '</div>';
+    parseWsbkStandingsPdf(rd, texts.join(' '), latestEvent.name);
+  }).catch(function() {
+    renderEmbeddedStandings(rd);
   });
 }
 
-function parseWsbkR3Standings(rd, text) {
+function parseWsbkStandingsPdf(rd, text, eventName) {
   var riders = [];
   var plain = text.replace(/\s+/g, ' ').trim();
-  
-  // R3 standings: NAME points pattern
-  var re = /([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+(\d+)/g;
-  var m;
-  var pos = 1;
-  while ((m = re.exec(plain)) !== null) {
-    var name = m[1].trim();
-    var pts = parseInt(m[2]);
-    if (name.length < 4 || pts > 500) continue;
-    if (['CHAMPIONSHIP','STANDINGS','RESULTS','RIDERS','ROUND'].some(function(s) { return name.indexOf(s) > -1; })) continue;
-    riders.push({pos: pos++, name: name, pts: pts});
-    if (riders.length >= 25) break;
+
+  if (wsbkSeries === 'R3') {
+    var re = /(\d{1,3})\s+\d{1,3}\s+([A-Z]{2,})\s+(\d{1,2})\s+\d{1,2}\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{3}\)\s+\d+/g;
+    var m;
+    while ((m = re.exec(plain)) !== null) {
+      var pts = parseInt(m[1]);
+      var pos = parseInt(m[3]);
+      if (pos >= 1 && pos <= 50 && pts <= 500) {
+        riders.push({pos: pos, name: m[4] + ' ' + m[2], pts: pts});
+      }
+      if (riders.length >= 20) break;
+    }
+  } else {
+    var re1 = /\b(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+    var m1;
+    while ((m1 = re1.exec(plain)) !== null) {
+      var pos1 = parseInt(m1[1]);
+      if (pos1 >= 1 && pos1 <= 50) {
+        riders.push({pos: pos1, name: m1[2], pts: parseInt(m1[3])});
+      }
+      if (riders.length >= 30) break;
+    }
+    if (!riders.length) {
+      var re2 = /\b(\d{1,2})\s+([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+[A-Z]{3}\s+(\d{1,3})\b/g;
+      var m2;
+      while ((m2 = re2.exec(plain)) !== null) {
+        var pos2 = parseInt(m2[1]);
+        if (pos2 >= 1 && pos2 <= 50) {
+          riders.push({pos: pos2, name: m2[2], pts: parseInt(m2[3])});
+        }
+        if (riders.length >= 30) break;
+      }
+    }
   }
 
+  riders.sort(function(a,b) { return a.pos - b.pos; });
+  var seen = {};
+  riders = riders.filter(function(r) {
+    if (seen[r.pos]) return false;
+    seen[r.pos] = true;
+    return true;
+  });
+
   if (!riders.length) {
-    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;">' + text.substring(0,400) + '</div>';
+    renderEmbeddedStandings(rd);
     return;
   }
 
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
   var leader = riders[0].pts;
   var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--yellow);">R3 bLU cRU</span> STANDINGS ' + wsbkYear + '</div>';
+    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear
+    + ' <span style="font-size:7px;color:var(--text-dim);">(' + eventName + ')</span></div>';
   out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.forEach(function(r, i) {
-    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
+    var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
     var gap = i===0 ? '' : '-'+(leader-r.pts);
-    out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+    out += '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,0.02)')+'">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
       + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
@@ -292,113 +330,75 @@ function parseWsbkR3Standings(rd, text) {
   rd.innerHTML = out + '</table>';
 }
 
-function parseWsbkPdf(rd, text) {
-  parseWsbkResults(rd, text);
-}
-
-function parseWsbkResults(rd, text) {
-  var riders = [];
-  var plain = text.replace(/\s+/g, ' ').trim();
-
-  // PDF.js returns text column by column, not row by row
-  // Pattern found: NAT num team laps initial avgspeed [gap] time pos maxspeed SURNAME
-  // SURNAME is all-caps, followed by next rider's NAT or end
-  // Time format: d'dd.ddd
-  // Position number appears after the time
-
-  var timeRe = /\d{1,3}'\d{2}\.\d{3}/g;
-  var times = [];
-  var tm;
-  while ((tm = timeRe.exec(plain)) !== null) {
-    times.push({time: tm[1] || tm[0], index: tm.index});
-  }
-
-  // Find SURNAMEs: all-caps word of 3+ chars followed by space and bike brand or next NAT
-  // e.g. "LECUONA Ducati" or "BULEGA Ducati"  
-  var surnameRe = /\b([A-Z]{3,})\s+(?:Ducati|Kawasaki|BMW|Honda|Yamaha|Triumph|Aprilia|Bimota)/g;
-  var sm;
-  var surnames = [];
-  while ((sm = surnameRe.exec(plain)) !== null) {
-    surnames.push({name: sm[1], index: sm.index});
-  }
-
-  // Match each surname with position number and time
-  // Position number appears just before SURNAME in the text
-  surnames.forEach(function(s, i) {
-    // Look back 100 chars for position number
-    var before = plain.slice(Math.max(0, s.index - 150), s.index);
-    
-    // Find position: small number (1-30) 
-    var posMatch = before.match(/(\d{1,2})\s+\d{3}[,.]\d\s+\d'\d{2}\.\d{3}/) ||
-                   before.match(/\b(\d{1,2})\s*$/);
-    var pos = posMatch ? parseInt(posMatch[1]) : (i + 1);
-    if (pos < 1 || pos > 30) pos = i + 1;
-
-    // Find time near this surname
-    var nearTime = times.find(function(t) {
-      return t.index > s.index - 200 && t.index < s.index + 50;
-    });
-
-    // Find gap before surname
-    var gap = '';
-    if (i > 0) {
-      var gapMatch = before.match(/\b(\d+\.\d{3})\s+\d'\d{2}/);
-      if (gapMatch) gap = '+' + gapMatch[1];
-    }
-
-    // Find NAT (3-letter country code) near start of this rider's block
-    var natMatch = before.match(/\b([A-Z]{3})\s+\d{1,3}\s+/);
-    var nat = natMatch ? natMatch[1] : '';
-
-    // Find race number
-    var numMatch = before.match(/[A-Z]{3}\s+(\d{1,3})\s+/);
-    var num = numMatch ? numMatch[1] : '';
-
-    riders.push({pos: pos, num: num, name: s.name, nat: nat, 
-                 time: nearTime ? nearTime.time : '', gap: gap});
-  });
-
-  // Deduplicate and sort
-  var seen = {};
-  riders = riders.filter(function(r) {
-    var key = r.name;
-    if (seen[key]) return false;
-    seen[key] = true;
-    return true;
-  });
-  
-  // Re-assign positions by order if they look wrong
-  var validPos = riders.every(function(r,i) { return r.pos === i+1; });
-  if (!validPos) {
-    riders.sort(function(a,b) { return a.pos - b.pos; });
-    riders.forEach(function(r,i) { if(r.pos > 30) r.pos = i+1; });
-  }
-
-  if (!riders.length) {
-    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;">'
-      + plain.substring(0,500).replace(/</g,'&lt;') + '</div>';
+function renderEmbeddedStandings(rd) {
+  var data = WSBK_STANDINGS_EMBEDDED[wsbkSeries] || [];
+  if (!data.length) {
+    rd.innerHTML = '<div style="color:var(--text-dim);font-size:9px;padding:4px;">Nincs adat</div>';
     return;
   }
-
   var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
-  var html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--green);">' + label + '</span> - ' + wsbkEvent + ' - ' + wsbkSessionLabel + '</div>';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,25).forEach(function(r, i) {
-    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,0.02)')+'">'
-      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;">' + r.num + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);font-size:8px;">' + r.nat + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">' + r.time + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:8px;">' + r.gap + '</td>'
+  var leader = data[0].pts;
+  var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear
+    + ' <span style="font-size:7px;color:var(--text-dim);">(cached)</span></div>';
+  out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  data.forEach(function(r, i) {
+    var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
+    var gap = i===0 ? '' : '-'+(leader-r.pts);
+    out += '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,0.02)')+'">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + (i+1) + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.n + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
       + '</tr>';
   });
-  rd.innerHTML = html + '</table>';
+  rd.innerHTML = out + '</table>';
 }
 
-// Init WSBK when page loads
+var WSBK_STANDINGS_EMBEDDED = {
+  SBK: [
+    {n:'Nicolo Bulega',pts:248},{n:'Iker Lecuona',pts:166},{n:'Sam Lowes',pts:99},
+    {n:'Miguel Oliveira',pts:85},{n:'Yari Montella',pts:82},{n:'Alex Lowes',pts:82},
+    {n:'Alvaro Bautista',pts:81},{n:'Lorenzo Baldassarri',pts:78},{n:'Axel Bassani',pts:67},
+    {n:'Andrea Locatelli',pts:53},{n:'Danilo Petrucci',pts:46},{n:'Tarran Mackenzie',pts:45},
+    {n:'Xavi Vierge',pts:44},{n:'Garrett Gerloff',pts:40},{n:'Alberto Surra',pts:34},
+    {n:'Remy Gardner',pts:23},{n:'Stefano Manzi',pts:15},{n:'Thomas Bridewell',pts:8},
+    {n:'Tetsuta Nagashima',pts:7},{n:'Jonathan Rea',pts:4},{n:'Bahattin Sofuoglu',pts:4},
+    {n:'Mattia Rato',pts:2},{n:'Somkiat Chantra',pts:2},{n:'Ryan Vickers',pts:1}
+  ],
+  SSP: [
+    {n:'Albert Arenas',pts:150},{n:'Jaume Masia',pts:117},{n:'Valentin Debise',pts:97},
+    {n:'Philipp Oettl',pts:89},{n:'Can Oncu',pts:88},{n:'Lucas Mahias',pts:65},
+    {n:'Jeremy Alcoba',pts:65},{n:'Roberto Garcia',pts:57},{n:'Tom Booth-Amos',pts:57},
+    {n:'Matteo Ferrari',pts:56},{n:'Alessandro Zaccone',pts:53},{n:'Aldi Mahendra',pts:41},
+    {n:'Simon Jespersen',pts:34},{n:'Mattia Casadei',pts:26},{n:'Dominique Aegerter',pts:21},
+    {n:'Oli Bayliss',pts:20},{n:'Corentin Perolari',pts:16},{n:'Ondrej Vostatek',pts:16},
+    {n:'Filippo Farioli',pts:14},{n:'Andrea Giombini',pts:13},{n:'Josh Whatley',pts:13},
+    {n:'Federico Caricasulo',pts:10},{n:'Xavi Cardelus',pts:2}
+  ],
+  WCR: [
+    {n:'Maria Herrera',pts:131},{n:'Beatriz Neila',pts:117},{n:'Paola Ramos',pts:86},
+    {n:'Roberta Ponziani',pts:76},{n:'Muklada Sarapuech',pts:58},{n:'Natalia Rivera',pts:49},
+    {n:'Lucie Boudesseul',pts:45},{n:'Chloe Jones',pts:45},{n:'Pakita Ruiz',pts:41},
+    {n:'Astrid Madrigal',pts:34},{n:'Yvonne Cerpa',pts:32},{n:'Tayla Relph',pts:32},
+    {n:'Sara Sanchez',pts:20},{n:'Karolina Danak',pts:18},{n:'Isis Carreno',pts:12},
+    {n:'Denise Dal Zotto',pts:9},{n:'Line Vieillard',pts:8},{n:'Arianna Barale',pts:7},
+    {n:'Mallory Dobbs',pts:6},{n:'Patrycja Sowa',pts:4},{n:'Lucy Michel',pts:3},
+    {n:'Emily Bondi',pts:3},{n:'Katie Hand',pts:2},{n:'Adela Ourednickova',pts:2}
+  ],
+  SPB: [
+    {n:'David Salvador',pts:69},{n:'Jeffrey Buis',pts:64},{n:'Ferre Fleerackers',pts:59},
+    {n:'Xavi Artigas',pts:54},{n:'Antonio Torres',pts:53},{n:'Matteo Vannucci',pts:41},
+    {n:'Loris Veneman',pts:40},{n:'Bruno Ieraci',pts:35},{n:'Elia Bartolini',pts:22},
+    {n:'Kas Beekmans',pts:19},{n:'Diego Poncet',pts:18},{n:'Carter Thompson',pts:16},
+    {n:'Marco Gaggi',pts:16},{n:'Alvaro Fuertes',pts:13},{n:'Benat Fernandez',pts:12},
+    {n:'Harrison Dessoy',pts:7},{n:'Mirko Gennai',pts:6},{n:'Alessandro Di Persio',pts:5},
+    {n:'Jose Osuna',pts:4},{n:'Thomas Benetti',pts:3},{n:'Mattia Sorrenti',pts:2},
+    {n:'Gonzalo Sanchez',pts:1},{n:'Juan Risueno',pts:1}
+  ],
+  R3: []
+};
+
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
