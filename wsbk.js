@@ -216,7 +216,7 @@ function loadWsbkPdf(panelEl) {
 
   rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Betoltese...</div>';
 
-  // STD: use Worker to fetch worldsbk.com standings HTML
+  // STD: use worldsbk.com HTML standings for all series
   if (wsbkSessionLabel === 'STD') {
     loadWsbkStandings(rd);
     return;
@@ -253,6 +253,45 @@ function loadWsbkPdf(panelEl) {
   });
 }
 
+function parseWsbkR3Standings(rd, text) {
+  var riders = [];
+  var plain = text.replace(/\s+/g, ' ').trim();
+  
+  // R3 standings: NAME points pattern
+  var re = /([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+(\d+)/g;
+  var m;
+  var pos = 1;
+  while ((m = re.exec(plain)) !== null) {
+    var name = m[1].trim();
+    var pts = parseInt(m[2]);
+    if (name.length < 4 || pts > 500) continue;
+    if (['CHAMPIONSHIP','STANDINGS','RESULTS','RIDERS','ROUND'].some(function(s) { return name.indexOf(s) > -1; })) continue;
+    riders.push({pos: pos++, name: name, pts: pts});
+    if (riders.length >= 25) break;
+  }
+
+  if (!riders.length) {
+    rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;">' + text.substring(0,400) + '</div>';
+    return;
+  }
+
+  var leader = riders[0].pts;
+  var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
+    + '<span style="color:var(--yellow);">R3 bLU cRU</span> STANDINGS ' + wsbkYear + '</div>';
+  out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  riders.forEach(function(r, i) {
+    var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
+    var gap = i===0 ? '' : '-'+(leader-r.pts);
+    out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
+      + '</tr>';
+  });
+  rd.innerHTML = out + '</table>';
+}
+
 function parseWsbkPdf(rd, text) {
   parseWsbkResults(rd, text);
 }
@@ -260,9 +299,8 @@ function parseWsbkPdf(rd, text) {
 function loadWsbkStandings(rd) {
   rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Pontallas betoltese...</div>';
 
-  var seriesMap = {SBK:'sbk', SSP:'ssp', WCR:'wcr', SPB:'spb', R3:'sbk'};
-  var cat = seriesMap[wsbkSeries] || 'sbk';
-  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-standings/' + cat.toUpperCase() + '/' + wsbkYear;
+  var seriesCode = getWsbkSeriesUrlCode();
+  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-standings/' + seriesCode + '/' + wsbkYear;
 
   fetch(url)
     .then(function(r) { return r.text(); })
@@ -277,83 +315,52 @@ function loadWsbkStandings(rd) {
 function parseWsbkStandingsHtml(rd, html) {
   var riders = [];
 
-  // Extract rider rows from the stats table
-  // Pattern: rider link + position + points
-  var riderRe = /rider\/([^"]+)"[^>]*>\s*([A-Z][A-Z\s]+?)\s*<\/a>/g;
+  // The page has 4 standings sections: WorldSBK, WorldSSP, WorldWCR, WorldSPB
+  // Find the right section based on wsbkSeries
+  var sectionMap = {SBK:'WorldSBK', SSP:'WorldSSP', WCR:'WorldWCR', SPB:'WorldSPB', R3:'R3'};
+  var sectionName = sectionMap[wsbkSeries] || 'WorldSBK';
+
+  // Find the section in HTML
+  var sectionIdx = html.indexOf(sectionName);
+  if (sectionIdx === -1) sectionIdx = 0;
+
+  // Find next section after our target
+  var nextSectionIdx = html.length;
+  Object.values(sectionMap).forEach(function(name) {
+    if (name !== sectionName) {
+      var idx = html.indexOf(name, sectionIdx + sectionName.length);
+      if (idx > sectionIdx && idx < nextSectionIdx) nextSectionIdx = idx;
+    }
+  });
+
+  var sectionHtml = html.slice(sectionIdx, nextSectionIdx);
+
+  // Extract rider rows - look for name + points pattern
+  // Pattern: full name in caps + number (points)
+  var riderRe = /([A-Z][A-Z\s]{3,}?)\s*<\/[^>]+>\s*(?:<[^>]+>\s*)*(\d+(?:\.\d+)?)\s*(?:pts?|points?)?/gi;
   var m;
-  var names = [];
-  while ((m = riderRe.exec(html)) !== null) {
-    var name = m[2].trim();
-    if (name.length > 2 && names.indexOf(name) === -1) {
-      names.push(name);
-    }
-  }
+  var pos = 1;
 
-  // Extract numbers from table cells - pos and points
-  // Find the main stats table
-  var tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-  var tableMatch;
-  var bestTable = '';
-  while ((tableMatch = tableRe.exec(html)) !== null) {
-    if (tableMatch[1].indexOf('POINTS') > -1 || tableMatch[1].indexOf('POS') > -1) {
-      if (tableMatch[1].length > bestTable.length) {
-        bestTable = tableMatch[1];
-      }
-    }
-  }
+  // Alternative: find all text nodes with names and numbers
+  // Strip all HTML tags to get plain text
+  var plain = sectionHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-  if (bestTable && names.length) {
-    // Extract all numbers from td cells in order
-    var numRe = /<td[^>]*>\s*(\d+)\s*<\/td>/g;
-    var nums = [];
-    var nm;
-    while ((nm = numRe.exec(bestTable)) !== null) {
-      nums.push(parseInt(nm[1]));
-    }
-    
-    // Pattern: pos, points, poles, races, podiums, wins, 2nd, 3rd, flaps
-    // Every 9 numbers = one rider
-    // But links give us the name order
-    names.forEach(function(name, i) {
-      var base = i * 9;
-      if (base < nums.length) {
-        var pos = nums[base] || (i+1);
-        var pts = nums[base+1] || 0;
-        riders.push({pos: pos, name: name, pts: pts});
-      }
-    });
+  // Match: FIRSTNAME LASTNAME followed by number
+  var plainRe = /([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+(\d+(?:\.\d+)?)/g;
+  var pm;
+  while ((pm = plainRe.exec(plain)) !== null) {
+    var name = pm[1].trim();
+    var pts = parseFloat(pm[2]);
+    // Skip section headers and non-rider text
+    if (['WORLDSBK','WORLDSSP','WORLDWCR','WORLDSPB','VIEW FULL'].some(function(s) { return name.indexOf(s) > -1; })) continue;
+    if (name.length < 5 || name.length > 40) continue;
+    if (pts > 500) continue;
+    riders.push({pos: pos++, name: name, pts: pts});
+    if (riders.length >= 25) break;
   }
-
-  // Fallback: simpler extraction
-  if (!riders.length && names.length) {
-    // Find all numbers that could be points (large enough, not year etc)
-    var allNums = [];
-    var anRe = />\s*(\d{1,3})\s*</g;
-    var an;
-    while ((an = anRe.exec(html)) !== null) {
-      var n = parseInt(an[1]);
-      if (n >= 0 && n <= 500) allNums.push(n);
-    }
-    
-    names.forEach(function(name, i) {
-      riders.push({pos: i+1, name: name, pts: 0});
-    });
-    
-    // Try to match points - find sequences matching standings
-    // The first big number sequence should be points
-    var ptsSeq = allNums.filter(function(n) { return n <= 500; }).slice(0, names.length * 2);
-    // Take every other one (pos, pts pattern)
-    names.forEach(function(name, i) {
-      var pos = i + 1;
-      var pts = ptsSeq[i * 2 + 1] || ptsSeq[i] || 0;
-      riders[i] = {pos: pos, name: name, pts: pts};
-    });
-  }
-
-  riders.sort(function(a,b) { return a.pos - b.pos; });
 
   if (!riders.length) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba</div>';
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">Standings parse hiba - ' + sectionName + '</div>';
     return;
   }
 
@@ -362,12 +369,12 @@ function parseWsbkStandingsHtml(rd, html) {
   var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
     + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear + '</div>';
   out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,25).forEach(function(r, i) {
+  riders.forEach(function(r, i) {
     var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
     var gap = i===0 ? '' : '-'+(leader-r.pts);
     out += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white);overflow:hidden;max-width:120px;">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white);overflow:hidden;">' + r.name + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
       + '</tr>';
