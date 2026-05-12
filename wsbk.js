@@ -300,29 +300,32 @@ function parseWsbkResults(rd, text) {
   var riders = [];
   var plain = text.replace(/\s+/g, ' ').trim();
 
-  // Structure: pos grid num Initial.SURNAME NAT team bike laps [gap rel] racetime speed bestlap speed
-  // Leader:    1 4 6 M. HERRERA ESP ... 9 1'52.686 196,0 1'52.264 194,2
-  // Others:    2 2 36 B. NEILA ESP ... 9 0.263 0.263 1'52.626 195,3 1'53.969 194,9
+  // Detect session type
+  var isRace = ['R1','R2','SPR'].indexOf(wsbkSessionLabel) > -1;
 
-  var riderRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+([A-Z])\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
   var matches = [];
   var m;
-  while ((m = riderRe.exec(plain)) !== null) {
-    var pos = parseInt(m[1]);
-    if (pos >= 1 && pos <= 30) {
-      matches.push({
-        pos: pos,
-        num: m[2],
-        name: m[4],
-        nat: m[5],
-        index: m.index,
-        end: m.index + m[0].length
-      });
+  var timeRe = /\d{1,3}'\d{2}\.\d{3}/g;
+
+  if (isRace) {
+    // Race: pos grid num Initial.SURNAME NAT ... laps gap rel racetime speed bestlap speed
+    var raceRe = /\b(\d{1,2})\s+\d{1,2}\s+(\d{1,3})\s+([A-Z])\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
+    while ((m = raceRe.exec(plain)) !== null) {
+      var pos = parseInt(m[1]);
+      if (pos >= 1 && pos <= 30) {
+        matches.push({pos:pos, num:m[2], name:m[4], nat:m[5], index:m.index, end:m.index+m[0].length});
+      }
+    }
+  } else {
+    // FP/SUP/WUP: pos num Initial.SURNAME NAT ... bestlap laps speed [gap rel speed]
+    var fpRe = /\b(\d{1,2})\s+(\d{1,3})\s+([A-Z])\. *([A-Z]{2,})\s+([A-Z]{3})\b/g;
+    while ((m = fpRe.exec(plain)) !== null) {
+      var pos = parseInt(m[1]);
+      if (pos >= 1 && pos <= 30) {
+        matches.push({pos:pos, num:m[2], name:m[4], nat:m[5], index:m.index, end:m.index+m[0].length});
+      }
     }
   }
-
-  var timeRe = /\d{1,3}'\d{2}\.\d{3}/g;
-  var gapRe = /\b(\d+\.\d{3})\b/g;
 
   matches.forEach(function(rider, i) {
     var segEnd = (i < matches.length-1) ? matches[i+1].index : rider.end + 400;
@@ -336,19 +339,28 @@ function parseWsbkResults(rd, text) {
       times.push(t[0]);
     }
 
-    // Race time = first time, best lap = last time
-    var raceTime = times.length > 0 ? times[0] : '';
-    var bestLap = times.length > 1 ? times[times.length-1] : raceTime;
+    var raceTime = '', gap = '';
 
-    // Gap: first decimal number in segment (not a time)
-    var gap = '';
-    if (i > 0) {
-      gapRe.lastIndex = 0;
-      var g = gapRe.exec(segment);
-      if (g) gap = '+' + g[1];
+    if (isRace) {
+      // Race: first time = race time, last time = best lap
+      raceTime = times.length > 0 ? times[0] : '';
+      // Gap: find decimal number before first time
+      if (i > 0) {
+        var gapM = segment.match(/^[^']*?\b(\d+\.\d{3})\b/);
+        if (gapM) gap = '+' + gapM[1];
+      }
+    } else {
+      // FP: first time = best lap
+      raceTime = times.length > 0 ? times[0] : '';
+      // Gap: decimal after first time
+      if (i > 0) {
+        var afterTime = segment.slice(segment.indexOf(raceTime) + raceTime.length);
+        var gapM2 = afterTime.match(/\b(\d+\.\d{3})\b/);
+        if (gapM2) gap = '+' + gapM2[1];
+      }
     }
 
-    riders.push({pos: rider.pos, num: rider.num, name: rider.name, nat: rider.nat, time: raceTime, gap: gap});
+    riders.push({pos:rider.pos, num:rider.num, name:rider.name, nat:rider.nat, time:raceTime, gap:gap});
   });
 
   var seen = {};
@@ -361,7 +373,7 @@ function parseWsbkResults(rd, text) {
 
   if (!riders.length) {
     rd.innerHTML = '<div style="font-size:7px;color:var(--text-mid);padding:4px;white-space:pre-wrap;font-family:monospace;">'
-      + plain.substring(0, 400).replace(/</g,'&lt;') + '</div>';
+      + plain.substring(0,400).replace(/</g,'&lt;') + '</div>';
     return;
   }
 
@@ -371,7 +383,7 @@ function parseWsbkResults(rd, text) {
   html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.forEach(function(r, i) {
     var pc = r.pos==1?'#f5c400':r.pos==2?'#aaa':r.pos==3?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+    html += '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,0.02)')+'">'
       + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
       + '<td style="padding:2px 3px;color:var(--text-mid);width:24px;">' + r.num + '</td>'
       + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
