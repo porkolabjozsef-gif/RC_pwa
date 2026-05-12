@@ -76,6 +76,30 @@ var wsbkSeries = 'SBK';
 var wsbkSession = '001';
 var wsbkSessionLabel = 'R1';
 
+// ============================================================
+// STANDINGS CACHE — sessionStorage kulcs per sorozat+év+helyszín
+// ============================================================
+function wsbkStdCacheKey() {
+  return 'wsbk_std_' + wsbkYear + '_' + wsbkEvent + '_' + wsbkSeries;
+}
+
+function wsbkStdCacheGet() {
+  try {
+    var raw = sessionStorage.getItem(wsbkStdCacheKey());
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function wsbkStdCacheSet(riders) {
+  try {
+    sessionStorage.setItem(wsbkStdCacheKey(), JSON.stringify(riders));
+  } catch(e) {}
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
 function getWsbkSessions() {
   return WSBK_SESSIONS_BY_SERIES[wsbkSeries] || WSBK_SESSIONS_BY_SERIES.SBK;
 }
@@ -94,6 +118,19 @@ function getWsbkPdfUrl(sessionCode) {
   return 'https://resources.worldsbk.com/files/results/'
     + wsbkYear + '/' + wsbkEvent + '/' + getWsbkUrlCode()
     + '/' + sessionCode + '/CLA/Results.pdf';
+}
+
+// Championship Standings PDF URL — mindig az R1 (001) utáni STD
+function getWsbkStdPdfUrl() {
+  return 'https://resources.worldsbk.com/files/results/'
+    + wsbkYear + '/' + wsbkEvent + '/' + getWsbkUrlCode()
+    + '/001/STD/ChampionshipStandings.pdf';
+}
+
+// Proxy URL (Cloudflare Worker-en keresztül)
+function getWsbkStdProxyUrl() {
+  return WSBK_PROXY + wsbkYear + '/' + wsbkEvent + '/' + getWsbkUrlCode()
+    + '/001/STD/ChampionshipStandings.pdf';
 }
 
 // ============================================================
@@ -192,7 +229,11 @@ function renderWsbkPanel(panelEl) {
       + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;">MEG NEM ZAJLOTT LE</div>'
       + '</div>';
   } else if (wsbkSessionLabel === 'STD') {
-    html += '<div style="color:var(--text-mid);font-size:10px;">&#9203; Betoltes...</div>';
+    // Standings placeholder — töltés indul a renderWsbkPanel után
+    html += '<div id="wsbkStdLoading" style="text-align:center;padding:12px;">'
+      + '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-bottom:6px;">STANDINGS BETÖLTÉSE...</div>'
+      + '<div style="font-size:18px;">⏳</div>'
+      + '</div>';
   } else {
     // PDF open button
     var sess = sessions.find(function(s) { return s.label === wsbkSessionLabel; });
@@ -202,7 +243,7 @@ function renderWsbkPanel(panelEl) {
       html += '<div style="text-align:center;padding:20px 10px;">'
         + '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text-mid);margin-bottom:12px;letter-spacing:1px;">'
         + label + ' &middot; ' + wsbkEvent + ' &middot; ' + wsbkSessionLabel + '</div>'
-        + '<a href="' + pdfUrl + '" target="_blank" style="display:inline-block;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:2px;padding:10px 20px;cursor:pointer;border:1px solid var(--green);background:rgba(29,185,84,0.1);color:var(--green);text-decoration:none;">&#128196; EREDMENYEK PDF</a>'
+        + '<a href="' + pdfUrl + '" target="_blank" style="display:inline-block;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:2px;padding:10px 20px;cursor:pointer;border:1px solid var(--green);background:rgba(29,185,84,0.1);color:var(--green);text-decoration:none;">&#128196; EREDMÉNYEK PDF</a>'
         + '</div>';
     }
   }
@@ -210,7 +251,7 @@ function renderWsbkPanel(panelEl) {
 
   panelEl.innerHTML = html;
 
-  // Load standings if STD
+  // STD esetén indítjuk a fetch-et
   if (wsbkSessionLabel === 'STD') {
     var rd = document.getElementById('wsbkResults');
     if (rd) loadWsbkStandings(rd);
@@ -218,51 +259,165 @@ function renderWsbkPanel(panelEl) {
 }
 
 // ============================================================
-// STANDINGS
+// STANDINGS — főfüggvény
+// Sorrend: 1) sessionStorage cache, 2) PDF fetch+parse, 3) embedded fallback
 // ============================================================
 function loadWsbkStandings(rd) {
-  renderEmbeddedStandings(rd);
+  // 1. Cache check
+  var cached = wsbkStdCacheGet();
+  if (cached && cached.length) {
+    renderStandingsTable(rd, cached, wsbkEvent, '(cache)');
+    return;
+  }
+
+  // 2. PDF fetch
+  fetchWsbkStandings(rd);
 }
 
-function parseWsbkStandingsPdf(rd, text, eventName) {
+// ============================================================
+// FETCH + PARSE — Cloudflare Worker proxyn keresztül
+// ============================================================
+function fetchWsbkStandings(rd) {
+  if (typeof pdfjsLib === 'undefined') {
+    // pdf.js nem elérhető — fallback
+    renderEmbeddedStandings(rd, 'pdf.js N/A');
+    return;
+  }
+
+  var proxyUrl = getWsbkStdProxyUrl();
+  var directUrl = getWsbkStdPdfUrl();
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+
+  // Loading UI
+  rd.innerHTML = '<div style="text-align:center;padding:12px;">'
+    + '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--yellow);letter-spacing:2px;margin-bottom:6px;">&#9203; ' + label + ' STANDINGS...</div>'
+    + '<div style="font-size:9px;color:var(--text-dim);">' + wsbkYear + ' / ' + wsbkEvent + '</div>'
+    + '</div>';
+
+  var loadingTask = pdfjsLib.getDocument(proxyUrl);
+  loadingTask.promise.then(function(pdf) {
+    return extractTextFromPdf(pdf);
+  }).then(function(text) {
+    var riders = parseStandingsPdfText(text);
+    if (riders && riders.length >= 3) {
+      wsbkStdCacheSet(riders);
+      renderStandingsTable(rd, riders, wsbkEvent, wsbkYear);
+    } else {
+      // Parse sikertelen — embedded + PDF gomb
+      renderEmbeddedStandings(rd, 'parse hiba');
+    }
+  }).catch(function(err) {
+    // 404 vagy hálózati hiba — embedded + PDF gomb
+    var reason = (err && err.message) ? err.message : 'fetch hiba';
+    renderEmbeddedStandings(rd, reason);
+  });
+}
+
+// ============================================================
+// PDF szöveg kinyerése — összes oldal, soronként
+// ============================================================
+function extractTextFromPdf(pdf) {
+  var pages = [];
+  for (var i = 1; i <= pdf.numPages; i++) {
+    pages.push(i);
+  }
+  return pages.reduce(function(promise, pageNum) {
+    return promise.then(function(acc) {
+      return pdf.getPage(pageNum).then(function(page) {
+        return page.getTextContent();
+      }).then(function(content) {
+        var pageText = content.items.map(function(item) {
+          return item.str;
+        }).join(' ');
+        acc.push(pageText);
+        return acc;
+      });
+    });
+  }, Promise.resolve([])).then(function(pages) {
+    return pages.join(' ');
+  });
+}
+
+// ============================================================
+// STANDINGS PDF PARSE — Championship Standings formátum
+// A ChampionshipStandings.pdf jellemző szerkezete:
+//   Pos  No  Rider  Nat  Team  Bike  R1  SPR  R2  ...  Tot
+// ============================================================
+function parseStandingsPdfText(text) {
   var riders = [];
+  // Normalizálás
   var plain = text.replace(/\s+/g, ' ').trim();
 
   if (wsbkSeries === 'R3') {
-    var re = /(\d{1,3})\s+\d{1,3}\s+([A-Z]{2,})\s+(\d{1,2})\s+\d{1,2}\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{3}\)\s+\d+/g;
-    var m;
-    while ((m = re.exec(plain)) !== null) {
-      var pts = parseInt(m[1]);
-      var pos = parseInt(m[3]);
-      if (pos >= 1 && pos <= 50 && pts <= 500) {
-        riders.push({pos: pos, name: m[4] + ' ' + m[2], pts: pts});
+    // R3: eltérő formátum
+    var reR3 = /(\d{1,3})\s+\d{1,3}\s+([A-Z]{2,}(?:\s+[A-Z][a-z]*)*)\s+[A-Z]{3}\s+(?:\S+\s+){1,6}(\d{1,3})(?:\s|$)/g;
+    var mR3;
+    while ((mR3 = reR3.exec(plain)) !== null) {
+      var posR3 = parseInt(mR3[1]);
+      var ptsR3 = parseInt(mR3[3]);
+      if (posR3 >= 1 && posR3 <= 50 && ptsR3 <= 600) {
+        var nameParts = mR3[2].trim().split(/\s+/);
+        var nameR3 = nameParts.map(function(p) {
+          return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+        }).join(' ');
+        riders.push({pos: posR3, name: nameR3, pts: ptsR3});
       }
-      if (riders.length >= 20) break;
+      if (riders.length >= 25) break;
     }
   } else {
-    var re1 = /(?:^|\s)(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})(?:\s|$)/g;
+    // SBK / SSP / WCR / SPB
+    // Standings PDF jellemző mintája:
+    // "1 11 Bulega Nicolo ITA Aruba Racing ... 248"
+    // vagy "1  N. Bulega  ITA  ...  248"
+    // Próbálkozás 1: Pos + No + Rider (Keresztnév Vezéknév) + NAT + ... + Pts (utolsó szám a sorban)
+    var re1 = /(?:^|\s)(\d{1,2})\s+\d{1,3}\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(?:.*?)(\d{1,3})(?=\s+\d{1,2}\s+\d{1,3}\s+[A-Z]|$)/g;
     var m1;
     while ((m1 = re1.exec(plain)) !== null) {
       var pos1 = parseInt(m1[1]);
-      if (pos1 >= 1 && pos1 <= 50) {
-        riders.push({pos: pos1, name: m1[2], pts: parseInt(m1[3])});
+      var pts1 = parseInt(m1[3]);
+      if (pos1 >= 1 && pos1 <= 50 && pts1 >= 1 && pts1 <= 700) {
+        riders.push({pos: pos1, name: m1[2].trim(), pts: pts1});
       }
       if (riders.length >= 30) break;
     }
-    if (!riders.length) {
-      var re2 = /(?:^|\s)(\d{1,2})\s+([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+[A-Z]{3}\s+(\d{1,3})(?:\s|$)/g;
+
+    // Próbálkozás 2: egyszerűbb minta — Pos + Rider + NAT + Pts
+    if (riders.length < 3) {
+      riders = [];
+      var re2 = /(?:^|\s)(\d{1,2})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+[A-Z]{3}\s+(\d{1,3})(?:\s|$)/g;
       var m2;
       while ((m2 = re2.exec(plain)) !== null) {
         var pos2 = parseInt(m2[1]);
-        if (pos2 >= 1 && pos2 <= 50) {
-          riders.push({pos: pos2, name: m2[2], pts: parseInt(m2[3])});
+        var pts2 = parseInt(m2[3]);
+        if (pos2 >= 1 && pos2 <= 50 && pts2 >= 1 && pts2 <= 700) {
+          riders.push({pos: pos2, name: m2[2].trim(), pts: pts2});
+        }
+        if (riders.length >= 30) break;
+      }
+    }
+
+    // Próbálkozás 3: NAGYBETŰS nevek (egyes PDF-ek így exportálnak)
+    if (riders.length < 3) {
+      riders = [];
+      var re3 = /(?:^|\s)(\d{1,2})\s+([A-Z]{2,}(?:\s+[A-Z]{2,})+)\s+[A-Z]{3}\s+(\d{1,3})(?:\s|$)/g;
+      var m3;
+      while ((m3 = re3.exec(plain)) !== null) {
+        var pos3 = parseInt(m3[1]);
+        var pts3 = parseInt(m3[3]);
+        if (pos3 >= 1 && pos3 <= 50 && pts3 >= 1 && pts3 <= 700) {
+          // Konvertálás Title Case-be
+          var name3 = m3[2].trim().split(/\s+/).map(function(w) {
+            return w.charAt(0) + w.slice(1).toLowerCase();
+          }).join(' ');
+          riders.push({pos: pos3, name: name3, pts: pts3});
         }
         if (riders.length >= 30) break;
       }
     }
   }
 
-  riders.sort(function(a,b) { return a.pos - b.pos; });
+  // Deduplikáció és rendezés pozíció szerint
+  riders.sort(function(a, b) { return a.pos - b.pos; });
   var seen = {};
   riders = riders.filter(function(r) {
     if (seen[r.pos]) return false;
@@ -270,55 +425,110 @@ function parseWsbkStandingsPdf(rd, text, eventName) {
     return true;
   });
 
-  if (!riders.length) {
-    renderEmbeddedStandings(rd);
-    return;
-  }
+  return riders;
+}
 
+// ============================================================
+// STANDINGS TÁBLÁZAT RENDERELÉSE — parsed adatból
+// ============================================================
+function renderStandingsTable(rd, riders, eventName, note) {
   var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
   var leader = riders[0].pts;
-  var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear
-    + ' <span style="font-size:7px;color:var(--text-dim);">(' + eventName + ')</span></div>';
+  var directUrl = getWsbkStdPdfUrl();
+
+  var out = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">';
+  out += '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);">'
+    + '<span style="color:var(--yellow);">' + label + '</span>'
+    + ' STANDINGS ' + wsbkYear
+    + ' <span style="font-size:7px;color:var(--text-dim);">(' + eventName + ')</span>'
+    + '</div>';
+  // PDF gomb
+  out += '<a href="' + directUrl + '" target="_blank" title="Standings PDF megnyitása"'
+    + ' style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:1px;padding:2px 6px;'
+    + 'border:1px solid rgba(245,196,0,0.4);color:var(--yellow);background:rgba(245,196,0,0.07);'
+    + 'text-decoration:none;flex-shrink:0;">&#128196; PDF</a>';
+  out += '</div>';
+
   out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   riders.forEach(function(r, i) {
-    var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
-    var gap = i===0 ? '' : '-'+(leader-r.pts);
-    out += '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,0.02)')+'">'
-      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
+    var pc = i===0 ? '#f5c400' : i===1 ? '#aaa' : i===2 ? '#cd7f32' : 'var(--off-white)';
+    var gap = i===0 ? '' : '-' + (leader - r.pts);
+    out += '<tr style="background:' + (i%2 ? 'transparent' : 'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;font-weight:' + (i<3?'bold':'normal') + ';">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white);">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:' + (i===0 ? '#f5c400' : 'var(--green)') + ';font-weight:bold;">' + r.pts + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
       + '</tr>';
   });
-  rd.innerHTML = out + '</table>';
+  out += '</table>';
+
+  if (note && note !== wsbkYear) {
+    out += '<div style="font-size:7px;color:var(--text-dim);margin-top:4px;text-align:right;">'
+      + (note === '(cache)' ? '&#128190; cached' : '&#128190; live PDF') + '</div>';
+  }
+
+  rd.innerHTML = out;
 }
 
-function renderEmbeddedStandings(rd) {
+// ============================================================
+// EMBEDDED FALLBACK — beégetett adatok + PDF link
+// ============================================================
+function renderEmbeddedStandings(rd, reason) {
   var data = WSBK_STANDINGS_EMBEDDED[wsbkSeries] || [];
+  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+  var directUrl = getWsbkStdPdfUrl();
+
   if (!data.length) {
-    rd.innerHTML = '<div style="color:var(--text-dim);font-size:9px;padding:4px;">Nincs adat</div>';
+    rd.innerHTML = '<div style="text-align:center;padding:12px;">'
+      + '<div style="color:var(--text-dim);font-size:9px;margin-bottom:10px;">Nincs adat</div>'
+      + '<a href="' + directUrl + '" target="_blank" style="font-family:Oswald,sans-serif;font-size:10px;'
+      + 'letter-spacing:1px;padding:6px 12px;border:1px solid var(--yellow);color:var(--yellow);'
+      + 'background:rgba(245,196,0,0.08);text-decoration:none;">&#128196; STANDINGS PDF</a>'
+      + '</div>';
     return;
   }
-  var label = WSBK_SERIES_LABELS[wsbkSeries] || wsbkSeries;
+
   var leader = data[0].pts;
-  var out = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">'
-    + '<span style="color:var(--yellow);">' + label + '</span> STANDINGS ' + wsbkYear
-    + ' <span style="font-size:7px;color:var(--text-dim);">(NED utan)</span></div>';
+  var out = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">';
+  out += '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);">'
+    + '<span style="color:var(--yellow);">' + label + '</span>'
+    + ' STANDINGS ' + wsbkYear
+    + ' <span style="font-size:7px;color:var(--text-dim);">(NED után)</span>'
+    + '</div>';
+  // PDF gomb mindig látható
+  out += '<a href="' + directUrl + '" target="_blank" title="Friss standings PDF"'
+    + ' style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:1px;padding:2px 6px;'
+    + 'border:1px solid rgba(245,196,0,0.4);color:var(--yellow);background:rgba(245,196,0,0.07);'
+    + 'text-decoration:none;flex-shrink:0;">&#128196; PDF</a>';
+  out += '</div>';
+
   out += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   data.forEach(function(r, i) {
-    var pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
-    var gap = i===0 ? '' : '-'+(leader-r.pts);
-    out += '<tr style="background:'+(i%2?'transparent':'rgba(255,255,255,0.02)')+'">'
-      + '<td style="padding:2px 3px;color:'+pc+';width:20px;">' + (i+1) + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + r.n + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:'+(i===0?'#f5c400':'var(--green)')+';font-weight:bold;">' + r.pts + '</td>'
+    var pc = i===0 ? '#f5c400' : i===1 ? '#aaa' : i===2 ? '#cd7f32' : 'var(--off-white)';
+    var gap = i===0 ? '' : '-' + (leader - r.pts);
+    out += '<tr style="background:' + (i%2 ? 'transparent' : 'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;font-weight:' + (i<3?'bold':'normal') + ';">' + (i+1) + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white);">' + r.n + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:' + (i===0 ? '#f5c400' : 'var(--green)') + ';font-weight:bold;">' + r.pts + '</td>'
       + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + gap + '</td>'
       + '</tr>';
   });
-  rd.innerHTML = out + '</table>';
+  out += '</table>';
+
+  // Figyelmeztetés: ez NED utáni adat, HUN még nincs benne
+  out += '<div style="margin-top:6px;padding:4px 6px;background:rgba(245,196,0,0.06);'
+    + 'border:1px solid rgba(245,196,0,0.2);border-radius:2px;">'
+    + '<span style="font-family:Oswald,sans-serif;font-size:8px;color:rgba(245,196,0,0.6);">'
+    + '&#9888; Beégetett adat (NED után)'
+    + (reason ? ' &mdash; live: ' + reason : '')
+    + '</span></div>';
+
+  rd.innerHTML = out;
 }
 
+// ============================================================
+// EMBEDDED STANDINGS — NED 2026 után (fallback)
+// ============================================================
 var WSBK_STANDINGS_EMBEDDED = {
   SBK: [
     {n:'Nicolo Bulega',pts:248},{n:'Iker Lecuona',pts:166},{n:'Sam Lowes',pts:99},
@@ -363,6 +573,9 @@ var WSBK_STANDINGS_EMBEDDED = {
   R3: []
 };
 
+// ============================================================
+// DOMContentLoaded — pdf.js worker init
+// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
