@@ -229,9 +229,9 @@ function parseSessionText(text) {
   // NAT: [A-Z]{3}
   // A sorban valahol később: időeredmény X'XX.XXX formátumban
   var re=new RegExp(
-    '(\\d{1,2})\\s+(?:\\d{1,2}\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-\\']+)\\s+([A-Z]{3})'+
-    '[^\']*'+ // csapat, motor, IND, lapcount stb.
-    '(\\d\'\\d{2}\\.\\d{3})', // időeredmény
+    '(\\d{1,2})\\s+(?:\\d{1,2}\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-]+)\\s+([A-Z]{3})'+
+    '[^0-9]*'+ // csapat, motor, IND, lapcount stb.
+    "(\\d'\\d{2}\\.\\d{3})", // időeredmény
     'g'
   );
 
@@ -261,7 +261,7 @@ function parseSessionText(text) {
   }
 
   // RET — "RET \d \d{1,3} X. SURNAME NAT"
-  var reRet=new RegExp('RET\\s+(?:\\d+\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-\\']+)\\s+([A-Z]{3})','g');
+  var reRet=new RegExp('RET\\s+(?:\\d+\\s+)?(\\d{1,3})\\s+([A-Z])\\.\\s+([A-Z][A-Z\\-]+)\\s+([A-Z]{3})','g');
   while((m=reRet.exec(text))!==null){
     var num=parseInt(m[1]);
     var key='RET_'+num;
