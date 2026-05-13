@@ -2669,9 +2669,11 @@ updateDashboard();
 buildSchedule();
 initScrollTracking();
 </script>
+<script src="records.js"></script>
 <script src="wsbk.js"></script>
 <script>
 initResultsPanel();
+if(typeof renderRecordPanel==="function") renderRecordPanel();
 
 setInterval(updateClock, 1000);
 setInterval(updateDashboard, 1000);
