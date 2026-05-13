@@ -210,10 +210,21 @@ function loadWsbkSession(rd) {
       });
     },Promise.resolve([]));
   }).then(function(pages){
-    var rows=parseSessionText(pages.join(' '));
-    if(rows&&rows.length>=3){wsbkCacheSet('ses',rows);renderSessionTable(rd,rows);}
-    else{rd.innerHTML=wsbkNoDataHtml();}
-  }).catch(function(){rd.innerHTML=wsbkNoDataHtml();});
+    var joined=pages.join(' ');
+    var rows=parseSessionText(joined);
+    if(rows&&rows.length>=3){
+      wsbkCacheSet('ses',rows);
+      renderSessionTable(rd,rows);
+    } else {
+      // DEBUG: mutassa mi jött a PDF-ből
+      rd.innerHTML='<div style="font-size:9px;color:var(--yellow);padding:6px;overflow:auto;">'
+        +'<b>DEBUG — rows:'+rows.length+' text_len:'+joined.length+'</b><br>'
+        +'<pre style="font-size:8px;white-space:pre-wrap;">'+joined.slice(0,500)+'</pre>'
+        +'</div>';
+    }
+  }).catch(function(e){
+    rd.innerHTML='<div style="font-size:9px;color:var(--red);padding:6px;">CATCH: '+(e&&e.message?e.message:String(e))+'</div>';
+  });
 }
 
 // ============================================================
@@ -227,72 +238,65 @@ function loadWsbkSession(rd) {
 // ahol BETŰ. = "N." "I." "S." stb. (kezdőbetű pont)
 // ============================================================
 function parseSessionText(text) {
-  var seenNum = {};
-  var rows    = [];
-  var reLap   = /\d'\d{2}\.\d{3}/g;
-  var reRace  = /\b(\d{1,2})\s+(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})\b/g;
-  var reFP    = /\b(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})\b/g;
-  var reRet   = /\bRET\s+(?:\d+\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})\b/g;
+  var rows = [];
+  var seen = {};
 
-  function firstLapAfter(idx) {
-    reLap.lastIndex = idx;
-    var m = reLap.exec(text);
-    return m ? m[0] : null;
+  // Minta: "N. BULEGA ITA" után keresünk laptime-ot (X'XX.XXX)
+  // Előtte van: pos [grid] num
+  // A laptime az első ilyen formátumú szám a sorban
+  var reRider = /(\d{1,2})\s+(?:(\d{1,2})\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})/g;
+  var reTime  = /\d'\d{2}\.\d{3}/g;
+
+  // Gyűjtsük össze az összes laptime pozícióját
+  var times = [];
+  var tm;
+  reTime.lastIndex = 0;
+  while((tm = reTime.exec(text)) !== null) {
+    times.push({idx: tm.index, val: tm[0]});
   }
 
-  function objVals(obj) {
-    var arr = [];
-    for(var k in obj) { if(obj.hasOwnProperty(k)) arr.push(obj[k]); }
-    return arr;
-  }
+  var m;
+  reRider.lastIndex = 0;
+  while((m = reRider.exec(text)) !== null) {
+    var pos = parseInt(m[1]);
+    var num = parseInt(m[3]);
+    var init = m[4];
+    var sur  = m[5];
+    var nat  = m[6];
+    if(pos < 1 || pos > 60) continue;
+    var key = num + '_' + pos;
+    if(seen[key]) continue;
+    seen[key] = 1;
 
-  // Race sorok: POS GRID NUM INIT. SURNAME NAT
-  var raceRows = {}; var m;
-  while((m = reRace.exec(text)) !== null) {
-    var pos = parseInt(m[1]), num = parseInt(m[3]);
-    if(pos < 1 || pos > 60 || raceRows[pos]) continue;
-    var lap = firstLapAfter(m.index + m[0].length);
+    // Első laptime ami a rider neve után jön
+    var afterIdx = m.index + m[0].length;
+    var lap = '';
+    for(var t = 0; t < times.length; t++) {
+      if(times[t].idx >= afterIdx) { lap = times[t].val; break; }
+    }
     if(!lap) continue;
-    raceRows[pos] = {pos:pos, num:num, init:m[4], sur:m[5], nat:m[6], lap:lap};
+
+    // Gap: a laptime előtti szövegből (a rider match vége és a laptime között)
+    var between = text.slice(afterIdx, times[t] ? times[t].idx : afterIdx);
+    var gm = between.match(/\d{1,2}'\d{2}\.\d+|\d+\.\d{3}/g);
+    var gap = (gm && gm.length > 0) ? gm[gm.length-1] : '';
+
+    var name = init + '. ' + sur.charAt(0) + sur.slice(1).toLowerCase();
+    rows.push({pos:pos, num:num, name:name, nat:nat, lap:lap, gap:gap});
   }
-
-  // FP/SUP/WUP sorok: POS NUM INIT. SURNAME NAT
-  var fpRows = {};
-  while((m = reFP.exec(text)) !== null) {
-    var pos = parseInt(m[1]), num = parseInt(m[2]);
-    if(pos < 1 || pos > 60 || num < 1 || num > 999 || fpRows[pos]) continue;
-    var lap = firstLapAfter(m.index + m[0].length);
-    if(!lap) continue;
-    fpRows[pos] = {pos:pos, num:num, init:m[3], sur:m[4], nat:m[5], lap:lap};
-  }
-
-  // Race detektálás: első 3 sor 1,2,3 sorrendben
-  var raceList = objVals(raceRows).sort(function(a,b){return a.pos-b.pos;});
-  var isRace   = raceList.length >= 3 &&
-                 raceList[0].pos === 1 && raceList[1].pos === 2 && raceList[2].pos === 3;
-
-  var src = isRace ? raceList : objVals(fpRows).sort(function(a,b){return a.pos-b.pos;});
-  src.forEach(function(r) {
-    if(seenNum[r.num]) return;
-    seenNum[r.num] = 1;
-    var name = r.init + '. ' + r.sur.charAt(0) + r.sur.slice(1).toLowerCase();
-    rows.push({pos:r.pos, num:r.num, name:name, nat:r.nat, lap:r.lap, gap:''});
-  });
 
   // RET sorok
+  var reRet = /RET\s+(?:\d+\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})/g;
   while((m = reRet.exec(text)) !== null) {
-    var rnum = parseInt(m[1]);
-    if(seenNum[rnum]) continue;
-    seenNum[rnum] = 1;
-    rows.push({pos:'RET', num:rnum,
-      name: m[2] + '. ' + m[3].charAt(0) + m[3].slice(1).toLowerCase(),
-      nat: m[4], lap: '', gap: 'DNF'});
+    var num = parseInt(m[1]);
+    var key = 'RET_' + num;
+    if(seen[key]) continue;
+    seen[key] = 1;
+    rows.push({pos:'RET', num:num, name:m[2]+'. '+m[3].charAt(0)+m[3].slice(1).toLowerCase(), nat:m[4], lap:'', gap:'DNF'});
   }
 
-  rows.sort(function(a,b) {
-    if(a.pos === 'RET') return 1;
-    if(b.pos === 'RET') return -1;
-    return a.pos - b.pos;
+  rows.sort(function(a,b){
+    if(a.pos==='RET') return 1; if(b.pos==='RET') return -1; return a.pos - b.pos;
   });
   return rows;
 }
