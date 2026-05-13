@@ -240,7 +240,13 @@ function parseSessionText(text) {
     return m ? m[0] : null;
   }
 
-  // Race sorok (POS GRID NUM INIT. SURNAME NAT)
+  function objVals(obj) {
+    var arr = [];
+    for(var k in obj) { if(obj.hasOwnProperty(k)) arr.push(obj[k]); }
+    return arr;
+  }
+
+  // Race sorok: POS GRID NUM INIT. SURNAME NAT
   var raceRows = {}; var m;
   while((m = reRace.exec(text)) !== null) {
     var pos = parseInt(m[1]), num = parseInt(m[3]);
@@ -250,7 +256,7 @@ function parseSessionText(text) {
     raceRows[pos] = {pos:pos, num:num, init:m[4], sur:m[5], nat:m[6], lap:lap};
   }
 
-  // FP/SUP/WUP sorok (POS NUM INIT. SURNAME NAT)
+  // FP/SUP/WUP sorok: POS NUM INIT. SURNAME NAT
   var fpRows = {};
   while((m = reFP.exec(text)) !== null) {
     var pos = parseInt(m[1]), num = parseInt(m[2]);
@@ -260,12 +266,12 @@ function parseSessionText(text) {
     fpRows[pos] = {pos:pos, num:num, init:m[3], sur:m[4], nat:m[5], lap:lap};
   }
 
-  // Race detektálás: első 3 sor sorrendben 1,2,3
-  var raceList = Object.values(raceRows).sort(function(a,b){return a.pos-b.pos;});
+  // Race detektálás: első 3 sor 1,2,3 sorrendben
+  var raceList = objVals(raceRows).sort(function(a,b){return a.pos-b.pos;});
   var isRace   = raceList.length >= 3 &&
                  raceList[0].pos === 1 && raceList[1].pos === 2 && raceList[2].pos === 3;
 
-  var src = isRace ? raceList : Object.values(fpRows).sort(function(a,b){return a.pos-b.pos;});
+  var src = isRace ? raceList : objVals(fpRows).sort(function(a,b){return a.pos-b.pos;});
   src.forEach(function(r) {
     if(seenNum[r.num]) return;
     seenNum[r.num] = 1;
