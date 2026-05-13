@@ -1102,7 +1102,7 @@ body::after {
       <!-- TRACK RECORD PANEL -->
       <div id="recordPanel">
         <div style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px;">⬛ TRACK RECORDS</div>
-        <div id="recordContent" style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);">—</div>
+        <div id="recordContent"></div>
       </div>
 
     </div><!-- /col-mid -->
@@ -1660,14 +1660,28 @@ const CAT_UUIDS = {
 const SEASONS = ['2026', '2025', '2024', '2023'];
 const SEASON_EVENTS = {
   '2026': [
-    {code:'THA',name:'Thailand'},{code:'BRA',name:'Brazil'},{code:'USA',name:'USA'},
-    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
-    {code:'CAT',name:'Catalonia'},{code:'ITA',name:'Italy'},{code:'HUN',name:'Hungary'},
-    {code:'CZE',name:'Czech Republic'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
-    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'RSM',name:'San Marino'},
-    {code:'AUT',name:'Austria'},{code:'JPN',name:'Japan'},{code:'INA',name:'Indonesia'},
-    {code:'AUS',name:'Australia'},{code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},
-    {code:'VAL',name:'Valencia'}
+    {code:'THA',name:'Thailand',          date:'2026-02-28',dateEnd:'2026-03-02'},
+    {code:'BRA',name:'Brazil',            date:'2026-03-14',dateEnd:'2026-03-16'},
+    {code:'USA',name:'USA',               date:'2026-04-11',dateEnd:'2026-04-13'},
+    {code:'QAT',name:'Qatar',             date:'2026-04-25',dateEnd:'2026-04-27'},
+    {code:'SPA',name:'Spain',             date:'2026-05-01',dateEnd:'2026-05-03'},
+    {code:'FRA',name:'France',            date:'2026-05-15',dateEnd:'2026-05-17'},
+    {code:'CAT',name:'Catalonia',         date:'2026-05-29',dateEnd:'2026-05-31'},
+    {code:'ITA',name:'Italy',             date:'2026-06-05',dateEnd:'2026-06-07'},
+    {code:'HUN',name:'Hungary',           date:'2026-06-26',dateEnd:'2026-06-28'},
+    {code:'CZE',name:'Czech Republic',    date:'2026-07-10',dateEnd:'2026-07-12'},
+    {code:'NED',name:'Netherlands',       date:'2026-07-24',dateEnd:'2026-07-26'},
+    {code:'GER',name:'Germany',           date:'2026-08-07',dateEnd:'2026-08-09'},
+    {code:'GBR',name:'Great Britain',     date:'2026-08-28',dateEnd:'2026-08-30'},
+    {code:'ARA',name:'Aragon',            date:'2026-09-11',dateEnd:'2026-09-13'},
+    {code:'RSM',name:'San Marino',        date:'2026-09-18',dateEnd:'2026-09-20'},
+    {code:'AUT',name:'Austria',           date:'2026-09-25',dateEnd:'2026-09-27'},
+    {code:'JPN',name:'Japan',             date:'2026-10-02',dateEnd:'2026-10-04'},
+    {code:'INA',name:'Indonesia',         date:'2026-10-16',dateEnd:'2026-10-18'},
+    {code:'AUS',name:'Australia',         date:'2026-10-23',dateEnd:'2026-10-25'},
+    {code:'MAL',name:'Malaysia',          date:'2026-11-06',dateEnd:'2026-11-08'},
+    {code:'POR',name:'Portugal',          date:'2026-11-20',dateEnd:'2026-11-22'},
+    {code:'VAL',name:'Valencia',          date:'2026-11-27',dateEnd:'2026-11-29'}
   ],
   '2025': [
     {code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
@@ -1939,19 +1953,24 @@ async function doResults(rd) {
     (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase()
   );
 
-  // Ha nincs befejezett futam ezzel a kóddal → jövőbeli esemény
+  // Jövőbeli esemény — nincs még eredmény
   if(!ev) {
-    var evInfo = (SEASON_EVENTS[selectedYear]||[]).find(function(e){return e.code===selectedEventCode;});
-    var evName = evInfo ? evInfo.name : selectedEventCode;
+    const evInfo = (SEASON_EVENTS[selectedYear]||[]).find(e=>e.code===selectedEventCode);
+    const evName = evInfo ? evInfo.name : selectedEventCode;
+    const dateStr = evInfo && evInfo.date
+      ? evInfo.date.replace(/-/g,'.') + (evInfo.dateEnd ? ' – ' + evInfo.dateEnd.replace(/-/g,'.') : '')
+      : '';
     rd.innerHTML = '<div style="text-align:center;padding:20px 8px;">'
       + '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">'+evName.toUpperCase()+'</div>'
-      + '<div style="font-family:Oswald,sans-serif;font-size:14px;color:var(--yellow);">'+selectedEventCode+' '+selectedYear+'</div>'
+      + (dateStr ? '<div style="font-family:Oswald,sans-serif;font-size:14px;color:var(--yellow);">'+dateStr+'</div>' : '')
       + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px;">MÉG NEM ZAJLOTT LE</div>'
       + '</div>';
     return;
   }
 
-  const sessions = await apiGet(`sessions?eventUuid=${ev.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
+  const evFinal = ev || races[races.length - 1];
+
+  const sessions = await apiGet(`sessions?eventUuid=${evFinal.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   if (!sessions.length) throw new Error('Nincs session');
 
   // Map session type
@@ -1979,7 +1998,7 @@ async function doResults(rd) {
 
   const cls = await apiGet(`session/${sess.id}/classification?test=false`);
   const riders = cls.classification || cls;
-  showResults(rd, riders, ev.name || ev.short_name, sess.type || sess.name, selectedCat);
+  showResults(rd, riders, evFinal.name || evFinal.short_name, sess.type || sess.name, selectedCat);
 }
 
 async function doStandings(rd) {
@@ -2688,176 +2707,201 @@ if ('serviceWorker' in navigator) {
 // TRACK RECORDS
 // ============================================================
 var TRACK_RECORDS = {
-  // WSBK pályák
-  'AUS': { name:'Phillip Island', len:'4.448 km', records:{
+  // ── WSBK pályák ──
+  'AUS': { name:'Phillip Island Grand Prix Circuit', len:'4.448 km', wsbk:{
     SBK: {time:"1'28.522", rider:'J. Rea', year:2016},
     SSP: {time:"1'31.673", rider:'K. Smith', year:2019},
     WCR: {time:"1'37.200", rider:'A. Vinales', year:2022},
     SPB: {time:"1'35.100", rider:'D. Salvador', year:2024},
     R3:  {time:"1'38.500", rider:'M. Booth', year:2023}
+  }, motogp:{
+    MotoGP:{time:"1'27.257", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'31.774", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'36.838", rider:'D. Holgado', year:2023}
   }},
-  'POR': { name:'Portimão', len:'4.592 km', records:{
+  'POR': { name:'Autódromo Internacional do Algarve', len:'4.592 km', wsbk:{
     SBK: {time:"1'40.177", rider:'J. Rea', year:2019},
     SSP: {time:"1'44.589", rider:'A. Caricasulo', year:2019},
     WCR: {time:"1'52.300", rider:'A. Vinales', year:2022},
     SPB: {time:"1'49.100", rider:'J. Buis', year:2024},
     R3:  {time:"1'55.200", rider:'G. Hendra', year:2023}
+  }, motogp:{
+    MotoGP:{time:"1'38.985", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'44.162", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'50.344", rider:'D. Holgado', year:2023}
   }},
-  'NED': { name:'TT Circuit Assen', len:'4.542 km', records:{
+  'NED': { name:'TT Circuit Assen', len:'4.542 km', wsbk:{
     SBK: {time:"1'33.787", rider:'J. Rea', year:2018},
     SSP: {time:"1'37.521", rider:'A. Caricasulo', year:2018},
     WCR: {time:"1'43.500", rider:'A. Vinales', year:2022},
     SPB: {time:"1'42.200", rider:'J. Buis', year:2024},
     R3:  {time:"1'46.800", rider:'G. Hendra', year:2023}
+  }, motogp:{
+    MotoGP:{time:"1'31.814", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'36.490", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'42.269", rider:'D. Holgado', year:2023}
   }},
-  'HUN': { name:'Balaton Park Circuit', len:'4.075 km', records:{
+  'HUN': { name:'Balaton Park Circuit', len:'4.075 km', wsbk:{
     SBK: {time:"1'38.094", rider:'N. Bulega', year:2026},
     SSP: {time:"1'42.300", rider:'A. Arenas', year:2026},
     WCR: {time:"1'51.200", rider:'M. Herrera', year:2026},
     SPB: {time:"1'48.500", rider:'D. Salvador', year:2026},
     R3:  {time:"1'54.100", rider:'A. Bocanegra', year:2026}
+  }, motogp:{
+    MotoGP:{time:"—", rider:'—', year:null},
+    Moto2: {time:"—", rider:'—', year:null},
+    Moto3: {time:"—", rider:'—', year:null}
   }},
-  'CZE': { name:'Autodrom Most', len:'4.212 km', records:{
+  'CZE': { name:'Autodrom Most', len:'4.212 km', wsbk:{
     SBK: {time:"1'32.800", rider:'J. Rea', year:2022},
     SSP: {time:"1'36.900", rider:'L. Baldassarri', year:2022},
     WCR: {time:"—", rider:'—', year:null},
     SPB: {time:"1'42.500", rider:'D. Salvador', year:2024},
     R3:  {time:"—", rider:'—', year:null}
+  }, motogp:{
+    MotoGP:{time:"1'22.956", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'27.430", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'33.162", rider:'D. Holgado', year:2023}
   }},
-  'ARA': { name:'Motorland Aragón', len:'5.077 km', records:{
+  'ARA': { name:'Motorland Aragón', len:'5.077 km', wsbk:{
     SBK: {time:"1'49.380", rider:'J. Rea', year:2019},
     SSP: {time:"1'53.700", rider:'A. Caricasulo', year:2019},
     WCR: {time:"—", rider:'—', year:null},
     SPB: {time:"1'58.200", rider:'J. Buis', year:2024},
     R3:  {time:"2'01.500", rider:'G. Hendra', year:2023}
+  }, motogp:{
+    MotoGP:{time:"1'46.635", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'52.480", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'58.994", rider:'D. Holgado', year:2023}
   }},
-  'ITA': { name:'Autodromo di Imola', len:'4.909 km', records:{
+  'ITA': { name:'Autodromo di Imola', len:'4.909 km', wsbk:{
     SBK: {time:"1'44.769", rider:'T. Sykes', year:2012},
     SSP: {time:"1'48.900", rider:'L. Mahias', year:2012},
     WCR: {time:"1'56.200", rider:'M. Herrera', year:2023},
     SPB: {time:"1'53.800", rider:'D. Salvador', year:2024},
     R3:  {time:"—", rider:'—', year:null}
+  }, motogp:{
+    MotoGP:{time:"1'31.958", rider:'F. Bagnaia', year:2024},
+    Moto2: {time:"1'37.541", rider:'T. Arbolino', year:2024},
+    Moto3: {time:"1'43.776", rider:'D. Holgado', year:2024}
   }},
-  'GBR': { name:'Donington Park', len:'4.023 km', records:{
+  'GBR': { name:'Donington Park', len:'4.023 km', wsbk:{
     SBK: {time:"1'28.127", rider:'J. Rea', year:2017},
     SSP: {time:"1'31.888", rider:'L. Mahias', year:2017},
     WCR: {time:"1'38.500", rider:'M. Herrera', year:2023},
     SPB: {time:"—", rider:'—', year:null},
     R3:  {time:"1'41.200", rider:'G. Hendra', year:2023}
+  }, motogp:{
+    MotoGP:{time:"1'58.361", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"2'04.476", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"2'11.598", rider:'D. Holgado', year:2023}
   }},
-  'FRA': { name:'Circuit de Nevers Magny-Cours', len:'4.411 km', records:{
+  'FRA': { name:'Circuit de Nevers Magny-Cours', len:'4.411 km', wsbk:{
     SBK: {time:"1'34.833", rider:'J. Rea', year:2019},
     SSP: {time:"1'38.800", rider:'L. Mahias', year:2019},
     WCR: {time:"1'46.200", rider:'M. Herrera', year:2023},
     SPB: {time:"1'44.500", rider:'J. Buis', year:2024},
     R3:  {time:"1'48.900", rider:'G. Hendra', year:2023}
+  }, motogp:{
+    MotoGP:{time:"1'30.450", rider:'J. Martin', year:2024},
+    Moto2: {time:"1'35.397", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'41.308", rider:'D. Holgado', year:2023}
   }},
-  'CRE': { name:'Cremona Circuit', len:'4.122 km', records:{
+  'CRE': { name:'Cremona Circuit', len:'4.122 km', wsbk:{
     SBK: {time:"1'29.500", rider:'A. Bautista', year:2023},
     SSP: {time:"1'33.200", rider:'N. Bulega', year:2023},
     WCR: {time:"—", rider:'—', year:null},
     SPB: {time:"1'38.500", rider:'D. Salvador', year:2024},
     R3:  {time:"1'41.800", rider:'G. Hendra', year:2023}
-  }},
-  'EST': { name:'Autódromo do Estoril', len:'4.182 km', records:{
+  }, motogp:null},
+  'EST': { name:'Autódromo do Estoril', len:'4.182 km', wsbk:{
     SBK: {time:"1'36.969", rider:'J. Rea', year:2021},
     SSP: {time:"1'40.800", rider:'A. Caricasulo', year:2021},
     WCR: {time:"1'48.500", rider:'M. Herrera', year:2023},
     SPB: {time:"1'46.200", rider:'J. Buis', year:2024},
     R3:  {time:"1'50.500", rider:'G. Hendra', year:2023}
-  }},
-  'JER': { name:'Circuito de Jerez', len:'4.423 km', records:{
+  }, motogp:null},
+  'JER': { name:'Circuito de Jerez - Ángel Nieto', len:'4.423 km', wsbk:{
     SBK: {time:"1'39.021", rider:'J. Rea', year:2015},
     SSP: {time:"1'43.200", rider:'L. Mahias', year:2019},
     WCR: {time:"1'51.500", rider:'M. Herrera', year:2023},
     SPB: {time:"1'49.800", rider:'J. Buis', year:2024},
     R3:  {time:"1'53.200", rider:'G. Hendra', year:2023}
-  }},
-  // MotoGP pályák (2026 naptár alapján)
-  'QAT': { name:'Losail International Circuit', len:'5.380 km', records:{
-    MotoGP:{time:"1'52.093", rider:'F. Bagnaia', year:2024},
-    Moto2: {time:"1'57.756", rider:'A. Canet', year:2023},
-    Moto3: {time:"2'02.609", rider:'D. Holgado', year:2023}
-  }},
-  'THA': { name:'Chang International Circuit', len:'4.554 km', records:{
-    MotoGP:{time:"1'29.374", rider:'F. Bagnaia', year:2023},
-    Moto2: {time:"1'33.671", rider:'T. Arbolino', year:2023},
-    Moto3: {time:"1'38.762", rider:'J. Masia', year:2023}
-  }},
-  'ARG': { name:'Autodromo Termas de Rio Hondo', len:'4.806 km', records:{
-    MotoGP:{time:"1'37.156", rider:'F. Quartararo', year:2022},
-    Moto2: {time:"1'42.788", rider:'S. Lowes', year:2022},
-    Moto3: {time:"1'49.370", rider:'J. Masia', year:2022}
-  }},
-  'AME': { name:'Circuit of The Americas', len:'5.513 km', records:{
-    MotoGP:{time:"2'02.190", rider:'F. Bagnaia', year:2024},
-    Moto2: {time:"2'08.795", rider:'J. Dixon', year:2024},
-    Moto3: {time:"2'16.285", rider:'D. Holgado', year:2024}
-  }},
-  'SPA': { name:'Circuito de Jerez', len:'4.423 km', records:{
+  }, motogp:{
     MotoGP:{time:"1'36.183", rider:'F. Bagnaia', year:2023},
     Moto2: {time:"1'40.846", rider:'A. Fernandez', year:2023},
     Moto3: {time:"1'46.540", rider:'J. Masia', year:2023}
   }},
-  'FRA': { name:'Circuit Bugatti Le Mans', len:'4.185 km', records:{
-    MotoGP:{time:"1'30.450", rider:'J. Martin', year:2024},
-    Moto2: {time:"1'35.397", rider:'T. Arbolino', year:2023},
-    Moto3: {time:"1'41.308", rider:'D. Holgado', year:2023}
+  // ── MotoGP-only pályák ──
+  'THA': { name:'Chang International Circuit', len:'4.554 km', wsbk:null, motogp:{
+    MotoGP:{time:"1'29.374", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'33.671", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'38.762", rider:'J. Masia', year:2023}
   }},
-  'CAT': { name:'Circuit de Barcelona-Catalunya', len:'4.657 km', records:{
+  'BRA': { name:'Autódromo de Interlagos', len:'4.309 km', wsbk:null, motogp:{
+    MotoGP:{time:"1'34.485", rider:'F. Bagnaia', year:2022},
+    Moto2: {time:"1'39.982", rider:'T. Arbolino', year:2022},
+    Moto3: {time:"1'46.134", rider:'J. Masia', year:2022}
+  }},
+  'USA': { name:'Circuit of The Americas', len:'5.513 km', wsbk:null, motogp:{
+    MotoGP:{time:"2'02.190", rider:'F. Bagnaia', year:2024},
+    Moto2: {time:"2'08.795", rider:'J. Dixon', year:2024},
+    Moto3: {time:"2'16.285", rider:'D. Holgado', year:2024}
+  }},
+  'QAT': { name:'Losail International Circuit', len:'5.380 km', wsbk:null, motogp:{
+    MotoGP:{time:"1'52.093", rider:'F. Bagnaia', year:2024},
+    Moto2: {time:"1'57.756", rider:'A. Canet', year:2023},
+    Moto3: {time:"2'02.609", rider:'D. Holgado', year:2023}
+  }},
+  'SPA': { name:'Circuito de Jerez - Ángel Nieto', len:'4.423 km', wsbk:null, motogp:{
+    MotoGP:{time:"1'36.183", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'40.846", rider:'A. Fernandez', year:2023},
+    Moto3: {time:"1'46.540", rider:'J. Masia', year:2023}
+  }},
+  'CAT': { name:'Circuit de Barcelona-Catalunya', len:'4.657 km', wsbk:null, motogp:{
     MotoGP:{time:"1'38.798", rider:'F. Bagnaia', year:2023},
     Moto2: {time:"1'43.991", rider:'T. Arbolino', year:2023},
     Moto3: {time:"1'49.834", rider:'D. Holgado', year:2023}
   }},
-  'GER': { name:'Sachsenring', len:'3.671 km', records:{
+  'GER': { name:'Sachsenring', len:'3.671 km', wsbk:null, motogp:{
     MotoGP:{time:"1'19.931", rider:'F. Bagnaia', year:2023},
     Moto2: {time:"1'23.820", rider:'T. Arbolino', year:2023},
     Moto3: {time:"1'28.082", rider:'D. Holgado', year:2023}
   }},
-  'NED': { name:'TT Circuit Assen', len:'4.542 km', records:{
-    MotoGP:{time:"1'31.814", rider:'F. Bagnaia', year:2023},
-    Moto2: {time:"1'36.490", rider:'T. Arbolino', year:2023},
-    Moto3: {time:"1'42.269", rider:'D. Holgado', year:2023}
-  }},
-  'GBR': { name:'Silverstone Circuit', len:'5.900 km', records:{
-    MotoGP:{time:"1'58.361", rider:'F. Bagnaia', year:2023},
-    Moto2: {time:"2'04.476", rider:'T. Arbolino', year:2023},
-    Moto3: {time:"2'11.598", rider:'D. Holgado', year:2023}
-  }},
-  'AUT': { name:'Red Bull Ring', len:'4.318 km', records:{
-    MotoGP:{time:"1'28.418", rider:'F. Bagnaia', year:2023},
-    Moto2: {time:"1'33.201", rider:'T. Arbolino', year:2023},
-    Moto3: {time:"1'38.983", rider:'D. Holgado', year:2023}
-  }},
-  'RSM': { name:'Misano World Circuit', len:'4.226 km', records:{
+  'RSM': { name:'Misano World Circuit', len:'4.226 km', wsbk:null, motogp:{
     MotoGP:{time:"1'31.153", rider:'F. Bagnaia', year:2023},
     Moto2: {time:"1'36.036", rider:'T. Arbolino', year:2023},
     Moto3: {time:"1'41.892", rider:'D. Holgado', year:2023}
   }},
-  'INA': { name:'Pertamina Mandalika Circuit', len:'4.031 km', records:{
-    MotoGP:{time:"1'29.684", rider:'F. Bagnaia', year:2023},
-    Moto2: {time:"1'34.471", rider:'T. Arbolino', year:2023},
-    Moto3: {time:"1'39.987", rider:'D. Holgado', year:2023}
+  'AUT': { name:'Red Bull Ring', len:'4.318 km', wsbk:null, motogp:{
+    MotoGP:{time:"1'28.418", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'33.201", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'38.983", rider:'D. Holgado', year:2023}
   }},
-  'JPN': { name:'Mobility Resort Motegi', len:'4.801 km', records:{
+  'JPN': { name:'Mobility Resort Motegi', len:'4.801 km', wsbk:null, motogp:{
     MotoGP:{time:"1'42.338", rider:'F. Bagnaia', year:2023},
     Moto2: {time:"1'47.624", rider:'T. Arbolino', year:2023},
     Moto3: {time:"1'53.488", rider:'D. Holgado', year:2023}
   }},
-  'AUS': { name:'Phillip Island', len:'4.448 km', records:{
-    MotoGP:{time:"1'27.257", rider:'F. Bagnaia', year:2023},
-    Moto2: {time:"1'31.774", rider:'T. Arbolino', year:2023},
-    Moto3: {time:"1'36.838", rider:'D. Holgado', year:2023}
+  'INA': { name:'Pertamina Mandalika Circuit', len:'4.031 km', wsbk:null, motogp:{
+    MotoGP:{time:"1'29.684", rider:'F. Bagnaia', year:2023},
+    Moto2: {time:"1'34.471", rider:'T. Arbolino', year:2023},
+    Moto3: {time:"1'39.987", rider:'D. Holgado', year:2023}
   }},
-  'MAL': { name:'Sepang International Circuit', len:'5.543 km', records:{
+  'MAL': { name:'Sepang International Circuit', len:'5.543 km', wsbk:null, motogp:{
     MotoGP:{time:"1'57.942", rider:'F. Bagnaia', year:2023},
     Moto2: {time:"2'03.456", rider:'T. Arbolino', year:2023},
     Moto3: {time:"2'09.782", rider:'D. Holgado', year:2023}
   }},
-  'VAL': { name:'Circuit Ricardo Tormo', len:'4.005 km', records:{
+  'VAL': { name:'Circuit Ricardo Tormo', len:'4.005 km', wsbk:null, motogp:{
     MotoGP:{time:"1'29.880", rider:'F. Bagnaia', year:2023},
     Moto2: {time:"1'34.671", rider:'T. Arbolino', year:2023},
     Moto3: {time:"1'39.994", rider:'D. Holgado', year:2023}
+  }},
+  'ARG': { name:'Autódromo Termas de Rio Hondo', len:'4.806 km', wsbk:null, motogp:{
+    MotoGP:{time:"1'37.156", rider:'F. Quartararo', year:2022},
+    Moto2: {time:"1'42.788", rider:'S. Lowes', year:2022},
+    Moto3: {time:"1'49.370", rider:'J. Masia', year:2022}
   }}
 };
 
@@ -2865,61 +2909,48 @@ function renderRecordPanel() {
   var el = document.getElementById('recordContent');
   if(!el) return;
 
-  // Melyik pálya?
-  var trackCode = null;
-  var trackData = null;
+  var isWsbk = (typeof activeChampionship !== 'undefined' && activeChampionship === 'wsbk');
+  var trackCode = isWsbk ? (typeof wsbkEvent !== 'undefined' ? wsbkEvent : null) : selectedEventCode;
+  var trackData = trackCode ? TRACK_RECORDS[trackCode] : null;
 
-  if(typeof activeChampionship !== 'undefined' && activeChampionship === 'wsbk') {
-    trackCode = wsbkEvent;
-  } else {
-    trackCode = selectedEventCode;
-  }
-
-  trackData = TRACK_RECORDS[trackCode];
   if(!trackData) {
-    el.innerHTML = '<span style="color:var(--text-dim);">Nincs rekord adat</span>';
+    el.innerHTML = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);">Nincs rekord adat</div>';
+    document.getElementById('recordPanel').querySelector('div').textContent = '⬛ TRACK RECORDS';
     return;
   }
 
-  // Melyik sorozat aktív?
-  var activeSeries = null;
-  if(typeof activeChampionship !== 'undefined' && activeChampionship === 'wsbk') {
-    activeSeries = wsbkSeries || 'SBK';
-  } else {
-    activeSeries = selectedCat || 'MotoGP';
-    // MotoGP kategória mapping
-    if(activeSeries === 'MotoGP') activeSeries = 'MotoGP';
-    else if(activeSeries === 'Moto2') activeSeries = 'Moto2';
-    else if(activeSeries === 'Moto3') activeSeries = 'Moto3';
+  var activeSeries = isWsbk
+    ? (typeof wsbkSeries !== 'undefined' ? wsbkSeries : 'SBK')
+    : (typeof selectedCat !== 'undefined' ? selectedCat : 'MotoGP');
+
+  var recs = isWsbk ? trackData.wsbk : trackData.motogp;
+  if(!recs) {
+    el.innerHTML = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-dim);">Nincs rekord adat</div>';
+    return;
   }
 
-  var recs = trackData.records;
-  var html = '';
+  // Header: pálya neve + hossz
+  var header = document.getElementById('recordPanel').querySelector('div');
+  if(header) header.innerHTML = '⬛ <span style="color:var(--off-white);">'
+    + trackData.name + '</span>'
+    + ' <span style="color:var(--text-dim);font-size:7px;">' + trackData.len + '</span>';
 
-  // Pálya info
-  html += '<div style="margin-bottom:8px;">';
-  html += '<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--off-white);letter-spacing:1px;">'
-        + trackData.name + '</div>';
-  html += '<div style="font-size:9px;color:var(--text-dim);">' + trackData.len + '</div>';
-  html += '</div>';
-
-  html += '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--text-dim);letter-spacing:2px;margin-bottom:4px;">LAP RECORDS</div>';
+  var html = '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--text-dim);letter-spacing:2px;margin-bottom:4px;">LAP RECORDS</div>';
   html += '<table style="width:100%;border-collapse:collapse;">';
-
-  // Összes sorozat rekordja
   Object.keys(recs).forEach(function(ser) {
     var rec = recs[ser];
     var isActive = ser === activeSeries;
-    var color = isActive ? 'var(--yellow)' : 'var(--text-dim)';
-    var bg = isActive ? 'rgba(245,196,0,0.07)' : 'transparent';
+    var bg   = isActive ? 'rgba(245,196,0,0.07)' : 'transparent';
+    var col  = isActive ? 'var(--yellow)' : 'var(--text-dim)';
+    var tcol = isActive ? '#f5c400' : 'var(--off-white)';
     html += '<tr style="background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.04);">'
-      + '<td style="padding:3px 4px;font-family:Oswald,sans-serif;font-size:9px;color:'+color+';width:50px;">'+ser+'</td>'
-      + '<td style="padding:3px 4px;font-family:'Share Tech Mono',monospace;font-size:10px;color:'+(isActive?'#f5c400':'var(--off-white)')+';">'+rec.time+'</td>'
-      + '<td style="padding:3px 4px;font-size:8px;color:var(--text-dim);">'+rec.rider+(rec.year?'&nbsp;''+String(rec.year).slice(2):'')+'</td>'
+      + '<td style="padding:3px 4px;font-family:Oswald,sans-serif;font-size:9px;color:'+col+';width:52px;">'+ser+'</td>'
+      + '<td style="padding:3px 4px;font-family:'Share Tech Mono',monospace;font-size:10px;color:'+tcol+';">'+rec.time+'</td>'
+      + '<td style="padding:3px 4px;font-size:8px;color:var(--text-dim);white-space:nowrap;">'
+        +rec.rider+(rec.year?'&nbsp;''+String(rec.year).slice(2):'')+'</td>'
       + '</tr>';
   });
   html += '</table>';
-
   el.innerHTML = html;
 }
 
