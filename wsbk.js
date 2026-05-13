@@ -210,18 +210,10 @@ function loadWsbkSession(rd) {
       });
     },Promise.resolve([]));
   }).then(function(pages){
-    var joined=pages.join(' ');
-    var rows=parseSessionText(joined);
+    var rows=parseSessionText(pages.join(' '));
     if(rows&&rows.length>=3){wsbkCacheSet('ses',rows);renderSessionTable(rd,rows);}
-    else{
-      var isRaceSess=(wsbkSession==='001'||wsbkSession==='002'||wsbkSession==='003');
-      if(isRaceSess){
-        rd.innerHTML='<div style="font-size:7px;color:var(--yellow);padding:4px;overflow:auto;max-height:400px;">'
-          +'<b>rows:'+rows.length+'</b><br>'
-          +'<pre style="white-space:pre-wrap;">'+joined.slice(0,1000)+'</pre></div>';
-      } else { rd.innerHTML=wsbkNoDataHtml(); }
-    }
-  }).catch(function(e){rd.innerHTML='<div style="font-size:8px;color:var(--red);padding:4px;">ERR:'+(e&&e.message?e.message:e)+'</div>';});
+    else{rd.innerHTML=wsbkNoDataHtml();}
+  }).catch(function(){rd.innerHTML=wsbkNoDataHtml();});
 }
 
 // ============================================================
@@ -235,65 +227,108 @@ function loadWsbkSession(rd) {
 // ahol BETŰ. = "N." "I." "S." stb. (kezdőbetű pont)
 // ============================================================
 function parseSessionText(text) {
-  var rows = [];
-  var seen = {};
+  var VALID_NAT = {ITA:1,ESP:1,GBR:1,USA:1,AUS:1,POR:1,FRA:1,GER:1,NED:1,BEL:1,
+    JPN:1,THA:1,INA:1,MAL:1,TUR:1,BRA:1,DOM:1,AUT:1,ARG:1,SUI:1,RSA:1,CAN:1,
+    FIN:1,SWE:1,NOR:1,KOR:1,CHI:1,MEX:1,POL:1,CZE:1,DEN:1,IND:1};
+  var NOISE = {SBK:1,SSP:1,WCR:1,SPB:1,FIM:1,BMW:1,VDS:1,HRC:1,RR:1,ELF:1,GRT:1};
+  var reLap     = /\d'\d{2}\.\d{3}/g;
+  var reTime    = /Time of Race\s+(\d+'\d{2}\.\d{3})/;
+  var reRace    = /\b([A-Z]{3})\s+(\d{1,2})\s+(?:(\d+\.\d+)\s+)?(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\b/g;
+  var reRaceRet = /\b([A-Z]{3})\s+\d{1,2}\s+RET\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\b/g;
+  var reLapPos  = /(\d'\d{2}\.\d{3})\s+(\d{1,2})\b/g;
+  var reNumInit = /\b(\d{1,3})\s+([A-Z])\./g;
+  var reSurname = /\b([A-Z]{3,})\b/g;
+  var reNatCode = /\b([A-Z]{3})\b/g;
 
-  // Minta: "N. BULEGA ITA" után keresünk laptime-ot (X'XX.XXX)
-  // Előtte van: pos [grid] num
-  // A laptime az első ilyen formátumú szám a sorban
-  var reRider = /(\d{1,2})\s+(?:(\d{1,2})\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})/g;
-  var reTime  = /\d'\d{2}\.\d{3}/g;
-
-  // Gyűjtsük össze az összes laptime pozícióját
-  var times = [];
-  var tm;
-  reTime.lastIndex = 0;
-  while((tm = reTime.exec(text)) !== null) {
-    times.push({idx: tm.index, val: tm[0]});
+  function timeToSec(t) {
+    var m = /(\d+)'(\d{2})\.(\d{3})/.exec(t);
+    return m ? parseInt(m[1])*60 + parseInt(m[2]) + parseInt(m[3])/1000 : 0;
+  }
+  function secToTime(s) {
+    var mins = Math.floor(s/60), secs = s - mins*60;
+    var ms = Math.round((secs % 1)*1000);
+    return mins+"'"+('0'+Math.floor(secs)).slice(-2)+'.'+('00'+ms).slice(-3);
+  }
+  function lapsAfter(idx) {
+    var re=/\d'\d{2}\.\d{3}/g; re.lastIndex=idx;
+    var res=[],m; while((m=re.exec(text))!==null && m.index<idx+200) res.push(m[0]);
+    return res;
+  }
+  function objArr(obj) {
+    var a=[]; for(var k in obj) if(obj.hasOwnProperty(k)) a.push(obj[k]); return a;
   }
 
-  var m;
-  reRider.lastIndex = 0;
-  while((m = reRider.exec(text)) !== null) {
-    var pos = parseInt(m[1]);
-    var num = parseInt(m[3]);
-    var init = m[4];
-    var sur  = m[5];
-    var nat  = m[6];
-    if(pos < 1 || pos > 60) continue;
-    var key = num + '_' + pos;
-    if(seen[key]) continue;
-    seen[key] = 1;
+  // Time of Race (1. hely ideje)
+  var torM = reTime.exec(text);
+  var tor  = torM ? torM[1] : null;
 
-    // Első laptime ami a rider neve után jön
-    var afterIdx = m.index + m[0].length;
-    var lap = '';
-    for(var t = 0; t < times.length; t++) {
-      if(times[t].idx >= afterIdx) { lap = times[t].val; break; }
+  var seenNum = {}, rows = [];
+
+  // --- RACE rows ---
+  var raceRows = {}; var m;
+  while((m = reRace.exec(text)) !== null) {
+    var nat = m[1]; if(!VALID_NAT[nat]) continue;
+    var gap_str = m[3]; // undefined ha 1. hely
+    var pos = parseInt(m[4]), num = parseInt(m[5]);
+    if(pos<1||pos>60||raceRows[pos]) continue;
+    var init=m[6], sur=m[7];
+    var raceTime, gapDisp;
+    if(pos===1 && tor) {
+      raceTime = tor; gapDisp = '';
+    } else if(gap_str && tor) {
+      var gapSec = parseFloat(gap_str);
+      raceTime = secToTime(timeToSec(tor) + gapSec);
+      gapDisp  = gapSec < 60 ? '+'+gap_str : '+'+secToTime(gapSec);
+    } else {
+      var lps = lapsAfter(m.index+m[0].length);
+      raceTime = lps.length>=2 ? lps[1] : (lps.length ? lps[0] : '');
+      gapDisp  = '';
     }
-    if(!lap) continue;
-
-    // Gap: a laptime előtti szövegből (a rider match vége és a laptime között)
-    var between = text.slice(afterIdx, times[t] ? times[t].idx : afterIdx);
-    var gm = between.match(/\d{1,2}'\d{2}\.\d+|\d+\.\d{3}/g);
-    var gap = (gm && gm.length > 0) ? gm[gm.length-1] : '';
-
-    var name = init + '. ' + sur.charAt(0) + sur.slice(1).toLowerCase();
-    rows.push({pos:pos, num:num, name:name, nat:nat, lap:lap, gap:gap});
+    var name = init+'. '+sur.charAt(0)+sur.slice(1).toLowerCase();
+    raceRows[pos] = {pos:pos,num:num,name:name,nat:nat,lap:raceTime,gap:gapDisp};
   }
 
-  // RET sorok
-  var reRet = /RET\s+(?:\d+\s+)?(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\s+([A-Z]{3})/g;
-  while((m = reRet.exec(text)) !== null) {
-    var num = parseInt(m[1]);
-    var key = 'RET_' + num;
-    if(seen[key]) continue;
-    seen[key] = 1;
-    rows.push({pos:'RET', num:num, name:m[2]+'. '+m[3].charAt(0)+m[3].slice(1).toLowerCase(), nat:m[4], lap:'', gap:'DNF'});
+  // --- RACE RET ---
+  var retRows = [];
+  while((m = reRaceRet.exec(text)) !== null) {
+    var num=parseInt(m[2]); if(seenNum[num]) continue;
+    var lps=lapsAfter(m.index+m[0].length);
+    var name=m[3]+'. '+m[4].charAt(0)+m[4].slice(1).toLowerCase();
+    retRows.push({pos:'RET',num:num,name:name,nat:m[1],lap:lps.length?lps[0]:'',gap:'DNF'});
   }
+
+  // --- FP/SUP/WUP rows ---
+  var fpRows = {};
+  while((m = reLapPos.exec(text)) !== null) {
+    var lap=m[1], pos=parseInt(m[2]);
+    if(pos<1||pos>60||fpRows[pos]) continue;
+    var before=text.slice(Math.max(0,m.index-200),m.index);
+    reNumInit.lastIndex=0; var ni=null,n2;
+    while((n2=reNumInit.exec(before))!==null) ni=n2;
+    if(!ni) continue;
+    var num=parseInt(ni[1]); if(num>999) continue;
+    var after=text.slice(m.index+m[0].length,m.index+m[0].length+80);
+    reSurname.lastIndex=0; var surMatch=null,sm;
+    while((sm=reSurname.exec(after))!==null){if(!VALID_NAT[sm[1]]&&!NOISE[sm[1]]){surMatch=sm[1];break;}}
+    if(!surMatch) continue;
+    var before2=before.slice(0,ni.index);
+    reNatCode.lastIndex=0; var nat='?',nm;
+    while((nm=reNatCode.exec(before2))!==null){if(VALID_NAT[nm[1]])nat=nm[1];}
+    var name=ni[2]+'. '+surMatch.charAt(0)+surMatch.slice(1).toLowerCase();
+    fpRows[pos]={pos:pos,num:num,name:name,nat:nat,lap:lap,gap:''};
+  }
+
+  // Race vs FP detektálás
+  var raceList=objArr(raceRows).sort(function(a,b){return a.pos-b.pos;});
+  var fpList  =objArr(fpRows).sort(function(a,b){return a.pos-b.pos;});
+  var isRace  =raceList.length>=3&&raceList[0].pos===1&&raceList[1].pos===2&&raceList[2].pos===3;
+  var src=isRace?raceList:fpList;
+
+  src.forEach(function(r){if(seenNum[r.num])return;seenNum[r.num]=1;rows.push(r);});
+  retRows.forEach(function(r){if(seenNum[r.num])return;seenNum[r.num]=1;rows.push(r);});
 
   rows.sort(function(a,b){
-    if(a.pos==='RET') return 1; if(b.pos==='RET') return -1; return a.pos - b.pos;
+    if(a.pos==='RET')return 1; if(b.pos==='RET')return -1; return a.pos-b.pos;
   });
   return rows;
 }
