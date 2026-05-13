@@ -322,7 +322,7 @@ body::after {
     grid-template-rows: auto 1fr;
   }
   .col-right {
-    grid-column: 1 / 2;
+    grid-column: 1 / -1;
     border-top: 2px solid var(--border);
   }
   .clock-time { font-size: clamp(36px, 6vw, 52px); }
@@ -363,19 +363,8 @@ body::after {
 .col-mid {
   border-right: 2px solid var(--border);
   grid-column: 2;
-  grid-row: 1 / 3;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
-#recordPanel {
-  flex: 1;
-  overflow-y: auto;
-  border-top: 1px solid var(--border);
-  background: #0a0a0a;
-  padding: 8px 10px;
-  min-height: 0;
+  grid-row: 1;
+  align-self: start;
 }
 
 .col-right {
@@ -752,7 +741,8 @@ body::after {
   background: var(--bg2);
   border-left: 3px solid var(--yellow);
   padding: 8px 14px;
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1096,12 +1086,6 @@ body::after {
         <div class="next-name" id="nextEventName">—</div>
         <div class="next-remark" id="nextEventDetail"></div>
         <div class="next-time" id="nextTimePill">—</div>
-      </div>
-
-      <!-- TRACK RECORD PANEL -->
-      <div id="recordPanel">
-        <div id="recordHeader" style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px;">⬛ TRACK RECORDS</div>
-        <div id="recordContent"></div>
       </div>
 
     </div><!-- /col-mid -->
@@ -1745,7 +1729,6 @@ function initResultsPanel() {
   renderPanel();
   doFetch();
   fetchInterval = setInterval(doFetch, 30000);
-  renderRecordPanel();
 }
 
 function resetAutoTimer() {
@@ -1887,7 +1870,6 @@ function renderPanel() {
       <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
     </div>
   `);
-  if(typeof renderRecordPanel==='function')renderRecordPanel();
 }
 
 
@@ -2686,13 +2668,10 @@ updateClock();
 updateDashboard();
 buildSchedule();
 initScrollTracking();
-
 </script>
-<script src="records.js"></script>
-  <script src="wsbk.js"></script>
+<script src="wsbk.js"></script>
 <script>
 initResultsPanel();
-  if(typeof renderRecordPanel==="function") renderRecordPanel();
 
 setInterval(updateClock, 1000);
 setInterval(updateDashboard, 1000);
@@ -2706,6 +2685,6 @@ if ('serviceWorker' in navigator) {
     .then(() => console.log('Service Worker aktív'))
     .catch(err => console.warn('SW hiba:', err));
 }
-
+</script>
 </body>
 </html>
