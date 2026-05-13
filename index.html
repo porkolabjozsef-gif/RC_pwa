@@ -1777,6 +1777,7 @@ function switchEventCode(code) {
   selectedEventCode = code;
   resetAutoTimer();
   doFetch();
+  if(typeof renderRecordPanel==='function') renderRecordPanel();
 }
 function switchCat(cat) {
   selectedCat = cat;
@@ -1785,6 +1786,7 @@ function switchCat(cat) {
   resetAutoTimer();
   renderPanel();
   doFetch();
+  if(typeof renderRecordPanel==='function') renderRecordPanel();
 }
 function switchSession(sess) {
   selectedSession = sess;
@@ -1963,6 +1965,7 @@ async function doResults(rd) {
       + (dateStr ? '<div style="font-family:Oswald,sans-serif;font-size:14px;color:var(--yellow);">'+dateStr+'</div>' : '')
       + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px;">MÉG NEM ZAJLOTT LE</div>'
       + '</div>';
+    if(typeof renderRecordPanel==='function') renderRecordPanel();
     return;
   }
 
