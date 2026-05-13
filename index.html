@@ -1737,8 +1737,9 @@ function initResultsPanel() {
   selectedYear = '2026';
   const evs = SEASON_EVENTS['2026'] || [];
   const now = new Date();
-  // Select latest event that has passed
-  selectedEventCode = evs[evs.length - 1].code; // fallback to last
+  // Utolsó lezajlott esemény
+  const lastPassed = evs.filter(e => e.dateEnd && new Date(e.dateEnd) < now).pop();
+  selectedEventCode = lastPassed ? lastPassed.code : evs[0].code;
   
   renderPanel();
   doFetch();
@@ -1765,7 +1766,9 @@ function resetAutoTimer() {
 function switchYear(year) {
   selectedYear = year;
   const evs = SEASON_EVENTS[year] || [];
-  selectedEventCode = evs.length ? evs[evs.length-1].code : '';
+  const now2 = new Date();
+  const lastP = evs.filter(e => e.dateEnd && new Date(e.dateEnd) < now2).pop();
+  selectedEventCode = lastP ? lastP.code : (evs.length ? evs[0].code : '');
   resetAutoTimer();
   renderPanel();
   doFetch();
