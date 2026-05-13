@@ -363,8 +363,19 @@ body::after {
 .col-mid {
   border-right: 2px solid var(--border);
   grid-column: 2;
-  grid-row: 1;
-  align-self: start;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+#recordPanel {
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+  min-height: 60px;
+  background: #0a0a0a;
 }
 
 .col-right {
@@ -384,7 +395,6 @@ body::after {
   background: #222222;
   overflow: hidden;
   min-height: 120px;
-  position: relative;
 }
 #timingPanel { flex: 1; min-height: 0; }
 
@@ -741,9 +751,8 @@ body::after {
 .next-panel {
   background: var(--bg2);
   border-left: 3px solid var(--yellow);
-  padding: 8px 14px;
-  flex: 1;
-  min-height: 0;
+  padding: 5px 10px;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -751,31 +760,31 @@ body::after {
 
 .next-name {
   font-family: 'Oswald', sans-serif;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--off-white);
   line-height: 1.2;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   letter-spacing: 0.3px;
 }
 
 .next-time {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--yellow);
   letter-spacing: 2px;
-  margin-top: 6px;
+  margin-top: 3px;
   display: inline-block;
   border: 1px solid rgba(245,196,0,0.3);
   background: rgba(245,196,0,0.05);
-  padding: 2px 10px;
+  padding: 1px 8px;
 }
 
 .next-remark {
   font-family: 'Rajdhani', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-mid);
-  margin-top: 3px;
+  margin-top: 1px;
 }
 
 /* ── RIGHT COLUMN: SCHEDULE ── */
@@ -1089,16 +1098,16 @@ body::after {
         <div class="next-time" id="nextTimePill">—</div>
       </div>
 
+      <div id="recordPanel">
+        <div id="recordHeader" style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:2px;color:var(--text-dim);margin-bottom:5px;">&#11035; TRACK RECORD</div>
+        <div id="recordContent"></div>
+      </div>
     </div><!-- /col-mid -->
 
-    <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ + TRACK RECORDS -->
+    <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
     <div class="col-logo" id="logoPanel">
       <div class="logo-placeholder" id="logoPlaceholder" style="flex:1;display:flex;align-items:center;justify-content:center;">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;max-width:70%;max-height:85%;object-fit:contain;margin:auto;" />
-      <div id="trackRecordSide" style="position:absolute;top:0;right:0;width:210px;height:100%;background:rgba(10,10,10,0.92);border-left:1px solid var(--border);overflow-y:auto;padding:8px 10px;box-sizing:border-box;">
-        <div id="recordHeader" style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px;">&#11035; TRACK RECORDS</div>
-        <div id="recordContent"></div>
-      </div>
     </div>
 
     <!-- COL 3: SCHEDULE LIST -->
@@ -1728,13 +1737,12 @@ function initResultsPanel() {
   selectedYear = '2026';
   const evs = SEASON_EVENTS['2026'] || [];
   const now = new Date();
-  // Utolsó lezajlott esemény
-  const lastPassed = evs.filter(e => e.dateEnd && new Date(e.dateEnd) < now).pop();
-  selectedEventCode = lastPassed ? lastPassed.code : evs[evs.length - 1].code;
+  // Select latest event that has passed
+  selectedEventCode = evs[evs.length - 1].code; // fallback to last
   
   renderPanel();
   doFetch();
-  fetchInterval = setInterval(doFetch, 1800000); // 30 perc
+  fetchInterval = setInterval(doFetch, 30000);
 }
 
 function resetAutoTimer() {
@@ -1751,7 +1759,7 @@ function resetAutoTimer() {
     selectedSession = 'RAC';
     renderPanel();
     doFetch();
-  }, 1800000); // 30 perc
+  }, 30000);
 }
 
 function switchYear(year) {
