@@ -99,6 +99,7 @@ function switchChampionship(champ) {
   var img=document.getElementById('logoPanelImg'); var ph=document.getElementById('logoPlaceholder');
   if(img) img.style.display='none'; if(ph) ph.style.display='none';
   if(champ==='wsbk'){renderWsbkPanel(tp);}else{renderPanel();doFetch();}
+  if(typeof renderRecordPanel==='function')renderRecordPanel();
 }
 
 // ============================================================
@@ -159,6 +160,7 @@ function renderWsbkPanel(panelEl) {
 
   if(wsbkSessionLabel==='STD') loadWsbkStandings(rd);
   else loadWsbkSession(rd);
+  if(typeof renderRecordPanel==='function')renderRecordPanel();
 }
 
 // ============================================================
@@ -231,7 +233,6 @@ function parseSessionText(text) {
     JPN:1,THA:1,INA:1,MAL:1,TUR:1,BRA:1,DOM:1,AUT:1,ARG:1,SUI:1,RSA:1,CAN:1,
     FIN:1,SWE:1,NOR:1,KOR:1,CHI:1,MEX:1,POL:1,CZE:1,DEN:1,IND:1};
   var NOISE = {SBK:1,SSP:1,WCR:1,SPB:1,FIM:1,BMW:1,VDS:1,HRC:1,RR:1,ELF:1,GRT:1};
-  var reLap     = /\d'\d{2}\.\d{3}/g;
   var reTime    = /Time of Race\s+(\d+'\d{2}\.\d{3})/;
   var reRace    = /\b([A-Z]{3})\s+(\d{1,2})\s+(?:(\d+\.\d+)\s+)?(\d{1,2})\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\b/g;
   var reRaceRet = /\b([A-Z]{3})\s+\d{1,2}\s+RET\s+(\d{1,3})\s+([A-Z])\.\s+([A-Z][A-Z\-]+)\b/g;
@@ -251,55 +252,52 @@ function parseSessionText(text) {
   }
   function lapsAfter(idx) {
     var re=/\d'\d{2}\.\d{3}/g; re.lastIndex=idx;
-    var res=[],m; while((m=re.exec(text))!==null && m.index<idx+200) res.push(m[0]);
+    var res=[],m2;
+    while((m2=re.exec(text))!==null && m2.index<idx+200) res.push(m2[0]);
     return res;
   }
   function objArr(obj) {
     var a=[]; for(var k in obj) if(obj.hasOwnProperty(k)) a.push(obj[k]); return a;
   }
 
-  // Time of Race (1. hely ideje)
   var torM = reTime.exec(text);
   var tor  = torM ? torM[1] : null;
-
   var seenNum = {}, rows = [];
 
-  // --- RACE rows ---
+  // Race rows: NAT GRID [GAP] POS NUM INIT. SURNAME
   var raceRows = {}; var m;
   while((m = reRace.exec(text)) !== null) {
     var nat = m[1]; if(!VALID_NAT[nat]) continue;
-    var gap_str = m[3]; // undefined ha 1. hely
-    var pos = parseInt(m[4]), num = parseInt(m[5]);
+    var gapStr = m[3], pos = parseInt(m[4]), num = parseInt(m[5]);
     if(pos<1||pos>60||raceRows[pos]) continue;
-    var init=m[6], sur=m[7];
     var raceTime, gapDisp;
     if(pos===1 && tor) {
-      raceTime = tor; gapDisp = '';
-    } else if(gap_str && tor) {
-      var gapSec = parseFloat(gap_str);
-      raceTime = secToTime(timeToSec(tor) + gapSec);
-      gapDisp  = gapSec < 60 ? '+'+gap_str : '+'+secToTime(gapSec);
+      raceTime=tor; gapDisp='';
+    } else if(gapStr && tor) {
+      var gapSec=parseFloat(gapStr);
+      raceTime=secToTime(timeToSec(tor)+gapSec);
+      gapDisp=gapSec<60?'+'+gapStr:'+'+secToTime(gapSec);
     } else {
-      var lps = lapsAfter(m.index+m[0].length);
-      raceTime = lps.length>=2 ? lps[1] : (lps.length ? lps[0] : '');
-      gapDisp  = '';
+      var lps=lapsAfter(m.index+m[0].length);
+      raceTime=lps.length>=2?lps[1]:(lps.length?lps[0]:'');
+      gapDisp='';
     }
-    var name = init+'. '+sur.charAt(0)+sur.slice(1).toLowerCase();
-    raceRows[pos] = {pos:pos,num:num,name:name,nat:nat,lap:raceTime,gap:gapDisp};
+    var name=m[6]+'. '+m[7].charAt(0)+m[7].slice(1).toLowerCase();
+    raceRows[pos]={pos:pos,num:num,name:name,nat:nat,lap:raceTime,gap:gapDisp};
   }
 
-  // --- RACE RET ---
-  var retRows = [];
-  while((m = reRaceRet.exec(text)) !== null) {
+  // Race RET
+  var retRows=[];
+  while((m=reRaceRet.exec(text))!==null){
     var num=parseInt(m[2]); if(seenNum[num]) continue;
     var lps=lapsAfter(m.index+m[0].length);
     var name=m[3]+'. '+m[4].charAt(0)+m[4].slice(1).toLowerCase();
     retRows.push({pos:'RET',num:num,name:name,nat:m[1],lap:lps.length?lps[0]:'',gap:'DNF'});
   }
 
-  // --- FP/SUP/WUP rows ---
-  var fpRows = {};
-  while((m = reLapPos.exec(text)) !== null) {
+  // FP/SUP/WUP rows: LAPTIME POS
+  var fpRows={};
+  while((m=reLapPos.exec(text))!==null){
     var lap=m[1], pos=parseInt(m[2]);
     if(pos<1||pos>60||fpRows[pos]) continue;
     var before=text.slice(Math.max(0,m.index-200),m.index);
@@ -309,7 +307,9 @@ function parseSessionText(text) {
     var num=parseInt(ni[1]); if(num>999) continue;
     var after=text.slice(m.index+m[0].length,m.index+m[0].length+80);
     reSurname.lastIndex=0; var surMatch=null,sm;
-    while((sm=reSurname.exec(after))!==null){if(!VALID_NAT[sm[1]]&&!NOISE[sm[1]]){surMatch=sm[1];break;}}
+    while((sm=reSurname.exec(after))!==null){
+      if(!VALID_NAT[sm[1]]&&!NOISE[sm[1]]){surMatch=sm[1];break;}
+    }
     if(!surMatch) continue;
     var before2=before.slice(0,ni.index);
     reNatCode.lastIndex=0; var nat='?',nm;
@@ -318,7 +318,7 @@ function parseSessionText(text) {
     fpRows[pos]={pos:pos,num:num,name:name,nat:nat,lap:lap,gap:''};
   }
 
-  // Race vs FP detektálás
+  // Detect race vs FP
   var raceList=objArr(raceRows).sort(function(a,b){return a.pos-b.pos;});
   var fpList  =objArr(fpRows).sort(function(a,b){return a.pos-b.pos;});
   var isRace  =raceList.length>=3&&raceList[0].pos===1&&raceList[1].pos===2&&raceList[2].pos===3;
