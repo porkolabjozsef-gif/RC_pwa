@@ -115,9 +115,9 @@ function renderRecordPanel() {
 
   el.innerHTML =
     '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--text-dim);letter-spacing:2px;margin-bottom:2px;">LAP RECORD &mdash; ' + activeSer + '</div>'
-    + '<div style="font-size:16px;font-family:Oswald,sans-serif;color:#f5c400;letter-spacing:1px;line-height:1.1;margin-bottom:2px;">' + rec.time + '</div>'
-    + '<div style="font-size:9px;color:var(--off-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-      + rec.rider
-      + (rec.year ? '<span style="color:var(--text-dim);"> \u2019' + String(rec.year).slice(2) + '</span>' : '')
+    + '<div style="font-size:14px;font-family:Oswald,sans-serif;color:#f5c400;letter-spacing:1px;line-height:1.2;white-space:nowrap;">'
+      + rec.time
+      + '<span style="color:var(--off-white);font-size:11px;margin-left:8px;">' + rec.rider + '</span>'
+      + (rec.year ? '<span style="color:var(--text-dim);font-size:11px;"> ' + String(rec.year) + '</span>' : '')
     + '</div>';
 }
