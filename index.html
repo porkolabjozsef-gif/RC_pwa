@@ -2926,9 +2926,9 @@ function renderRecordPanel() {
     var tcol = isActive ? '#f5c400' : 'var(--off-white)';
     html += '<tr style="background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.04);">'
       + '<td style="padding:3px 4px;font-family:Oswald,sans-serif;font-size:9px;color:'+col+';width:52px;">'+ser+'</td>'
-      + '<td style="padding:3px 4px;font-family:'Share Tech Mono',monospace;font-size:10px;color:'+tcol+';">'+rec.time+'</td>'
+      + '<td style="padding:3px 4px;font-family:Share Tech Mono,monospace;font-size:10px;color:'+tcol+';">'+rec.time+'</td>'
       + '<td style="padding:3px 4px;font-size:8px;color:var(--text-dim);white-space:nowrap;">'
-        +rec.rider+(rec.year?'&nbsp;''+String(rec.year).slice(2):'')+'</td>'
+        +rec.rider+(rec.year?' \''+String(rec.year).slice(2):'')+'</td>'
       + '</tr>';
   });
   html += '</table>';
