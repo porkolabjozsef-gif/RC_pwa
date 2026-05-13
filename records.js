@@ -114,10 +114,10 @@ function renderRecordPanel() {
   }
 
   el.innerHTML =
-    '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--text-dim);letter-spacing:2px;margin-bottom:2px;">LAP RECORD &mdash; ' + activeSer + '</div>'
-    + '<div style="font-size:14px;font-family:Oswald,sans-serif;color:#f5c400;letter-spacing:1px;line-height:1.2;white-space:nowrap;">'
+    '<div style="font-family:Oswald,sans-serif;font-size:8px;color:var(--text-dim);letter-spacing:2px;margin-bottom:3px;">LAP RECORD &mdash; ' + activeSer + '</div>'
+    + '<div style="font-size:12px;font-family:Oswald,sans-serif;color:#f5c400;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
       + rec.time
-      + '<span style="color:var(--off-white);font-size:11px;margin-left:8px;">' + rec.rider + '</span>'
-      + (rec.year ? '<span style="color:var(--text-dim);font-size:11px;"> ' + String(rec.year) + '</span>' : '')
+      + ' &nbsp; ' + rec.rider
+      + (rec.year ? ' &nbsp; ' + String(rec.year) : '')
     + '</div>';
 }
