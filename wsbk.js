@@ -446,19 +446,8 @@ function renderSessionTable(rd,rows){
 // ============================================================
 // STANDINGS BETÖLTÉSE
 // ============================================================
-// ============================================================
 // STANDINGS — automatikus frissítés az utolsó lezajlott futam alapján
 // ============================================================
-function getLatestFinishedEvent() {
-  var now = new Date();
-  var evList = WSBK_EVENTS[wsbkYear] || [];
-  var latest = null;
-  evList.forEach(function(ev) {
-    if(ev.series && ev.series.indexOf(wsbkSeries) === -1) return;
-    if(new Date(ev.dateEnd) < now) latest = ev;
-  });
-  return latest;
-}
 
 function getStdProxyUrlForEvent(ev) {
   return WSBK_PROXY + wsbkYear + '/' + ev.code + '/'
@@ -475,8 +464,20 @@ function loadWsbkStandings(rd) {
   var latest = getLatestFinishedEvent();
   if(!latest) return;
 
+  // Az év amit a latest event reprezentál (getLatestFinishedEvent visszaadhat más évit)
+  var latestYear = (function() {
+    var now2 = new Date();
+    var years2 = [wsbkYear, '2025', '2026'].filter(function(y,i,a){return a.indexOf(y)===i;});
+    for(var yi2=0; yi2<years2.length; yi2++) {
+      var evList2 = WSBK_EVENTS[years2[yi2]] || [];
+      for(var ei=0; ei<evList2.length; ei++) {
+        if(evList2[ei].code===latest.code && new Date(evList2[ei].dateEnd)<now2) return years2[yi2];
+      }
+    }
+    return wsbkYear;
+  })();
   var base = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
-    + wsbkYear + '/' + latest.code + '/'
+    + latestYear + '/' + latest.code + '/'
     + (WSBK_SERIES_URL[wsbkSeries] || wsbkSeries);
 
   // SBK/SSP/SPB: 003=R2 után (SPR+R1+R2), WCR/R3: 002=R2 után (R1+R2, nincs SPR)
@@ -520,14 +521,22 @@ function loadWsbkStandings(rd) {
 }
 
 function getLatestFinishedEvent() {
+  // Az egész évben az utolsó lezajlott forduló ahol az adott sorozat futott
+  // Ha az aktuális fordulón már fut verseny, azt adja vissza
+  // Ha nem, az előző fordulót adja vissza → így mindig van standings adat
   var now = new Date();
-  var evList = WSBK_EVENTS[wsbkYear] || [];
   var latest = null;
-  evList.forEach(function(ev) {
-    if(ev.series && ev.series.indexOf(wsbkSeries) === -1) return;
-    if(new Date(ev.dateEnd) < now) latest = ev;
-  });
-  return latest;
+  // Végigmegyünk az összes éven (aktuális először)
+  var years = [wsbkYear, '2025', '2026'].filter(function(y,i,a){return a.indexOf(y)===i;});
+  for(var yi=0; yi<years.length; yi++) {
+    var evList = WSBK_EVENTS[years[yi]] || [];
+    evList.forEach(function(ev) {
+      if(ev.series && ev.series.indexOf(wsbkSeries) === -1) return;
+      if(new Date(ev.dateEnd) < now) latest = {ev: ev, year: years[yi]};
+    });
+    if(latest) break;
+  }
+  return latest ? latest.ev : null;
 }
 
 
@@ -1075,6 +1084,19 @@ function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
   pdfjsLib.getDocument(url).promise.then(function(pdf) {
     // PDF létezik → jelöljük cache-ben hogy elérhető
     wsbkSessionCache[cacheKey] = true;
+    // Ha verseny session (R1/SPR/R2) → standings is frissítjük
+    var isRaceSession = (sessCode==='001'||sessCode==='002'||sessCode==='003');
+    if(isRaceSession) {
+      // Töröljük a standings cache-t hogy újra töltse
+      try { sessionStorage.removeItem('wsbk2_std_'+year+'_'+eventCode+'_'+series+'_STD'); } catch(e){}
+      // Ha most WSBK STD nézetben vagyunk → azonnal frissítjük
+      if(activeChampionship==='wsbk' && wsbkEvent===eventCode
+         && wsbkYear===String(year) && wsbkSeries===series
+         && wsbkSessionLabel==='STD') {
+        var rdStd = document.getElementById('wsbkResults');
+        if(rdStd) loadWsbkStandings(rdStd);
+      }
+    }
     console.log('[WSBK] PDF OK:', eventCode, series, sessCode,
       '| aktív:', wsbkEvent, wsbkSeries, wsbkSession, activeChampionship);
     // Ha WSBK módban vagyunk és ez a session aktív → frissítjük a panelt
@@ -1127,6 +1149,8 @@ function scheduleWsbkAutoRefresh(endDt, eventCode, year, series, sessCode) {
   var offsets = [5, 7, 9, 11, 15, 17, 19, 21].map(function(m){ return m * 60 * 1000; });
   var found = false;
 
+  var isRace = (sessCode==='001'||sessCode==='002'||sessCode==='003');
+
   offsets.forEach(function(offset) {
     var fireAt = endMs + offset;
     if(fireAt <= now) return;  // már elmúlt
@@ -1134,7 +1158,16 @@ function scheduleWsbkAutoRefresh(endDt, eventCode, year, series, sessCode) {
     var t = setTimeout(function() {
       if(found) return;  // már megvolt
       tryLoadWsbkSession(eventCode, year, series, sessCode, function(ok) {
-        if(ok) found = true;
+        if(ok) {
+          found = true;
+          // Verseny után standings cache törlése → frissül ha STD nézetben vagyunk
+          if(isRace) {
+            try {
+              var stdKey = 'wsbk2_std_'+year+'_'+eventCode+'_'+series+'_STD';
+              sessionStorage.removeItem(stdKey);
+            } catch(e){}
+          }
+        }
       });
     }, delay);
     wsbkAutoRefreshTimers.push(t);
