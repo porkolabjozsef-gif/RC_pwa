@@ -824,17 +824,17 @@ function loadWsbkScheduleAndInitRefresh() {
   var todayStr = now.toISOString().slice(0,10);
   var year = String(now.getFullYear());
   var evList = WSBK_EVENTS[year] || [];
+  console.log('[WSBK] loadWsbkScheduleAndInitRefresh — today:', todayStr, 'year:', year);
 
   // Megkeressük az aktív vagy legközelebbi fordulót
   var activeEvent = null;
   for (var i = 0; i < evList.length; i++) {
     var ev = evList[i];
     if (!ev.date || !ev.dateEnd) continue;
-    // Ha a mai nap a forduló hétvégéjén belül van (±1 nap tolerancia)
     var start = new Date(ev.date);
-    start.setDate(start.getDate() - 1); // csütörtöktől
+    start.setDate(start.getDate() - 1);
     var end = new Date(ev.dateEnd);
-    end.setDate(end.getDate() + 1); // hétfőig
+    end.setDate(end.getDate() + 1);
     if (now >= start && now <= end) {
       activeEvent = ev;
       break;
@@ -842,27 +842,35 @@ function loadWsbkScheduleAndInitRefresh() {
   }
 
   if (!activeEvent) {
-    // Nincs aktív forduló → fallback: processedSchedule alapú logika
+    console.log('[WSBK] Nincs aktív forduló → fallback initWsbkAutoRefresh');
     initWsbkAutoRefresh();
     return;
   }
 
+  console.log('[WSBK] Aktív forduló:', activeEvent.code);
+
   // Lekérjük a schedule-t a proxy-n keresztül
   var schedUrl = WSBK_PROXY_BASE + 'wsbk-schedule/' + activeEvent.code + '/' + year;
+  console.log('[WSBK] Schedule URL:', schedUrl);
   fetch(schedUrl)
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      console.log('[WSBK] Schedule HTTP status:', r.status);
+      return r.json();
+    })
     .then(function(data) {
-      // A proxy { eventCode, year, sessions: [...] } struktúrát ad vissza
+      console.log('[WSBK] Schedule data:', JSON.stringify(data).slice(0, 300));
       var sessions = data && data.sessions ? data.sessions : (Array.isArray(data) ? data : null);
       if (!sessions || !sessions.length) {
-        initWsbkAutoRefresh(); // fallback
+        console.log('[WSBK] Nincs session → fallback');
+        initWsbkAutoRefresh();
         return;
       }
-      // Timerek beállítása a proxy-ból kapott időpontok alapján
+      console.log('[WSBK] Sessions száma:', sessions.length);
       initWsbkAutoRefreshFromSessions(sessions, activeEvent.code, year);
     })
-    .catch(function() {
-      initWsbkAutoRefresh(); // fallback ha a proxy nem érhető el
+    .catch(function(err) {
+      console.log('[WSBK] Schedule fetch hiba:', err.message, '→ fallback');
+      initWsbkAutoRefresh();
     });
 }
 
@@ -965,14 +973,18 @@ function guessWsbkSessionCode(name, series) {
 // Ha sikeres → frissíti a panelt ha éppen ez a session aktív.
 // cb(true/false) jelzi a sikert.
 function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
-  if(typeof pdfjsLib === 'undefined') { cb(false); return; }
+  if(typeof pdfjsLib === 'undefined') {
+    console.log('[WSBK] tryLoad: pdfjsLib nincs betöltve');
+    cb(false); return;
+  }
   var seriesUrl = WSBK_SERIES_URL[series] || series;
   var url = WSBK_PROXY + year + '/' + eventCode + '/' + seriesUrl
           + '/' + sessCode + '/CLA/Results.pdf';
+  console.log('[WSBK] tryLoadWsbkSession:', url);
 
   pdfjsLib.getDocument(url).promise.then(function(pdf) {
-    // Ha a PDF betöltött → érvényes adat
-    // Frissítjük a panelt ha éppen ez az aktív nézet
+    console.log('[WSBK] PDF OK:', eventCode, series, sessCode,
+      '| aktív:', wsbkEvent, wsbkSeries, wsbkSession, activeChampionship);
     if(wsbkEvent === eventCode && wsbkYear === String(year)
        && wsbkSeries === series && wsbkSession === sessCode
        && activeChampionship === 'wsbk') {
@@ -980,7 +992,10 @@ function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
       if(rd) loadWsbkSession(rd);
     }
     cb(true);
-  }).catch(function() { cb(false); });
+  }).catch(function(err) {
+    console.log('[WSBK] PDF hiba:', eventCode, series, sessCode, err && err.message);
+    cb(false);
+  });
 }
 
 // Ütemezi az auto-refresh próbálkozásokat egy session végéhez képest.
