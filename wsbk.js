@@ -54,10 +54,52 @@ var WSBK_EVENTS = {
 
 var activeChampionship = 'motogp';
 var wsbkYear         = '2026';
-var wsbkEvent        = 'HUN';
 var wsbkSeries       = 'SBK';
 var wsbkSession      = '001';
 var wsbkSessionLabel = 'R1';
+
+// Automatikus forduló kiválasztás dátum alapján:
+// Ha ma versenynapon vagyunk → az aktuális forduló
+// Ha nincs aktív verseny → az utolsó lezajlott forduló
+function autoSelectWsbkEvent() {
+  var now = new Date();
+  var todayStr = now.toISOString().slice(0,10);
+
+  // Végigmegyünk az éveken (2026, 2025)
+  var years = Object.keys(WSBK_EVENTS).sort().reverse();
+  for(var yi = 0; yi < years.length; yi++) {
+    var year = years[yi];
+    var evs = WSBK_EVENTS[year] || [];
+
+    // 1. Aktív forduló (ma a forduló hétvégéjén belül vagyunk)
+    for(var i = 0; i < evs.length; i++) {
+      var ev = evs[i];
+      if(!ev.date || !ev.dateEnd) continue;
+      if(todayStr >= ev.date && todayStr <= ev.dateEnd) {
+        return { year: year, code: ev.code };
+      }
+    }
+
+    // 2. Utolsó lezajlott forduló
+    var lastPassed = null;
+    for(var i = 0; i < evs.length; i++) {
+      var ev = evs[i];
+      if(!ev.dateEnd) continue;
+      if(new Date(ev.dateEnd) < now) lastPassed = ev;
+    }
+    if(lastPassed) return { year: year, code: lastPassed.code };
+  }
+
+  // Fallback: első forduló
+  var firstYear = years[0];
+  var firstEv = (WSBK_EVENTS[firstYear] || [])[0];
+  return firstEv ? { year: firstYear, code: firstEv.code } : { year: '2026', code: 'AUS' };
+}
+
+// Inicializálás
+var _autoWsbk = autoSelectWsbkEvent();
+var wsbkYear  = _autoWsbk.year;
+var wsbkEvent = _autoWsbk.code;
 
 // ============================================================
 // CACHE
@@ -98,17 +140,54 @@ function switchChampionship(champ) {
   tp.style.cssText='width:100%;flex:1;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
   var img=document.getElementById('logoPanelImg'); var ph=document.getElementById('logoPlaceholder');
   if(img) img.style.display='none'; if(ph) ph.style.display='none';
-  if(champ==='wsbk'){renderWsbkPanel(tp);}else{renderPanel();doFetch();}
+  if(champ==='wsbk'){
+    // Automatikusan frissítjük a fordulót dátum alapján
+    var auto = autoSelectWsbkEvent();
+    if(auto.year !== wsbkYear || auto.code !== wsbkEvent) {
+      wsbkYear  = auto.year;
+      wsbkEvent = auto.code;
+      // Sorozat reset ha nem elérhető az aktuális fordulón
+      var serList = (WSBK_EVENTS[wsbkYear]||[]).find(function(e){return e.code===wsbkEvent;});
+      if(serList && serList.series && serList.series.indexOf(wsbkSeries)===-1) {
+        wsbkSeries = serList.series[0] || 'SBK';
+      }
+    }
+    renderWsbkPanel(tp);
+  } else {
+    renderPanel();doFetch();
+  }
   if(typeof renderRecordPanel==='function')renderRecordPanel();
 }
 
 // ============================================================
 // RENDER WSBK PANEL
 // ============================================================
+function getLatestCachedSession(eventCode, year, series) {
+  // Megkeresi a legutolsó elérhető (cache-elt) session kódot
+  var sessions = getWsbkSessions(); // a jelenleg kiválasztott sorozat session listája
+  var latest = null;
+  for(var i = sessions.length - 1; i >= 0; i--) {
+    if(isWsbkSessionCached(eventCode, year, series, sessions[i].code)) {
+      latest = sessions[i];
+      break;
+    }
+  }
+  return latest;
+}
+
 function renderWsbkPanel(panelEl) {
   var evList=WSBK_EVENTS[wsbkYear]||[];
   var seriesList=getWsbkSeriesList();
   var sessions=getWsbkSessions();
+
+  // Ha van cache-elt session → automatikusan a legutolsóra ugrunk
+  var latestCached = getLatestCachedSession(wsbkEvent, wsbkYear, wsbkSeries);
+  if(latestCached && latestCached.code !== wsbkSession) {
+    wsbkSession = latestCached.code;
+    wsbkSessionLabel = latestCached.label;
+    console.log('[WSBK] Auto-jump to latest cached session:', wsbkSession);
+  }
+
   var h='';
 
   h+='<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
@@ -972,6 +1051,10 @@ function guessWsbkSessionCode(name, series) {
 // Megpróbál betölteni egy WSBK session eredményt a háttérben.
 // Ha sikeres → frissíti a panelt ha éppen ez a session aktív.
 // cb(true/false) jelzi a sikert.
+// Cache a háttérben letöltött session adatokhoz
+// Kulcs: 'YEAR_EVENT_SERIES_SESSCODE'
+var wsbkSessionCache = {};
+
 function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
   if(typeof pdfjsLib === 'undefined') {
     console.log('[WSBK] tryLoad: pdfjsLib nincs betöltve');
@@ -980,14 +1063,20 @@ function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
   var seriesUrl = WSBK_SERIES_URL[series] || series;
   var url = WSBK_PROXY + year + '/' + eventCode + '/' + seriesUrl
           + '/' + sessCode + '/CLA/Results.pdf';
+  var cacheKey = year + '_' + eventCode + '_' + series + '_' + sessCode;
   console.log('[WSBK] tryLoadWsbkSession:', url);
 
   pdfjsLib.getDocument(url).promise.then(function(pdf) {
+    // PDF létezik → jelöljük cache-ben hogy elérhető
+    wsbkSessionCache[cacheKey] = true;
     console.log('[WSBK] PDF OK:', eventCode, series, sessCode,
       '| aktív:', wsbkEvent, wsbkSeries, wsbkSession, activeChampionship);
-    if(wsbkEvent === eventCode && wsbkYear === String(year)
-       && wsbkSeries === series && wsbkSession === sessCode
-       && activeChampionship === 'wsbk') {
+    // Ha éppen ez a session aktív a WSBK panelen → frissítjük
+    if(activeChampionship === 'wsbk'
+       && wsbkEvent === eventCode
+       && wsbkYear === String(year)
+       && wsbkSeries === series
+       && wsbkSession === sessCode) {
       var rd = document.getElementById('wsbkResults');
       if(rd) loadWsbkSession(rd);
     }
@@ -996,6 +1085,11 @@ function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
     console.log('[WSBK] PDF hiba:', eventCode, series, sessCode, err && err.message);
     cb(false);
   });
+}
+
+// Ellenőrzi hogy egy session elérhető-e a cache alapján
+function isWsbkSessionCached(eventCode, year, series, sessCode) {
+  return !!wsbkSessionCache[year + '_' + eventCode + '_' + series + '_' + sessCode];
 }
 
 // Ütemezi az auto-refresh próbálkozásokat egy session végéhez képest.
