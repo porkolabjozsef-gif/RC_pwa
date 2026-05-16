@@ -381,13 +381,11 @@ function getStdProxyUrlForEvent(ev) {
 }
 
 function loadWsbkStandings(rd) {
-  // Azonnal embedded adat
+  // Azonnal embedded adat (fallback)
   renderEmbeddedStandings(rd);
 
   // Háttérben: pdf.js parse a legutóbbi futam standings PDF-jéből
-  // 003/STD = Race 2 után (teljes forduló), 002/STD = SPR után, 001/STD = Race 1 után
   if(typeof pdfjsLib === 'undefined') return;
-  if(wsbkSeries === 'R3') return;
   var latest = getLatestFinishedEvent();
   if(!latest) return;
 
@@ -395,9 +393,13 @@ function loadWsbkStandings(rd) {
     + wsbkYear + '/' + latest.code + '/'
     + (WSBK_SERIES_URL[wsbkSeries] || wsbkSeries);
 
-  // Próbáljuk a legteljesebb standings-t: 003 → 002 → 001
-  var sessCodes = ['003','002','001'];
-  var tryNext = function(idx) {
+  // SBK/SSP/SPB: 003=R2 után (SPR+R1+R2), WCR/R3: 002=R2 után (R1+R2, nincs SPR)
+  // Csak SBK-nak van Superpole Race (3. futam) → 003/STD
+  // SSP, SPB, WCR, R3: csak 2 futam → 002/STD a legteljesebb
+  var hasSpr = (wsbkSeries==='SBK');
+  var sessCodes = hasSpr ? ['003','002','001'] : ['002','001'];
+
+  function fetchStandingsPdf(idx) {
     if(idx >= sessCodes.length) return;
     var url = base + '/' + sessCodes[idx] + '/STD/ChampionshipStandings.pdf';
     pdfjsLib.getDocument(url).promise.then(function(pdf){
@@ -414,16 +416,16 @@ function loadWsbkStandings(rd) {
       },Promise.resolve([]));
     }).then(function(pages){
       var riders=parseStandingsText(pages.join(' '));
-      if(!riders||riders.length<5) { tryNext(idx+1); return; }
+      if(!riders||riders.length<5){fetchStandingsPdf(idx+1);return;}
       var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
-      if(riders[0].pts!==maxPts) { tryNext(idx+1); return; }
+      if(riders[0].pts!==maxPts){fetchStandingsPdf(idx+1);return;}
       for(var i=1;i<Math.min(riders.length,5);i++){
-        if(riders[i].pts>riders[i-1].pts) { tryNext(idx+1); return; }
+        if(riders[i].pts>riders[i-1].pts){fetchStandingsPdf(idx+1);return;}
       }
       renderStandingsTable(rd,riders,latest.code);
-    }).catch(function(){ tryNext(idx+1); });
-  };
-  tryNext(0);
+    }).catch(function(){fetchStandingsPdf(idx+1);});
+  }
+  fetchStandingsPdf(0);
 }
 
 function getLatestFinishedEvent() {
@@ -532,7 +534,7 @@ function renderEmbeddedStandings(rd){
   var out='<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:5px;letter-spacing:1px;">'
     +'<span style="color:var(--yellow);">'+label+'</span>'
     +' STANDINGS \u00b7 '+wsbkYear
-    +' <span style="font-size:7px;color:var(--text-dim);">(HUN ut\u00e1n)</span></div>';
+    +' <span style="font-size:7px;color:var(--text-dim);">(HUN R2 ut\u00e1n)</span></div>';
   out+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
   data.forEach(function(r,i){
     var pc=i===0?'#f5c400':i===1?'#bbb':i===2?'#cd7f32':'var(--off-white)';
@@ -555,124 +557,124 @@ function wsbkNoDataHtml() {return '<div style="font-family:Oswald,sans-serif;fon
 // EMBEDDED STANDINGS — HUN 2026 UTÁN
 // ============================================================
 var WSBK_STANDINGS_EMBEDDED = {
-  // Forrás: worldsbk.com ChampionshipStandings.pdf — HUN 2026 után (2026-05-03)
+  // Forrás: worldsbk.com ChampionshipStandings.pdf — HUN 2026 R2 után (2026-05-03)
   SBK: [
-    {n:'Nicolo Bulega',      pts:211},
-    {n:'Iker Lecuona',       pts:137},
-    {n:'Sam Lowes',          pts:89},
-    {n:'Miguel Oliveira',    pts:85},
-    {n:'Alex Lowes',         pts:79},
-    {n:'Alvaro Bautista',    pts:70},
-    {n:'Axel Bassani',       pts:67},
-    {n:'Yari Montella',      pts:61},
-    {n:'Lorenzo Baldassarri',pts:58},
-    {n:'Andrea Locatelli',   pts:53},
-    {n:'Danilo Petrucci',    pts:46},
-    {n:'Xavi Vierge',        pts:40},
-    {n:'Tarran Mackenzie',   pts:36},
-    {n:'Garrett Gerloff',    pts:27},
-    {n:'Alberto Surra',      pts:21},
-    {n:'Remy Gardner',       pts:16},
-    {n:'Stefano Manzi',      pts:9},
-    {n:'Thomas Bridewell',   pts:8},
-    {n:'Tetsuta Nagashima',  pts:7},
-    {n:'Jonathan Rea',       pts:4},
-    {n:'Somkiat Chantra',    pts:1},
-    {n:'Bahattin Sofuoglu',  pts:1},
-    {n:'Ryan Vickers',       pts:1}
+    {n:'Nicolo Bulega',       pts:248},
+    {n:'Iker Lecuona',        pts:166},
+    {n:'Sam Lowes',           pts:99},
+    {n:'Miguel Oliveira',     pts:85},
+    {n:'Yari Montella',       pts:82},
+    {n:'Alex Lowes',          pts:82},
+    {n:'Alvaro Bautista',     pts:81},
+    {n:'Lorenzo Baldassarri', pts:78},
+    {n:'Axel Bassani',        pts:67},
+    {n:'Andrea Locatelli',    pts:53},
+    {n:'Danilo Petrucci',     pts:46},
+    {n:'Xavi Vierge',         pts:40},
+    {n:'Tarran Mackenzie',    pts:36},
+    {n:'Alberto Surra',       pts:33},
+    {n:'Garrett Gerloff',     pts:27},
+    {n:'Remy Gardner',        pts:16},
+    {n:'Stefano Manzi',       pts:9},
+    {n:'Thomas Bridewell',    pts:8},
+    {n:'Tetsuta Nagashima',   pts:7},
+    {n:'Jonathan Rea',        pts:4},
+    {n:'Somkiat Chantra',     pts:1},
+    {n:'Bahattin Sofuoglu',   pts:1},
+    {n:'Ryan Vickers',        pts:1}
   ],
   SSP: [
-    {n:'Albert Arenas',      pts:125},
-    {n:'Jaume Masia',        pts:106},
-    {n:'Valentin Debise',    pts:97},
-    {n:'Philipp Oettl',      pts:89},
-    {n:'Can Oncu',           pts:68},
-    {n:'Lucas Mahias',       pts:59},
-    {n:'Jeremy Alcoba',      pts:56},
-    {n:'Alessandro Zaccone', pts:50},
-    {n:'Tom Booth-Amos',     pts:47},
-    {n:'Matteo Ferrari',     pts:43},
-    {n:'Roberto Garcia',     pts:41},
-    {n:'Aldi Mahendra',      pts:33},
-    {n:'Simon Jespersen',    pts:27},
-    {n:'Mattia Casadei',     pts:21},
-    {n:'Oli Bayliss',        pts:20},
-    {n:'Dominique Aegerter', pts:20},
-    {n:'Corentin Perolari',  pts:16},
-    {n:'Filippo Farioli',    pts:14},
-    {n:'Andrea Giombini',    pts:13},
-    {n:'Ondrej Vostatek',    pts:12},
-    {n:'Josh Whatley',       pts:11},
-    {n:'Federico Caricasulo',pts:10},
-    {n:'Xavi Cardelus',      pts:2}
+    {n:'Albert Arenas',       pts:150},
+    {n:'Jaume Masia',         pts:117},
+    {n:'Valentin Debise',     pts:97},
+    {n:'Philipp Oettl',       pts:89},
+    {n:'Can Oncu',            pts:88},
+    {n:'Lucas Mahias',        pts:65},
+    {n:'Jeremy Alcoba',       pts:56},
+    {n:'Matteo Ferrari',      pts:50},
+    {n:'Alessandro Zaccone',  pts:49},
+    {n:'Tom Booth-Amos',      pts:47},
+    {n:'Roberto Garcia',      pts:41},
+    {n:'Aldi Mahendra',       pts:33},
+    {n:'Simon Jespersen',     pts:27},
+    {n:'Mattia Casadei',      pts:21},
+    {n:'Oli Bayliss',         pts:20},
+    {n:'Dominique Aegerter',  pts:20},
+    {n:'Corentin Perolari',   pts:16},
+    {n:'Filippo Farioli',     pts:14},
+    {n:'Andrea Giombini',     pts:13},
+    {n:'Ondrej Vostatek',     pts:12},
+    {n:'Josh Whatley',        pts:11},
+    {n:'Federico Caricasulo', pts:10},
+    {n:'Xavi Cardelus',       pts:2}
   ],
   WCR: [
-    {n:'Maria Herrera',      pts:115},
-    {n:'Beatriz Neila',      pts:97},
-    {n:'Roberta Ponziani',   pts:65},
-    {n:'Paola Ramos',        pts:61},
-    {n:'Muklada Sarapuech',  pts:45},
-    {n:'Natalia Rivera',     pts:41},
-    {n:'Chloe Jones',        pts:38},
-    {n:'Lucie Boudesseul',   pts:36},
-    {n:'Pakita Ruiz',        pts:35},
-    {n:'Yvonne Cerpa',       pts:28},
-    {n:'Tayla Relph',        pts:27},
-    {n:'Astrid Madrigal',    pts:24},
-    {n:'Sara Sanchez',       pts:20},
-    {n:'Karolina Danak',     pts:18},
-    {n:'Isis Carreno',       pts:9},
-    {n:'Denise Dal Zotto',   pts:9},
-    {n:'Arianna Barale',     pts:7},
-    {n:'Line Vieillard',     pts:7},
-    {n:'Mallory Dobbs',      pts:6},
-    {n:'Patrycja Sowa',      pts:4},
-    {n:'Lucy Michel',        pts:3},
-    {n:'Katie Hand',         pts:2},
-    {n:'Adela Ourednickova', pts:2},
-    {n:'Emily Bondi',        pts:1}
+    {n:'Maria Herrera',       pts:131},
+    {n:'Beatriz Neila',       pts:117},
+    {n:'Paola Ramos',         pts:86},
+    {n:'Roberta Ponziani',    pts:75},
+    {n:'Muklada Sarapuech',   pts:57},
+    {n:'Natalia Rivera',      pts:41},
+    {n:'Chloe Jones',         pts:38},
+    {n:'Lucie Boudesseul',    pts:36},
+    {n:'Pakita Ruiz',         pts:35},
+    {n:'Yvonne Cerpa',        pts:28},
+    {n:'Tayla Relph',         pts:27},
+    {n:'Astrid Madrigal',     pts:30},
+    {n:'Sara Sanchez',        pts:20},
+    {n:'Karolina Danak',      pts:18},
+    {n:'Isis Carreno',        pts:9},
+    {n:'Denise Dal Zotto',    pts:9},
+    {n:'Arianna Barale',      pts:7},
+    {n:'Line Vieillard',      pts:7},
+    {n:'Mallory Dobbs',       pts:6},
+    {n:'Patrycja Sowa',       pts:4},
+    {n:'Lucy Michel',         pts:3},
+    {n:'Katie Hand',          pts:2},
+    {n:'Adela Ourednickova',  pts:2},
+    {n:'Emily Bondi',         pts:1}
   ],
   SPB: [
-    {n:'David Salvador',      pts:69},
-    {n:'Jeffrey Buis',        pts:64},
-    {n:'Ferre Fleerackers',   pts:59},
-    {n:'Xavi Artigas',        pts:54},
-    {n:'Antonio Torres',      pts:53},
-    {n:'Matteo Vannucci',     pts:41},
-    {n:'Loris Veneman',       pts:40},
-    {n:'Bruno Ieraci',        pts:35},
-    {n:'Elia Bartolini',      pts:22},
-    {n:'Kas Beekmans',        pts:19},
-    {n:'Diego Poncet',        pts:18},
-    {n:'Carter Thompson',     pts:16},
-    {n:'Marco Gaggi',         pts:16},
-    {n:'Alvaro Fuertes',      pts:13},
-    {n:'Benat Fernandez',     pts:12},
-    {n:'Harrison Dessoy',     pts:7},
-    {n:'Mirko Gennai',        pts:6},
-    {n:'Alessandro Di Persio',pts:5},
-    {n:'Jose Osuna',          pts:4},
-    {n:'Thomas Benetti',      pts:3},
-    {n:'Mattia Sorrenti',     pts:2},
-    {n:'Gonzalo Sanchez',     pts:1},
-    {n:'Juan Risueno',        pts:1}
+    {n:'David Salvador',       pts:82},
+    {n:'Jeffrey Buis',         pts:82},
+    {n:'Ferre Fleerackers',    pts:77},
+    {n:'Xavi Artigas',         pts:67},
+    {n:'Antonio Torres',       pts:53},
+    {n:'Matteo Vannucci',      pts:50},
+    {n:'Bruno Ieraci',         pts:45},
+    {n:'Loris Veneman',        pts:40},
+    {n:'Elia Bartolini',       pts:32},
+    {n:'Kas Beekmans',         pts:19},
+    {n:'Diego Poncet',         pts:18},
+    {n:'Carter Thompson',      pts:16},
+    {n:'Marco Gaggi',          pts:16},
+    {n:'Alvaro Fuertes',       pts:13},
+    {n:'Benat Fernandez',      pts:12},
+    {n:'Harrison Dessoy',      pts:7},
+    {n:'Mirko Gennai',         pts:6},
+    {n:'Alessandro Di Persio', pts:5},
+    {n:'Jose Osuna',           pts:4},
+    {n:'Thomas Benetti',       pts:3},
+    {n:'Mattia Sorrenti',      pts:2},
+    {n:'Gonzalo Sanchez',      pts:1},
+    {n:'Juan Risueno',         pts:1}
   ],
   R3: [
-    {n:'Aymon Bocanegra',    pts:25},
-    {n:'Xarly Mendez',       pts:20},
-    {n:'Alessandro Binder',  pts:16},
-    {n:'Emanuele Pastore',   pts:13},
-    {n:'Christopher Clark',  pts:11},
-    {n:'Mauro Gomez',        pts:10},
-    {n:'Riichi Takahira',    pts:9},
-    {n:'Rintaro Takemoto',   pts:8},
-    {n:'Angelo Mottola',     pts:7},
-    {n:'Heitor Santana',     pts:6},
-    {n:'Salvatore Germano',  pts:5},
-    {n:'Daniel Krabacher',   pts:4},
-    {n:'Ruggero Berti',      pts:3},
-    {n:'Nathan Bettencourt', pts:2},
-    {n:'Charlie Huntingford',pts:1}
+    {n:'Aymon Bocanegra',    pts:45},
+    {n:'Xarly Mendez',       pts:36},
+    {n:'Alessandro Binder',  pts:29},
+    {n:'Emanuele Pastore',   pts:25},
+    {n:'Christopher Clark',  pts:22},
+    {n:'Mauro Gomez',        pts:18},
+    {n:'Riichi Takahira',    pts:16},
+    {n:'Rintaro Takemoto',   pts:14},
+    {n:'Angelo Mottola',     pts:12},
+    {n:'Heitor Santana',     pts:10},
+    {n:'Salvatore Germano',  pts:8},
+    {n:'Daniel Krabacher',   pts:6},
+    {n:'Ruggero Berti',      pts:5},
+    {n:'Nathan Bettencourt', pts:3},
+    {n:'Charlie Huntingford',pts:2}
   ]
 };
 
