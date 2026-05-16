@@ -396,6 +396,11 @@ function loadWsbkStandings(rd) {
   // SBK/SSP/SPB: 003=R2 után (SPR+R1+R2), WCR/R3: 002=R2 után (R1+R2, nincs SPR)
   // Csak SBK-nak van Superpole Race (3. futam) → 003/STD
   // SSP, SPB, WCR, R3: csak 2 futam → 002/STD a legteljesebb
+  // R3: speciális parser szükséges a más PDF struktúra miatt
+  if(wsbkSeries === 'R3') {
+    fetchR3StandingsPdf(base, rd, latest.code);
+    return;
+  }
   var hasSpr = (wsbkSeries==='SBK');
   var sessCodes = hasSpr ? ['003','002','001'] : ['002','001'];
 
@@ -453,6 +458,119 @@ function getLatestFinishedEvent() {
 // "SZÁM NAGYBETŰS_SZÓVAL SZÁM" mintát
 // ahol a SZÁM = pozíció (1..60) és a rákövetkező SZÁM = pontszám
 // ============================================================
+
+// ============================================================
+// R3 STANDINGS PARSER — speciális PDF struktúra:
+// Minden sor: [pts] [gap_from_1st] [gap_from_prev] [round_pts...] NAME pos
+// pts = leader_pts - gap_from_1st (gap_from_1st az első szám a sorban)
+// Ha gap+pts összefűzve → szétválasztás
+// ============================================================
+function parseR3StandingsText(text) {
+  var riders = [];
+  var leaderPts = null;
+  var lines = text.split(/\n/);
+
+  for(var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    // Keressük: NAGYBETŰS_NÉV (min 3 karakter) + szóköz + pozíció szám a sor végén
+    var m = line.match(/([A-Z]{3,})\s+(\d{1,2})\s*$/);
+    if(!m) continue;
+    var last = m[1];
+    var pos  = parseInt(m[2]);
+    if(pos < 1 || pos > 60) continue;
+
+    // Zaj szavak kizárása
+    var noise = ['ITA','ESP','GBR','USA','AUS','POR','FRA','GER','NED','BEL','JPN',
+                 'THA','INA','MAL','DOM','BRA','SUI','AUT','NZL','RSA','CHI','MEX',
+                 'POL','CZE','DEN','SBK','SSP','WCR','SPB','CLA','STD','FIM','YR'];
+    if(noise.indexOf(last) >= 0) continue;
+
+    // Számok a név előtt
+    var before = line.slice(0, m.index).trim();
+    var nums = before.match(/\d+/g);
+    if(!nums || nums.length === 0) continue;
+
+    var pts;
+    if(pos === 1) {
+      // 1. hely: első szám = pontszám
+      pts = parseInt(nums[0]);
+      leaderPts = pts;
+    } else {
+      if(!leaderPts) continue;
+      var firstNum = parseInt(nums[0]);
+      if(firstNum <= leaderPts) {
+        // Normál eset: gap_from_1st külön
+        pts = leaderPts - firstNum;
+      } else {
+        // Összefűzött: gap|pts → szétválasztás
+        var s = nums[0];
+        pts = null;
+        for(var split = 1; split < s.length; split++) {
+          var gap = parseInt(s.slice(0, split));
+          var ptsCand = parseInt(s.slice(split));
+          if(gap > 0 && gap <= leaderPts && ptsCand > 0 && ptsCand <= leaderPts && leaderPts - gap === ptsCand) {
+            pts = ptsCand;
+            break;
+          }
+        }
+        if(pts === null) pts = leaderPts - (firstNum % leaderPts);
+      }
+    }
+
+    if(!pts || pts < 1 || pts > 999) continue;
+
+    // Keresztnév a következő sorból: "Xarly (DOM)" vagy "2 1Xarly (DOM)"
+    var first = '';
+    if(i + 1 < lines.length) {
+      var nl = lines[i+1].trim();
+      var fn = nl.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*\([A-Z]{2,3}\)/);
+      if(fn) first = fn[1].trim();
+    }
+    var name = first
+      ? first + ' ' + last.charAt(0) + last.slice(1).toLowerCase()
+      : last.charAt(0) + last.slice(1).toLowerCase();
+
+    riders.push({pos: pos, name: name, pts: pts});
+  }
+
+  riders.sort(function(a,b){return a.pos-b.pos;});
+  // Csak összefüggő sorozat
+  var clean = [];
+  for(var j = 0; j < riders.length; j++) {
+    if(riders[j].pos === j+1) clean.push(riders[j]);
+    else break;
+  }
+  return clean.length >= 3 ? clean : null;
+}
+
+// R3 standings PDF betöltése — speciális URL és parser
+function fetchR3StandingsPdf(base, rd, eventCode) {
+  // R3-nak nincs SPR → 002/STD a legteljesebb
+  var sessCodes = ['002','001'];
+  function tryNext(idx) {
+    if(idx >= sessCodes.length) return;
+    var url = base + '/' + sessCodes[idx] + '/STD/ChampionshipStandings.pdf';
+    pdfjsLib.getDocument(url).promise.then(function(pdf) {
+      var nums = []; for(var i = 1; i <= pdf.numPages; i++) nums.push(i);
+      return nums.reduce(function(p, num) {
+        return p.then(function(acc) {
+          return pdf.getPage(num).then(function(page){return page.getTextContent();})
+            .then(function(tc) {
+              var words = tc.items.map(function(it){return it.str;});
+              acc.push(words.join('\n'));
+              return acc;
+            });
+        });
+      }, Promise.resolve([]));
+    }).then(function(pages) {
+      var riders = parseR3StandingsText(pages.join('\n'));
+      if(!riders || riders.length < 3) { tryNext(idx+1); return; }
+      renderStandingsTable(rd, riders, eventCode);
+    }).catch(function(){ tryNext(idx+1); });
+  }
+  tryNext(0);
+}
+
 function parseStandingsText(text) {
   var riders=[];
   var seen={};
@@ -660,21 +778,25 @@ var WSBK_STANDINGS_EMBEDDED = {
     {n:'Juan Risueno',         pts:1}
   ],
   R3: [
-    {n:'Aymon Bocanegra',    pts:45},
-    {n:'Xarly Mendez',       pts:36},
+    {n:'Xarly Mendez',       pts:45},
+    {n:'Aymon Bocanegra',    pts:41},
     {n:'Alessandro Binder',  pts:29},
-    {n:'Emanuele Pastore',   pts:25},
-    {n:'Christopher Clark',  pts:22},
-    {n:'Mauro Gomez',        pts:18},
-    {n:'Riichi Takahira',    pts:16},
-    {n:'Rintaro Takemoto',   pts:14},
-    {n:'Angelo Mottola',     pts:12},
-    {n:'Heitor Santana',     pts:10},
-    {n:'Salvatore Germano',  pts:8},
-    {n:'Daniel Krabacher',   pts:6},
-    {n:'Ruggero Berti',      pts:5},
-    {n:'Nathan Bettencourt', pts:3},
-    {n:'Charlie Huntingford',pts:2}
+    {n:'Angelo Mottola',     pts:27},
+    {n:'Mauro Gomez',        pts:21},
+    {n:'Riichi Takahira',    pts:18},
+    {n:'Emanuele Pastore',   pts:15},
+    {n:'Salvatore Germano',  pts:15},
+    {n:'Christopher Clark',  pts:11},
+    {n:'Heitor Santana',     pts:11},
+    {n:'Daniel Krabacher',   pts:10},
+    {n:'Jean Kento Turner',  pts:8},
+    {n:'Rintaro Takemoto',   pts:8},
+    {n:'Kakeru Okunuki',     pts:7},
+    {n:'Ruggero Berti',      pts:7},
+    {n:'Indi Schunselaar',   pts:3},
+    {n:'Nathan Bettencourt', pts:2},
+    {n:'Greg Marshall',      pts:1},
+    {n:'Charlie Huntingford',pts:1}
   ]
 };
 
