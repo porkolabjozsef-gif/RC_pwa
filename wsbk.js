@@ -810,6 +810,135 @@ var WSBK_STANDINGS_EMBEDDED = {
 // Ha megvan az adat → leáll. Minden sorozatra és session-re.
 // ============================================================
 
+
+// ============================================================
+// WSBK SCHEDULE BETÖLTÉSE A PROXY-N KERESZTÜL
+// A worldsbk.com/en/event/CZE/2026 oldalt parse-olja a proxy
+// és JSON-ként adja vissza a session-öket időpontokkal.
+// ============================================================
+var WSBK_PROXY_BASE = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
+
+function loadWsbkScheduleAndInitRefresh() {
+  // Aktuális forduló meghatározása
+  var now = new Date();
+  var todayStr = now.toISOString().slice(0,10);
+  var year = String(now.getFullYear());
+  var evList = WSBK_EVENTS[year] || [];
+
+  // Megkeressük az aktív vagy legközelebbi fordulót
+  var activeEvent = null;
+  for (var i = 0; i < evList.length; i++) {
+    var ev = evList[i];
+    if (!ev.date || !ev.dateEnd) continue;
+    // Ha a mai nap a forduló hétvégéjén belül van (±1 nap tolerancia)
+    var start = new Date(ev.date);
+    start.setDate(start.getDate() - 1); // csütörtöktől
+    var end = new Date(ev.dateEnd);
+    end.setDate(end.getDate() + 1); // hétfőig
+    if (now >= start && now <= end) {
+      activeEvent = ev;
+      break;
+    }
+  }
+
+  if (!activeEvent) {
+    // Nincs aktív forduló → fallback: processedSchedule alapú logika
+    initWsbkAutoRefresh();
+    return;
+  }
+
+  // Lekérjük a schedule-t a proxy-n keresztül
+  var schedUrl = WSBK_PROXY_BASE + 'wsbk-schedule/' + activeEvent.code + '/' + year;
+  fetch(schedUrl)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      // A proxy { eventCode, year, sessions: [...] } struktúrát ad vissza
+      var sessions = data && data.sessions ? data.sessions : (Array.isArray(data) ? data : null);
+      if (!sessions || !sessions.length) {
+        initWsbkAutoRefresh(); // fallback
+        return;
+      }
+      // Timerek beállítása a proxy-ból kapott időpontok alapján
+      initWsbkAutoRefreshFromSessions(sessions, activeEvent.code, year);
+    })
+    .catch(function() {
+      initWsbkAutoRefresh(); // fallback ha a proxy nem érhető el
+    });
+}
+
+function initWsbkAutoRefreshFromSessions(sessions, eventCode, year) {
+  // Töröljük a régi timereket
+  wsbkAutoRefreshTimers.forEach(function(t){ clearTimeout(t); });
+  wsbkAutoRefreshTimers = [];
+
+  var now = Date.now();
+  var todayStr = new Date().toISOString().slice(0,10);
+  var yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
+
+  sessions.forEach(function(sess) {
+    if (!sess.start || !sess.series || !sess.sessCode) return;
+
+    var startMs = new Date(sess.start).getTime();
+    var endMs   = sess.end ? new Date(sess.end).getTime() : null;
+    var sessDate = sess.start.slice(0,10);
+
+    if (endMs && endMs <= now) {
+      // MÁR LEZAJLOTT SESSION — van tényleges befejezési idő
+      if (sessDate === todayStr || sessDate === yesterday) {
+        // Azonnali ellenőrzés (kis jitter hogy ne egyszerre üssön be)
+        var jitter = Math.floor(Math.random() * 3000);
+        var t = setTimeout(function(s) {
+          return function() {
+            tryLoadWsbkSession(s.eventCode, s.year, s.series, s.sessCode, function(){});
+          };
+        }(sess), jitter);
+        wsbkAutoRefreshTimers.push(t);
+      }
+      // Ha 30 percen belül ért véget → timer-ütemezés is (session_end + 5/7/9/11 perc)
+      if (endMs > now - 30 * 60 * 1000) {
+        scheduleWsbkAutoRefresh(new Date(sess.end), sess.eventCode, sess.year, sess.series, sess.sessCode);
+      }
+    } else if (!endMs && startMs + guessDuration(sess.name) <= now) {
+      // VALÓSZÍNŰLEG MÁR LEZAJLOTT — start + becsült időtartam a múltban van
+      // de a worldsbk.com még nem töltötte ki a data_end-et
+      // → Azonnali ellenőrzés
+      if (sessDate === todayStr || sessDate === yesterday) {
+        var jitter = Math.floor(Math.random() * 5000);
+        var t = setTimeout(function(s) {
+          return function() {
+            tryLoadWsbkSession(s.eventCode, s.year, s.series, s.sessCode, function(){});
+          };
+        }(sess), jitter);
+        wsbkAutoRefreshTimers.push(t);
+        // + timer-ütemezés a becsült vég alapján
+        var estEnd = new Date(startMs + guessDuration(sess.name));
+        scheduleWsbkAutoRefresh(estEnd, sess.eventCode, sess.year, sess.series, sess.sessCode);
+      }
+    } else if (!endMs && startMs <= now) {
+      // FOLYAMATBAN LÉVŐ SESSION — most zajlik
+      // Becsült vég alapján ütemezzük a timert
+      var duration = guessDuration(sess.name);
+      var estimatedEnd = new Date(startMs + duration);
+      scheduleWsbkAutoRefresh(estimatedEnd, sess.eventCode, sess.year, sess.series, sess.sessCode);
+    } else if (startMs > now) {
+      // JÖVŐBELI SESSION — becsült vég alapján ütemezzük
+      var duration = guessDuration(sess.name);
+      var estimatedEnd = new Date(startMs + duration);
+      scheduleWsbkAutoRefresh(estimatedEnd, sess.eventCode, sess.year, sess.series, sess.sessCode);
+    }
+  });
+}
+
+function guessDuration(name) {
+  var n = (name || '').toLowerCase();
+  if (/warm.?up|wup/.test(n))      return 15 * 60 * 1000;
+  if (/superpole race|spr/.test(n)) return 25 * 60 * 1000;
+  if (/superpole|qualifying/.test(n)) return 25 * 60 * 1000;
+  if (/free practice|fp/.test(n))  return 50 * 60 * 1000;
+  if (/race/.test(n))               return 45 * 60 * 1000;
+  return 40 * 60 * 1000; // default
+}
+
 var wsbkAutoRefreshTimers = [];  // aktív timerek nyilvántartása
 
 // Schedule category → wsbkSeries leképezés
@@ -883,7 +1012,8 @@ function scheduleWsbkAutoRefresh(endDt, eventCode, year, series, sessCode) {
 }
 
 // Végigmegy a processedSchedule-on és beütemezi az összes
-// jövőbeli vagy közelmúltbeli WSBK session auto-refresh-ét
+// jövőbeli WSBK session auto-refresh-ét, és egyszeri ellenőrzést
+// indít az összes mai már lezajlott session-re.
 function initWsbkAutoRefresh() {
   // Töröljük a régi timereket
   wsbkAutoRefreshTimers.forEach(function(t){ clearTimeout(t); });
@@ -891,38 +1021,41 @@ function initWsbkAutoRefresh() {
 
   if(typeof processedSchedule === 'undefined') return;
   var now = Date.now();
-  // Csak az elmúlt 30 perc – jövő 24 óra ablakban keressük a session-öket
-  var windowStart = now - 30 * 60 * 1000;
-  var windowEnd   = now + 24 * 60 * 60 * 1000;
+  var windowEnd = now + 24 * 60 * 60 * 1000;
 
-  // Aktuális WSBK forduló meghatározása az időtervből
-  // (a session date alapján)
+  // Mai dátum meghatározása (YYYY-MM-DD)
+  var todayDate = new Date();
+  var todayStr  = todayDate.getFullYear() + '-'
+    + String(todayDate.getMonth()+1).padStart(2,'0') + '-'
+    + String(todayDate.getDate()).padStart(2,'0');
+  // Tegnap is beleszámít (ha éjfél utáni időpont)
+  var yesterday = new Date(todayDate - 24*60*60*1000);
+  var yesterdayStr = yesterday.getFullYear() + '-'
+    + String(yesterday.getMonth()+1).padStart(2,'0') + '-'
+    + String(yesterday.getDate()).padStart(2,'0');
+
   processedSchedule.forEach(function(ev) {
     if(!ev.endDt && !ev.implicitEndDt) return;
     var cat = ev.category || '';
     var series = CATEGORY_TO_SERIES[cat];
-    if(!series) return;  // nem WSBK session
+    if(!series) return;
     if(ev.type !== 'session' && ev.type !== 'race') return;
 
     var endDt = ev.endDt || ev.implicitEndDt;
     if(!endDt) return;
     var endMs = endDt.getTime();
-    if(endMs < windowStart || endMs > windowEnd) return;
+    if(endMs > windowEnd) return;  // jövőben van (> 24 óra) → kihagyjuk
 
-    // Session kód meghatározása
     var sessCode = guessWsbkSessionCode(ev.name, series);
     if(!sessCode) return;
 
-    // Forduló kód meghatározása: az időterv date-jéből + WSBK_EVENTS-ből
-    var evDate = ev.date;  // "YYYY-MM-DD"
+    var evDate = ev.date;
     var eventCode = null;
     var eventYear = evDate ? evDate.slice(0, 4) : String(new Date().getFullYear());
 
-    // Megkeressük melyik WSBK forduló erre a dátumra esik
     var evList = WSBK_EVENTS[eventYear] || [];
     evList.forEach(function(wev) {
       if(!wev.dateEnd) return;
-      // Forduló ablak: dateEnd - 3 nap (csütörtök) ~ dateEnd (vasárnap)
       var wStart = wev.date || wev.dateEnd;
       if(evDate >= wStart && evDate <= wev.dateEnd) {
         eventCode = wev.code;
@@ -931,13 +1064,31 @@ function initWsbkAutoRefresh() {
 
     if(!eventCode) return;
 
-    scheduleWsbkAutoRefresh(endDt, eventCode, eventYear, series, sessCode);
+    if(endMs <= now) {
+      // MÁR LEZAJLOTT SESSION
+      // Ha mai vagy tegnapi → egyszeri azonnali ellenőrzés
+      if(evDate === todayStr || evDate === yesterdayStr) {
+        // Kis véletlenszerű delay hogy ne bombázzuk egyszerre a proxyt
+        var jitter = Math.floor(Math.random() * 3000);
+        var t = setTimeout(function() {
+          tryLoadWsbkSession(eventCode, eventYear, series, sessCode, function(){});
+        }, jitter);
+        wsbkAutoRefreshTimers.push(t);
+      }
+      // A 30 perces ablakban lévőkre timer-ütemezés is jár
+      if(endMs > now - 30 * 60 * 1000) {
+        scheduleWsbkAutoRefresh(endDt, eventCode, eventYear, series, sessCode);
+      }
+    } else {
+      // JÖVŐBELI SESSION → timer-ütemezés
+      scheduleWsbkAutoRefresh(endDt, eventCode, eventYear, series, sessCode);
+    }
   });
 }
 
 document.addEventListener('DOMContentLoaded',function(){
-  // WSBK auto-refresh inicializálása
-  initWsbkAutoRefresh();
+  // WSBK auto-refresh inicializálása — proxy schedule alapján
+  loadWsbkScheduleAndInitRefresh();
   // Ha az időterv később töltődik be, újra inicializálunk
   var _origProcessSchedule = typeof processScheduleData === 'function' ? processScheduleData : null;
   if(_origProcessSchedule) {
