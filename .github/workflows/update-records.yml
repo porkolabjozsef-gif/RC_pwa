@@ -39,13 +39,13 @@ jobs:
       - name: Check for changes
         id: check_changes
         run: |
-          if git diff --quiet records.js; then
+          if git diff --quiet records.js wsbk.js; then
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "Nincs változás a records.js-ben."
+            echo "Nincs változás."
           else
             echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Változás észlelve a records.js-ben!"
-            git diff records.js
+            echo "Változás észlelve!"
+            git diff records.js wsbk.js
           fi
 
       - name: Commit and push if changed
@@ -53,7 +53,6 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add records.js
-          git commit -m "auto: lap records frissítve $(date -u '+%Y-%m-%d')"
+          git add records.js wsbk.js
+          git commit -m "auto: rekordok + standings frissítve $(date -u '+%Y-%m-%d')"
           git push
-
