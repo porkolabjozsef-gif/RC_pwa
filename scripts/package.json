@@ -1,0 +1,10 @@
+{
+  "name": "rc-pwa-records-updater",
+  "version": "1.0.0",
+  "description": "Automatic lap records updater for Race Control Dashboard",
+  "main": "update-records.js",
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "pdf-parse": "^1.1.1"
+  }
+}
