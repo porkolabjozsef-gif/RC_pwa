@@ -1,5 +1,10 @@
-const CACHE = 'race-control-v1';
-const FILES = ['index.html', 'manifest.json'];
+const CACHE = 'race-control-v3';
+const FILES = [
+  'index.html',
+  'manifest.json',
+  'records.js',
+  'wsbk.js'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
