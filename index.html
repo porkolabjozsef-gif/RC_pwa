@@ -1733,17 +1733,29 @@ function initResultsPanel() {
     autoCat = activeCat;
     selectedCat = activeCat;
   }
-  // Automatikusan az aktuális szezon és legutóbbi futam
+  // Automatikusan az aktuális szezon és helyes forduló dátum alapján
   selectedYear = '2026';
   const evs = SEASON_EVENTS['2026'] || [];
   const now = new Date();
-  // Utolsó lezajlott esemény
+  const todayStr = now.toISOString().slice(0,10);
+  // 1. Aktív forduló (ma versenynapon vagyunk)
+  const activeEv = evs.find(e => e.date && e.dateEnd && todayStr >= e.date && todayStr <= e.dateEnd);
+  // 2. Utolsó lezajlott forduló
   const lastPassed = evs.filter(e => e.dateEnd && new Date(e.dateEnd) < now).pop();
-  selectedEventCode = lastPassed ? lastPassed.code : evs[0].code;
+  selectedEventCode = (activeEv || lastPassed || evs[0]).code;
   
   renderPanel();
   doFetch();
   fetchInterval = setInterval(doFetch, 30000);
+}
+
+function autoSelectMotoGPEvent() {
+  const now2 = new Date();
+  const todayStr2 = now2.toISOString().slice(0,10);
+  const evs2 = SEASON_EVENTS[selectedYear] || [];
+  const activeEv2 = evs2.find(e => e.date && e.dateEnd && todayStr2 >= e.date && todayStr2 <= e.dateEnd);
+  const lastPassed2 = evs2.filter(e => e.dateEnd && new Date(e.dateEnd) < now2).pop();
+  return (activeEv2 || lastPassed2 || evs2[0] || {}).code || selectedEventCode;
 }
 
 function resetAutoTimer() {
@@ -1757,6 +1769,8 @@ function resetAutoTimer() {
     } else {
       selectedCat = autoCat;
     }
+    // Dátum alapján helyes forduló
+    selectedEventCode = autoSelectMotoGPEvent();
     selectedSession = 'RAC';
     renderPanel();
     doFetch();
@@ -1765,10 +1779,7 @@ function resetAutoTimer() {
 
 function switchYear(year) {
   selectedYear = year;
-  const evs = SEASON_EVENTS[year] || [];
-  const now2 = new Date();
-  const lastP = evs.filter(e => e.dateEnd && new Date(e.dateEnd) < now2).pop();
-  selectedEventCode = lastP ? lastP.code : (evs.length ? evs[0].code : '');
+  selectedEventCode = autoSelectMotoGPEvent();
   resetAutoTimer();
   renderPanel();
   doFetch();
