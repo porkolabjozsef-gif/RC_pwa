@@ -153,6 +153,9 @@ function switchChampionship(champ) {
       }
     }
     renderWsbkPanel(tp);
+    // Azonnal betöltjük az eredményeket
+    var rd = document.getElementById('wsbkResults');
+    if(rd) loadWsbkSession(rd);
   } else {
     renderPanel();doFetch();
   }
@@ -1071,7 +1074,7 @@ function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
     wsbkSessionCache[cacheKey] = true;
     console.log('[WSBK] PDF OK:', eventCode, series, sessCode,
       '| aktív:', wsbkEvent, wsbkSeries, wsbkSession, activeChampionship);
-    // Ha éppen ez a session aktív a WSBK panelen → frissítjük
+    // Ha WSBK módban vagyunk és ez a session aktív → frissítjük a panelt
     if(activeChampionship === 'wsbk'
        && wsbkEvent === eventCode
        && wsbkYear === String(year)
@@ -1079,6 +1082,21 @@ function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
        && wsbkSession === sessCode) {
       var rd = document.getElementById('wsbkResults');
       if(rd) loadWsbkSession(rd);
+    }
+    // Ha WSBK módban vagyunk és ez az esemény aktív, de más session →
+    // frissítjük a panel session gombjait hogy a cache-elt session-ök láthatók legyenek
+    if(activeChampionship === 'wsbk'
+       && wsbkEvent === eventCode
+       && wsbkYear === String(year)) {
+      var tp = document.getElementById('timingPanel');
+      if(tp) {
+        var auto = getLatestCachedSession(eventCode, String(year), wsbkSeries);
+        if(auto && auto.code !== wsbkSession) {
+          wsbkSession = auto.code;
+          wsbkSessionLabel = auto.label;
+          renderWsbkPanel(tp);
+        }
+      }
     }
     cb(true);
   }).catch(function(err) {
