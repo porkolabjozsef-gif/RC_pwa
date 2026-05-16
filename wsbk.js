@@ -385,38 +385,45 @@ function loadWsbkStandings(rd) {
   renderEmbeddedStandings(rd);
 
   // Háttérben: pdf.js parse a legutóbbi futam standings PDF-jéből
+  // 003/STD = Race 2 után (teljes forduló), 002/STD = SPR után, 001/STD = Race 1 után
   if(typeof pdfjsLib === 'undefined') return;
-  if(wsbkSeries === 'R3') return; // R3 PDF formátuma nem parse-olható megbízhatóan
+  if(wsbkSeries === 'R3') return;
   var latest = getLatestFinishedEvent();
   if(!latest) return;
 
-  var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
+  var base = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
     + wsbkYear + '/' + latest.code + '/'
-    + (WSBK_SERIES_URL[wsbkSeries] || wsbkSeries)
-    + '/001/STD/ChampionshipStandings.pdf';
+    + (WSBK_SERIES_URL[wsbkSeries] || wsbkSeries);
 
-  pdfjsLib.getDocument(url).promise.then(function(pdf){
-    var nums=[]; for(var i=1;i<=pdf.numPages;i++) nums.push(i);
-    return nums.reduce(function(p,num){
-      return p.then(function(acc){
-        return pdf.getPage(num).then(function(page){return page.getTextContent();})
-          .then(function(tc){
-            var words=tc.items.map(function(it){return it.str;}).filter(function(s){return s.trim();});
-            acc.push(words.join(' '));
-            return acc;
-          });
-      });
-    },Promise.resolve([]));
-  }).then(function(pages){
-    var riders=parseStandingsText(pages.join(' '));
-    if(!riders||riders.length<5) return;
-    var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
-    if(riders[0].pts!==maxPts) return;
-    for(var i=1;i<Math.min(riders.length,5);i++){
-      if(riders[i].pts>riders[i-1].pts) return;
-    }
-    renderStandingsTable(rd,riders,latest.code);
-  }).catch(function(){});
+  // Próbáljuk a legteljesebb standings-t: 003 → 002 → 001
+  var sessCodes = ['003','002','001'];
+  var tryNext = function(idx) {
+    if(idx >= sessCodes.length) return;
+    var url = base + '/' + sessCodes[idx] + '/STD/ChampionshipStandings.pdf';
+    pdfjsLib.getDocument(url).promise.then(function(pdf){
+      var nums=[]; for(var i=1;i<=pdf.numPages;i++) nums.push(i);
+      return nums.reduce(function(p,num){
+        return p.then(function(acc){
+          return pdf.getPage(num).then(function(page){return page.getTextContent();})
+            .then(function(tc){
+              var words=tc.items.map(function(it){return it.str;}).filter(function(s){return s.trim();});
+              acc.push(words.join(' '));
+              return acc;
+            });
+        });
+      },Promise.resolve([]));
+    }).then(function(pages){
+      var riders=parseStandingsText(pages.join(' '));
+      if(!riders||riders.length<5) { tryNext(idx+1); return; }
+      var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
+      if(riders[0].pts!==maxPts) { tryNext(idx+1); return; }
+      for(var i=1;i<Math.min(riders.length,5);i++){
+        if(riders[i].pts>riders[i-1].pts) { tryNext(idx+1); return; }
+      }
+      renderStandingsTable(rd,riders,latest.code);
+    }).catch(function(){ tryNext(idx+1); });
+  };
+  tryNext(0);
 }
 
 function getLatestFinishedEvent() {
