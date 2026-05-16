@@ -801,7 +801,151 @@ var WSBK_STANDINGS_EMBEDDED = {
   ]
 };
 
+
+// ============================================================
+// WSBK AUTO-REFRESH
+// Minden WSBK session vége után automatikusan próbálja betölteni
+// az eredményeket: session_vége+5 perc, majd 3×2 perc,
+// ha akkor sincs: +15 perc, majd újabb 3×2 perc.
+// Ha megvan az adat → leáll. Minden sorozatra és session-re.
+// ============================================================
+
+var wsbkAutoRefreshTimers = [];  // aktív timerek nyilvántartása
+
+// Schedule category → wsbkSeries leképezés
+var CATEGORY_TO_SERIES = {
+  'WorldSBK': 'SBK', 'WorldSSP': 'SSP', 'WorldWCR': 'WCR',
+  'WorldSPB': 'SPB', 'R3': 'R3', 'FIM Yamaha R3': 'R3'
+};
+
+// Session név → session kód leképezés sorozatonként
+function guessWsbkSessionCode(name, series) {
+  var n = (name || '').toLowerCase();
+  if(/race 2|race two/.test(n))      return series === 'SBK' ? '003' : '002';
+  if(/superpole race|sprint/.test(n)) return '002';  // SBK SPR
+  if(/race 1|race one|race$/.test(n)) return '001';
+  if(/warm.?up|wup/.test(n))          return 'W1A';
+  if(/superpole|qualifying|tissot sup/.test(n)) return 'Q1A';
+  if(/free practice 3|fp3/.test(n))  return 'L3A';
+  if(/free practice 2|fp2/.test(n))  return 'L2A';
+  if(/free practice|fp/.test(n))     return 'L1A';
+  return null;
+}
+
+// Megpróbál betölteni egy WSBK session eredményt a háttérben.
+// Ha sikeres → frissíti a panelt ha éppen ez a session aktív.
+// cb(true/false) jelzi a sikert.
+function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
+  if(typeof pdfjsLib === 'undefined') { cb(false); return; }
+  var seriesUrl = WSBK_SERIES_URL[series] || series;
+  var url = WSBK_PROXY + year + '/' + eventCode + '/' + seriesUrl
+          + '/' + sessCode + '/CLA/Results.pdf';
+
+  pdfjsLib.getDocument(url).promise.then(function(pdf) {
+    // Ha a PDF betöltött → érvényes adat
+    // Frissítjük a panelt ha éppen ez az aktív nézet
+    if(wsbkEvent === eventCode && wsbkYear === String(year)
+       && wsbkSeries === series && wsbkSession === sessCode
+       && activeChampionship === 'wsbk') {
+      var rd = document.getElementById('wsbkResults');
+      if(rd) loadWsbkSession(rd);
+    }
+    cb(true);
+  }).catch(function() { cb(false); });
+}
+
+// Ütemezi az auto-refresh próbálkozásokat egy session végéhez képest.
+// endDt: session vége (Date objektum)
+// eventCode, year, series, sessCode: azonosítók
+function scheduleWsbkAutoRefresh(endDt, eventCode, year, series, sessCode) {
+  if(!endDt) return;
+  var now = Date.now();
+  var endMs = endDt.getTime();
+
+  // Próbálkozási ütemterv (ms-ban az endDt-től):
+  // +5 perc, +7 perc, +9 perc, +11 perc (1. kör: 3×2 perc)
+  // +15 perc, +17 perc, +19 perc, +21 perc (2. kör: +15+3×2 perc)
+  var offsets = [5, 7, 9, 11, 15, 17, 19, 21].map(function(m){ return m * 60 * 1000; });
+  var found = false;
+
+  offsets.forEach(function(offset) {
+    var fireAt = endMs + offset;
+    if(fireAt <= now) return;  // már elmúlt
+    var delay = fireAt - now;
+    var t = setTimeout(function() {
+      if(found) return;  // már megvolt
+      tryLoadWsbkSession(eventCode, year, series, sessCode, function(ok) {
+        if(ok) found = true;
+      });
+    }, delay);
+    wsbkAutoRefreshTimers.push(t);
+  });
+}
+
+// Végigmegy a processedSchedule-on és beütemezi az összes
+// jövőbeli vagy közelmúltbeli WSBK session auto-refresh-ét
+function initWsbkAutoRefresh() {
+  // Töröljük a régi timereket
+  wsbkAutoRefreshTimers.forEach(function(t){ clearTimeout(t); });
+  wsbkAutoRefreshTimers = [];
+
+  if(typeof processedSchedule === 'undefined') return;
+  var now = Date.now();
+  // Csak az elmúlt 30 perc – jövő 24 óra ablakban keressük a session-öket
+  var windowStart = now - 30 * 60 * 1000;
+  var windowEnd   = now + 24 * 60 * 60 * 1000;
+
+  // Aktuális WSBK forduló meghatározása az időtervből
+  // (a session date alapján)
+  processedSchedule.forEach(function(ev) {
+    if(!ev.endDt && !ev.implicitEndDt) return;
+    var cat = ev.category || '';
+    var series = CATEGORY_TO_SERIES[cat];
+    if(!series) return;  // nem WSBK session
+    if(ev.type !== 'session' && ev.type !== 'race') return;
+
+    var endDt = ev.endDt || ev.implicitEndDt;
+    if(!endDt) return;
+    var endMs = endDt.getTime();
+    if(endMs < windowStart || endMs > windowEnd) return;
+
+    // Session kód meghatározása
+    var sessCode = guessWsbkSessionCode(ev.name, series);
+    if(!sessCode) return;
+
+    // Forduló kód meghatározása: az időterv date-jéből + WSBK_EVENTS-ből
+    var evDate = ev.date;  // "YYYY-MM-DD"
+    var eventCode = null;
+    var eventYear = evDate ? evDate.slice(0, 4) : String(new Date().getFullYear());
+
+    // Megkeressük melyik WSBK forduló erre a dátumra esik
+    var evList = WSBK_EVENTS[eventYear] || [];
+    evList.forEach(function(wev) {
+      if(!wev.dateEnd) return;
+      // Forduló ablak: dateEnd - 3 nap (csütörtök) ~ dateEnd (vasárnap)
+      var wStart = wev.date || wev.dateEnd;
+      if(evDate >= wStart && evDate <= wev.dateEnd) {
+        eventCode = wev.code;
+      }
+    });
+
+    if(!eventCode) return;
+
+    scheduleWsbkAutoRefresh(endDt, eventCode, eventYear, series, sessCode);
+  });
+}
+
 document.addEventListener('DOMContentLoaded',function(){
+  // WSBK auto-refresh inicializálása
+  initWsbkAutoRefresh();
+  // Ha az időterv később töltődik be, újra inicializálunk
+  var _origProcessSchedule = typeof processScheduleData === 'function' ? processScheduleData : null;
+  if(_origProcessSchedule) {
+    processScheduleData = function() {
+      _origProcessSchedule.apply(this, arguments);
+      initWsbkAutoRefresh();
+    };
+  }
   if(typeof pdfjsLib!=='undefined'){
     pdfjsLib.GlobalWorkerOptions.workerSrc=
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
