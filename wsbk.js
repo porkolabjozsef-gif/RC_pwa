@@ -155,6 +155,7 @@ function renderWsbkPanel(panelEl) {
       +'<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">'+evInfo.name.toUpperCase()+'</div>'
       +'<div style="font-family:Oswald,sans-serif;font-size:16px;color:var(--yellow);">'+evInfo.date.replace(/-/g,'.')+' \u2013 '+evInfo.dateEnd.replace(/-/g,'.')+'</div>'
       +'<div style="font-size:9px;color:var(--text-dim);margin-top:6px;">MEG NEM ZAJLOTT LE</div></div>';
+    if(typeof renderRecordPanel==='function') renderRecordPanel();
     return;
   }
 
