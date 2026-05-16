@@ -1,0 +1,59 @@
+name: Update Lap Records
+
+on:
+  schedule:
+    # Hétfőnként 4:00 UTC-kor (06:00 CET, 07:00 CEST)
+    # WSBK/MotoGP fordulók péntektől vasárnapig zajlanak,
+    # hétfőn már biztosan minden eredmény és PDF elérhető.
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    # Kézzel is indítható a GitHub Actions felületéről
+
+jobs:
+  update-records:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # szükséges a git push-hoz
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd scripts
+          npm install
+
+      - name: Run records updater
+        run: node scripts/update-records.js
+        env:
+          # Ha a proxy CORS-t igényel szerver oldalon, ide kerülhet API kulcs
+          WSBK_PROXY: 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
+          MOTOGP_PROXY: 'https://motogp-proxy.porkolab-jozsef.workers.dev/'
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet records.js; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Nincs változás a records.js-ben."
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Változás észlelve a records.js-ben!"
+            git diff records.js
+          fi
+
+      - name: Commit and push if changed
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add records.js
+          git commit -m "auto: lap records frissítve $(date -u '+%Y-%m-%d')"
+          git push
+
