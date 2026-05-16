@@ -226,7 +226,7 @@ function renderWsbkPanel(panelEl) {
     var isStd=sess.label==='STD';
     var ac=isStd?'var(--green)':'var(--yellow)';
     var ab=isStd?'rgba(29,185,84,0.2)':'rgba(245,196,0,0.2)';
-    h+='<button onclick="wsbkSession=\''+sess.code+'\';wsbkSessionLabel=\''+sess.label+'\';renderWsbkPanel(document.getElementById(\'timingPanel\'));var rd2=document.getElementById(\'wsbkResults\');if(rd2)loadWsbkSession(rd2);" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:'+(active?'3px solid '+ac:'3px solid transparent')+';background:'+(active?ab:'transparent')+';color:'+(active?ac:'var(--text-dim)')+';">'+sess.label+'</button>';
+    h+='<button onclick="wsbkSession=\''+sess.code+'\';wsbkSessionLabel=\''+sess.label+'\';renderWsbkPanel(document.getElementById(\'timingPanel\'));var rd2=document.getElementById(\'wsbkResults\');if(rd2){\''+sess.label+'\'===\'STD\'?loadWsbkStandings(rd2):loadWsbkSession(rd2);}" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:'+(active?'3px solid '+ac:'3px solid transparent')+';background:'+(active?ab:'transparent')+';color:'+(active?ac:'var(--text-dim)')+';">'+sess.label+'</button>';
   });
   h+='</div>';
 
@@ -461,21 +461,12 @@ function loadWsbkStandings(rd) {
 
   // Háttérben: pdf.js parse a legutóbbi futam standings PDF-jéből
   if(typeof pdfjsLib === 'undefined') return;
-  var latest = getLatestFinishedEvent();
-  if(!latest) return;
+  var latestResult = getLatestFinishedEvent();
+  console.log('[WSBK STD] latest:', latestResult ? latestResult.ev.code + ' ' + latestResult.year : 'null', 'series:', wsbkSeries);
+  if(!latestResult) { console.log('[WSBK STD] nincs lezajlott forduló'); return; }
+  var latest = latestResult.ev;
+  var latestYear = latestResult.year;
 
-  // Az év amit a latest event reprezentál (getLatestFinishedEvent visszaadhat más évit)
-  var latestYear = (function() {
-    var now2 = new Date();
-    var years2 = [wsbkYear, '2025', '2026'].filter(function(y,i,a){return a.indexOf(y)===i;});
-    for(var yi2=0; yi2<years2.length; yi2++) {
-      var evList2 = WSBK_EVENTS[years2[yi2]] || [];
-      for(var ei=0; ei<evList2.length; ei++) {
-        if(evList2[ei].code===latest.code && new Date(evList2[ei].dateEnd)<now2) return years2[yi2];
-      }
-    }
-    return wsbkYear;
-  })();
   var base = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
     + latestYear + '/' + latest.code + '/'
     + (WSBK_SERIES_URL[wsbkSeries] || wsbkSeries);
@@ -522,21 +513,27 @@ function loadWsbkStandings(rd) {
 
 function getLatestFinishedEvent() {
   // Az egész évben az utolsó lezajlott forduló ahol az adott sorozat futott
-  // Ha az aktuális fordulón már fut verseny, azt adja vissza
-  // Ha nem, az előző fordulót adja vissza → így mindig van standings adat
   var now = new Date();
-  var latest = null;
-  // Végigmegyünk az összes éven (aktuális először)
+  var result = null;
   var years = [wsbkYear, '2025', '2026'].filter(function(y,i,a){return a.indexOf(y)===i;});
   for(var yi=0; yi<years.length; yi++) {
     var evList = WSBK_EVENTS[years[yi]] || [];
-    evList.forEach(function(ev) {
-      if(ev.series && ev.series.indexOf(wsbkSeries) === -1) return;
-      if(new Date(ev.dateEnd) < now) latest = {ev: ev, year: years[yi]};
-    });
-    if(latest) break;
+    for(var ei=0; ei<evList.length; ei++) {
+      var ev = evList[ei];
+      if(ev.series && ev.series.indexOf(wsbkSeries) === -1) continue;
+      // dateEnd + 23:59 → a nap végéig lezajlottnak számít
+      var endDt = new Date(ev.dateEnd + 'T23:59:59');
+      if(endDt < now) result = {ev: ev, year: years[yi]};
+    }
+    if(result) break;
   }
-  return latest ? latest.ev : null;
+  return result || null; // {ev, year} vagy null
+}
+
+// Segéd: csak az event objektumot adja vissza (backward compat)
+function getLatestFinishedEventObj() {
+  var r = getLatestFinishedEvent();
+  return r ? r.ev : null;
 }
 
 
