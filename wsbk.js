@@ -183,12 +183,15 @@ function renderWsbkPanel(panelEl) {
   var seriesList=getWsbkSeriesList();
   var sessions=getWsbkSessions();
 
-  // Ha van cache-elt session → automatikusan a legutolsóra ugrunk
-  var latestCached = getLatestCachedSession(wsbkEvent, wsbkYear, wsbkSeries);
-  if(latestCached && latestCached.code !== wsbkSession) {
-    wsbkSession = latestCached.code;
-    wsbkSessionLabel = latestCached.label;
-    console.log('[WSBK] Auto-jump to latest cached session:', wsbkSession);
+  // Ha az aktuális session nem cache-elt → ugrunk a legutolsó cache-elt-re
+  // De csak ha a felhasználó nem választott manuálisan (isWsbkSessionCached false)
+  if(!isWsbkSessionCached(wsbkEvent, wsbkYear, wsbkSeries, wsbkSession)) {
+    var latestCached = getLatestCachedSession(wsbkEvent, wsbkYear, wsbkSeries);
+    if(latestCached) {
+      wsbkSession = latestCached.code;
+      wsbkSessionLabel = latestCached.label;
+      console.log('[WSBK] Auto-jump to latest cached session:', wsbkSession);
+    }
   }
 
   var h='';
@@ -223,7 +226,7 @@ function renderWsbkPanel(panelEl) {
     var isStd=sess.label==='STD';
     var ac=isStd?'var(--green)':'var(--yellow)';
     var ab=isStd?'rgba(29,185,84,0.2)':'rgba(245,196,0,0.2)';
-    h+='<button onclick="wsbkSession=\''+sess.code+'\';wsbkSessionLabel=\''+sess.label+'\';renderWsbkPanel(document.getElementById(\'timingPanel\'));" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:'+(active?'3px solid '+ac:'3px solid transparent')+';background:'+(active?ab:'transparent')+';color:'+(active?ac:'var(--text-dim)')+';">'+sess.label+'</button>';
+    h+='<button onclick="wsbkSession=\''+sess.code+'\';wsbkSessionLabel=\''+sess.label+'\';renderWsbkPanel(document.getElementById(\'timingPanel\'));var rd2=document.getElementById(\'wsbkResults\');if(rd2)loadWsbkSession(rd2);" style="flex:1;font-family:Oswald,sans-serif;font-size:9px;padding:8px 2px;cursor:pointer;border:none;border-bottom:'+(active?'3px solid '+ac:'3px solid transparent')+';background:'+(active?ab:'transparent')+';color:'+(active?ac:'var(--text-dim)')+';">'+sess.label+'</button>';
   });
   h+='</div>';
 
