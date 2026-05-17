@@ -1,4 +1,4 @@
-const CACHE = 'race-control-v4';
+const CACHE = 'race-control-v5';
 const STATIC = ['index.html', 'manifest.json', 'records.js', 'wsbk.js'];
 
 self.addEventListener('install', e => {
