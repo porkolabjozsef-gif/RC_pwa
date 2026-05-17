@@ -534,7 +534,10 @@ function loadWsbkStandings(rd) {
         });
       },Promise.resolve([]));
     }).then(function(pages){
-      var riders=parseStandingsText(pages.join(' '));
+      var rawText=pages.join(' ');
+      console.log('[WSBK STD] pdf.js szöveg:', rawText.slice(0,300));
+      var riders=parseStandingsText(rawText);
+      console.log('[WSBK STD] riders:', riders?riders.length:0);
       if(!riders||riders.length<5){fetchStandingsPdf(idx+1);return;}
       var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
       if(riders[0].pts!==maxPts){fetchStandingsPdf(idx+1);return;}
