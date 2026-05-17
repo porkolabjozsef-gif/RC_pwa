@@ -183,16 +183,8 @@ function renderWsbkPanel(panelEl) {
   var seriesList=getWsbkSeriesList();
   var sessions=getWsbkSessions();
 
-  // Ha az aktuális session nem cache-elt → ugrunk a legutolsó cache-elt-re
-  // De csak ha a felhasználó nem választott manuálisan (isWsbkSessionCached false)
-  if(!isWsbkSessionCached(wsbkEvent, wsbkYear, wsbkSeries, wsbkSession)) {
-    var latestCached = getLatestCachedSession(wsbkEvent, wsbkYear, wsbkSeries);
-    if(latestCached) {
-      wsbkSession = latestCached.code;
-      wsbkSessionLabel = latestCached.label;
-      console.log('[WSBK] Auto-jump to latest cached session:', wsbkSession);
-    }
-  }
+  // Auto-jump csak akkor ha STD-t nézünk (standings mindig elérhető)
+  // Session váltásnál NEM futunk auto-jump-ot
 
   var h='';
 
@@ -739,6 +731,7 @@ function renderStandingsTable(rd, riders, eventCode){
 function renderEmbeddedStandings(rd){
   var data=WSBK_STANDINGS_EMBEDDED[wsbkSeries]||[];
   var label=WSBK_SERIES_LABELS[wsbkSeries]||wsbkSeries;
+  console.log('[WSBK STD] renderEmbeddedStandings series:', wsbkSeries, 'data count:', data.length);
   if(!data.length){rd.innerHTML=wsbkNoDataHtml();return;}
   var leader=data[0].pts;
   var out='<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:5px;letter-spacing:1px;">'
@@ -1105,21 +1098,7 @@ function tryLoadWsbkSession(eventCode, year, series, sessCode, cb) {
       var rd = document.getElementById('wsbkResults');
       if(rd) loadWsbkSession(rd);
     }
-    // Ha WSBK módban vagyunk és ez az esemény aktív, de más session →
-    // frissítjük a panel session gombjait hogy a cache-elt session-ök láthatók legyenek
-    if(activeChampionship === 'wsbk'
-       && wsbkEvent === eventCode
-       && wsbkYear === String(year)) {
-      var tp = document.getElementById('timingPanel');
-      if(tp) {
-        var auto = getLatestCachedSession(eventCode, String(year), wsbkSeries);
-        if(auto && auto.code !== wsbkSession) {
-          wsbkSession = auto.code;
-          wsbkSessionLabel = auto.label;
-          renderWsbkPanel(tp);
-        }
-      }
-    }
+
     cb(true);
   }).catch(function(err) {
     console.log('[WSBK] PDF hiba:', eventCode, series, sessCode, err && err.message);
