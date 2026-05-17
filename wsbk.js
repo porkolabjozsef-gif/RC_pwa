@@ -451,23 +451,31 @@ function loadWsbkStandings(rd) {
   // Azonnal embedded adat (fallback amíg a live adat tölt)
   renderEmbeddedStandings(rd);
 
-  // Élő standings a worldsbk.com-ról a proxyn keresztül
-  var seriesParam = wsbkSeries.toLowerCase();
-  var liveUrl = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-live-std/'
-    + seriesParam + '/' + wsbkYear;
-  console.log('[WSBK STD] live fetch:', liveUrl);
-  fetch(liveUrl)
-    .then(function(r){
-      console.log('[WSBK STD] live status:', r.status);
-      return r.json();
-    })
-    .then(function(data){
-      console.log('[WSBK STD] live data:', JSON.stringify(data).slice(0,200));
-      if(data && data.riders && data.riders.length >= 3) {
-        renderStandingsTable(rd, data.riders, '');
-      }
-    })
-    .catch(function(err){ console.log('[WSBK STD] live hiba:', err.message); });
+  // Standings PDF a proxyn keresztül — mindig friss (R1/SPR/R2 után pár perccel)
+  // A wsbk-std végpont parse-olja a Championship Standings PDF-et
+  var latestForStd = getLatestFinishedEvent();
+  if(latestForStd) {
+    var stdEventCode = latestForStd.ev.code;
+    var stdYear = latestForStd.year;
+    var stdUrl = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-std/'
+      + stdYear + '/' + stdEventCode + '/' + wsbkSeries;
+    console.log('[WSBK STD] PDF fetch:', stdUrl);
+    fetch(stdUrl)
+      .then(function(r){
+        console.log('[WSBK STD] PDF status:', r.status);
+        return r.json();
+      })
+      .then(function(data){
+        console.log('[WSBK STD] PDF data:', JSON.stringify(data).slice(0,200));
+        if(data && data.riders && data.riders.length >= 3) {
+          var mapped = data.riders.map(function(r,i){
+            return {pos: r.pos || (i+1), n: r.name, pts: r.pts};
+          });
+          renderStandingsTable(rd, mapped, stdEventCode);
+        }
+      })
+      .catch(function(err){ console.log('[WSBK STD] PDF hiba:', err.message); });
+  }
 
   // Háttérben PDF parse is (extra ellenőrzés)
   if(typeof pdfjsLib === 'undefined') return;
