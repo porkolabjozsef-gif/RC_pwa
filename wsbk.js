@@ -455,14 +455,19 @@ function loadWsbkStandings(rd) {
   var seriesParam = wsbkSeries.toLowerCase();
   var liveUrl = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-live-std/'
     + seriesParam + '/' + wsbkYear;
+  console.log('[WSBK STD] live fetch:', liveUrl);
   fetch(liveUrl)
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      console.log('[WSBK STD] live status:', r.status);
+      return r.json();
+    })
     .then(function(data){
+      console.log('[WSBK STD] live data:', JSON.stringify(data).slice(0,200));
       if(data && data.riders && data.riders.length >= 3) {
         renderStandingsTable(rd, data.riders, '');
       }
     })
-    .catch(function(){});
+    .catch(function(err){ console.log('[WSBK STD] live hiba:', err.message); });
 
   // Háttérben PDF parse is (extra ellenőrzés)
   if(typeof pdfjsLib === 'undefined') return;
