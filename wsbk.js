@@ -452,8 +452,26 @@ function loadWsbkStandings(rd) {
   renderEmbeddedStandings(rd);
 
   // Standings PDF a proxyn keresztül — mindig friss (R1/SPR/R2 után pár perccel)
-  // A wsbk-std végpont parse-olja a Championship Standings PDF-et
-  var latestForStd = getLatestFinishedEvent();
+  // Az aktív forduló standings-ét próbálja először, ha nincs → az előző fordulót
+  var latestForStd = (function() {
+    var now = new Date();
+    var todayStr = now.toISOString().slice(0,10);
+    // Először az aktív forduló (ha ma versenynapon vagyunk)
+    var years = [wsbkYear,'2025','2026'].filter(function(y,i,a){return a.indexOf(y)===i;});
+    for(var yi=0; yi<years.length; yi++) {
+      var evList = WSBK_EVENTS[years[yi]] || [];
+      for(var ei=0; ei<evList.length; ei++) {
+        var ev = evList[ei];
+        if(!ev.date || !ev.dateEnd) continue;
+        if(ev.series && ev.series.indexOf(wsbkSeries)===-1) continue;
+        if(todayStr >= ev.date && todayStr <= ev.dateEnd) {
+          return {ev: ev, year: years[yi]};
+        }
+      }
+    }
+    // Ha nincs aktív → az utolsó lezajlott
+    return getLatestFinishedEvent();
+  })();
   if(latestForStd) {
     var stdEventCode = latestForStd.ev.code;
     var stdYear = latestForStd.year;
@@ -1162,15 +1180,34 @@ function scheduleWsbkAutoRefresh(endDt, eventCode, year, series, sessCode) {
       tryLoadWsbkSession(eventCode, year, series, sessCode, function(ok) {
         if(ok) {
           found = true;
-          // Verseny után standings cache törlése → frissül ha STD nézetben vagyunk
+          // Verseny után standings automatikus frissítése
           if(isRace) {
             try {
               var stdKey = 'wsbk2_std_'+year+'_'+eventCode+'_'+series+'_STD';
               sessionStorage.removeItem(stdKey);
             } catch(e){}
+            // Ha STD nézetben vagyunk → azonnal frissítjük
+            if(activeChampionship==='wsbk' && wsbkEvent===eventCode
+               && wsbkYear===String(year) && wsbkSeries===series
+               && wsbkSessionLabel==='STD') {
+              var rdStd2 = document.getElementById('wsbkResults');
+              if(rdStd2) loadWsbkStandings(rdStd2);
+            }
           }
         }
       });
+      // Race session után standings is ütemezve — teljesen függetlenül
+      // a session PDF letöltésétől (extra 2 perc késéssel)
+      if(isRace) {
+        setTimeout(function() {
+          if(activeChampionship==='wsbk' && wsbkEvent===eventCode
+             && wsbkYear===String(year) && wsbkSeries===series
+             && wsbkSessionLabel==='STD') {
+            var rdStd3 = document.getElementById('wsbkResults');
+            if(rdStd3) loadWsbkStandings(rdStd3);
+          }
+        }, 2 * 60 * 1000);
+      }
     }, delay);
     wsbkAutoRefreshTimers.push(t);
   });
