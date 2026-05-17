@@ -30,6 +30,27 @@ async function handle(req) {
     }
   }
 
+
+  // WSBK STANDINGS SCRAPER — /wsbk-live-std/{series}/{year}
+  // Lekéri a worldsbk.com/en/results statistics/riders manufacturers oldalt
+  // és parse-olja a bajnoki pontállást
+  if (path.startsWith('wsbk-live-std/')) {
+    const parts  = path.slice(14).split('/')
+    const series = (parts[0] || 'sbk').toLowerCase()
+    const year   = parts[1] || '2026'
+    try {
+      const url  = 'https://www.worldsbk.com/en/results%20statistics/riders%20manufacturers'
+      const resp = await fetch(url + '?category=' + series + '&year=' + year, { headers: wsbkHeaders() })
+      if (!resp.ok) return jsonResp({ error: 'worldsbk.com returned ' + resp.status }, 404)
+      const html = await resp.text()
+      const riders = parseWsbkLiveStandings(html, series)
+      if (!riders || riders.length < 3) return jsonResp({ error: 'Parse failed' }, 422)
+      return jsonResp({ series, year, riders })
+    } catch (err) {
+      return jsonResp({ error: err.message }, 500)
+    }
+  }
+
   // WSBK STANDINGS JSON — /wsbk-std/{year}/{event}/{series}
   if (path.startsWith('wsbk-std/')) {
     const parts     = path.slice(9).split('/')
@@ -325,4 +346,82 @@ function parseSession(text) {
     deduped.push(rows[i])
   }
   return deduped
+}
+
+// ============================================================
+// WSBK LIVE STANDINGS PARSER
+// Parse-olja a worldsbk.com/en/results statistics/riders manufacturers oldalt
+// A táblázatban: RIDER | POS | POINTS | POLES | RACES | PODIUMS | WINS | ...
+// ============================================================
+function parseWsbkLiveStandings(html, series) {
+  const riders = []
+
+  // A táblázat sorai: <tr> elemek
+  // Minta: <td>1</td><td>NICOLO BULEGA</td>...<td>273</td>
+  // Egyszerűbb: keressük a "POINTS" oszlop fejlécét majd az utána következő sorokat
+
+  // Rider neve és pontszáma a táblázatból
+  // A HTML-ben: NICOLO BULEGA ... 273 ... vagy
+  // <a ...>NICOLO BULEGA</a> ... <td>273</td>
+
+  // Keressük a bajnoki pontállás táblázatot
+  // A táblázatban a fejléc: RIDER | POS | POINTS | POLES | RACES | PODIUMS | WINS | 2ND PL. | 3RD PL. | F. LAPS
+  const tableRe = /RIDER[\s\S]*?POINTS[\s\S]*?(<tr[\s\S]*?)(?=<\/table>|<div class="row)/
+  const tableMatch = html.match(tableRe)
+  if (!tableMatch) return null
+
+  const tableHtml = tableMatch[1]
+
+  // Minden <tr> sor feldolgozása
+  const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/g
+  let rowMatch
+  while ((rowMatch = rowRe.exec(tableHtml)) !== null) {
+    const row = rowMatch[1]
+
+    // Kiszűrjük a fejléc sorokat
+    if (row.includes('<th') || row.includes('RIDER') || row.includes('POINTS')) continue
+
+    // <td> értékek kinyerése
+    const cells = []
+    const cellRe = /<td[^>]*>([\s\S]*?)<\/td>/g
+    let cellMatch
+    while ((cellMatch = cellRe.exec(row)) !== null) {
+      // HTML tagok eltávolítása
+      const text = cellMatch[1].replace(/<[^>]+>/g, '').trim()
+      if (text) cells.push(text)
+    }
+
+    // Legalább: name, pos, points kellnek
+    if (cells.length < 3) continue
+
+    // Keressük a versenyző nevet (első nem-szám cella)
+    let name = null
+    let pos = null
+    let pts = null
+
+    for (let i = 0; i < cells.length; i++) {
+      const v = cells[i].trim()
+      if (!name && /^[A-Z][A-Z\s\-']+$/.test(v) && v.length > 3) {
+        name = v
+      } else if (name && !pos && /^\d{1,2}$/.test(v) && parseInt(v) <= 60) {
+        pos = parseInt(v)
+      } else if (pos && !pts && /^\d{1,4}$/.test(v) && parseInt(v) <= 2000) {
+        pts = parseInt(v)
+        break
+      }
+    }
+
+    if (!name || !pos || pts === null || pts < 1) continue
+
+    // Névformázás: NICOLO BULEGA → N. Bulega
+    const nameParts = name.split(' ')
+    const formattedName = nameParts[0].charAt(0) + '. ' +
+      nameParts.slice(1).map(p => p.charAt(0) + p.slice(1).toLowerCase()).join(' ')
+
+    riders.push({ pos, name: formattedName, pts })
+  }
+
+  // Rendezés pozíció szerint
+  riders.sort((a, b) => a.pos - b.pos)
+  return riders.length >= 3 ? riders : null
 }

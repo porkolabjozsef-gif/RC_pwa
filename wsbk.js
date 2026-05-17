@@ -448,10 +448,23 @@ function getStdProxyUrlForEvent(ev) {
 }
 
 function loadWsbkStandings(rd) {
-  // Azonnal embedded adat (fallback)
+  // Azonnal embedded adat (fallback amíg a live adat tölt)
   renderEmbeddedStandings(rd);
 
-  // Háttérben: pdf.js parse a legutóbbi futam standings PDF-jéből
+  // Élő standings a worldsbk.com-ról a proxyn keresztül
+  var seriesParam = wsbkSeries.toLowerCase();
+  var liveUrl = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-live-std/'
+    + seriesParam + '/' + wsbkYear;
+  fetch(liveUrl)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.riders && data.riders.length >= 3) {
+        renderStandingsTable(rd, data.riders, '');
+      }
+    })
+    .catch(function(){});
+
+  // Háttérben PDF parse is (extra ellenőrzés)
   if(typeof pdfjsLib === 'undefined') return;
   var latestResult = getLatestFinishedEvent();
   console.log('[WSBK STD] latest:', latestResult ? latestResult.ev.code + ' ' + latestResult.year : 'null', 'series:', wsbkSeries);
