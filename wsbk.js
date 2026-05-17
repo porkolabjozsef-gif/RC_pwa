@@ -9,8 +9,8 @@ var WSBK_SERIES_URL    = { SBK:'SBK', SSP:'SSP', WCR:'WCR', SPB:'SPB', R3:'YR3EC
 
 var WSBK_SESSIONS_BY_SERIES = {
   SBK: [{code:'L1A',label:'FP1'},{code:'L2A',label:'FP2'},{code:'L3A',label:'FP3'},
-        {code:'Q1A',label:'SUP'},{code:'W1A',label:'WUP'},
-        {code:'001',label:'R1'},{code:'002',label:'SPR'},{code:'003',label:'R2'},{code:'STD',label:'STD'}],
+        {code:'Q1A',label:'SUP'},{code:'001',label:'R1'},{code:'W1A',label:'WUP'},
+        {code:'002',label:'SPR'},{code:'003',label:'R2'},{code:'STD',label:'STD'}],
   SSP: [{code:'L1A',label:'FP'},{code:'Q1A',label:'SUP'},{code:'W1A',label:'WUP'},
         {code:'001',label:'R1'},{code:'002',label:'R2'},{code:'STD',label:'STD'}],
   WCR: [{code:'L1A',label:'FP'},{code:'Q1A',label:'SUP'},{code:'W1A',label:'WUP'},
