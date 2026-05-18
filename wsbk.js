@@ -156,8 +156,12 @@ function switchChampionship(champ) {
     // Azonnal betöltjük az eredményeket
     var rd = document.getElementById('wsbkResults');
     if(rd) loadWsbkSession(rd);
+    // Automatikus időterv betöltés ha nincs JSON
+    if(typeof autoLoadSchedule === 'function') autoLoadSchedule('wsbk');
   } else {
     renderPanel();doFetch();
+    // Automatikus időterv betöltés ha nincs JSON
+    if(typeof autoLoadSchedule === 'function') autoLoadSchedule('motogp');
   }
   if(typeof renderRecordPanel==='function')renderRecordPanel();
 }
@@ -531,7 +535,7 @@ function loadWsbkStandings(rd) {
       var rawText=pages.join(' ');
       var riders;
       try { riders = parseStandingsText(rawText); } catch(e) { riders = null; }
-      if(!riders||riders.length<5){fetchStandingsPdf(idx+1);return;}
+      if(!riders||riders.length<3){fetchStandingsPdf(idx+1);return;}
       var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
       if(riders[0].pts!==maxPts){fetchStandingsPdf(idx+1);return;}
       for(var i=1;i<Math.min(riders.length,5);i++){

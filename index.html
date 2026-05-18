@@ -1152,6 +1152,7 @@ body::after {
 // ============================================================
 
 const SCHEDULE = [];
+let scheduleManuallyLoaded = false; // true ha JSON-ból töltötték be
 // Menetrend betöltése JSON importtal szükséges
 
 // ============================================================
@@ -1354,6 +1355,15 @@ for (let i = 0; i < processedSchedule.length; i++) {
 // Re-assign idx after sorting (so it matches list order)
 processedSchedule.forEach((ev, i) => { ev.idx = i; });
 
+// Automatikus időterv betöltés induláskor (ha SCHEDULE üres)
+if (processedSchedule.length === 0) {
+  // Kis késleltetés hogy a wsbk.js betöltsön
+  setTimeout(function() {
+    var champ = typeof activeChampionship !== 'undefined' ? activeChampionship : 'motogp';
+    if (typeof autoLoadSchedule === 'function') autoLoadSchedule(champ);
+  }, 500);
+}
+
 // ============================================================
 // ============================================================
 // JSON IMPORT — közvetlen betöltés
@@ -1383,6 +1393,8 @@ async function handleJsonUpload(event) {
     }
 
     setStatus('loading', `📥 ${parsed.schedule.length} esemény betöltése...`);
+    scheduleManuallyLoaded = true;
+    scheduleManuallyLoaded = true;
     loadNewSchedule(parsed);
     setStatus('ok', `✅ ${parsed.eventName || file.name} — ${parsed.schedule.length} esemény betöltve`);
 
@@ -1560,6 +1572,211 @@ async function handlePdfUpload(event) {
   }
 
   event.target.value = '';
+}
+
+
+// ============================================================
+// AUTOMATIKUS IDŐTERV BETÖLTÉS — JSON nélkül
+// ============================================================
+
+async function autoLoadSchedule(championship) {
+  if (scheduleManuallyLoaded) return; // JSON már betöltve, nem írjuk felül
+
+  if (championship === 'wsbk') {
+    await autoLoadWsbkSchedule();
+  } else if (championship === 'motogp') {
+    await autoLoadMotogpSchedule();
+  }
+}
+
+async function autoLoadWsbkSchedule() {
+  // WSBK schedule proxy-ból
+  try {
+    var auto = typeof autoSelectWsbkEvent === 'function' ? autoSelectWsbkEvent() : {code: wsbkEvent, year: wsbkYear};
+    var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-schedule/' + auto.code + '/' + auto.year;
+    var r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var data = await r.json();
+    if (!data.sessions || !data.sessions.length) throw new Error('Nincs session adat');
+
+    // Forduló neve és naptári infó a WSBK_EVENTS-ből
+    var evInfo = (WSBK_EVENTS[auto.year] || []).find(function(e){ return e.code === auto.code; });
+    var evName = evInfo ? evInfo.name : auto.code;
+    var circuit = evInfo ? (evInfo.circuit || '') : '';
+
+    // Session-ök konvertálása schedule formátumba
+    var schedule = data.sessions.map(function(s) {
+      var cat = s.series || 'WorldSBK';
+      var type = 'session';
+      var name = s.name || cat;
+      var lname = name.toLowerCase();
+      if (lname.includes('race') || lname.includes('superpole race') || lname.includes('sprint')) type = 'race';
+
+      return {
+        date: s.start.slice(0, 10),
+        start: s.start.slice(11, 16),
+        end: s.end ? s.end.slice(11, 16) : '',
+        name: name,
+        remark: '',
+        type: type,
+        category: cat,
+        horn: false,
+        finished: s.finished || false
+      };
+    });
+
+    if (!schedule.length) throw new Error('Üres menetrend');
+
+    var firstDate = schedule[0].date;
+    var lastDate = schedule[schedule.length-1].date;
+    var dateRange = firstDate + ' to ' + lastDate;
+
+    loadNewSchedule({
+      eventName: evName,
+      circuit: circuit,
+      dateRange: dateRange,
+      schedule: schedule
+    });
+
+    var statusEl = document.getElementById('pdfStatus');
+    if (statusEl) {
+      statusEl.className = 'pdf-status ok';
+      statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve';
+    }
+  } catch(e) {
+    console.warn('[AUTO SCHEDULE] WSBK betöltés sikertelen:', e.message);
+  }
+}
+
+async function autoLoadMotogpSchedule() {
+  // MotoGP API-ból
+  try {
+    var seasonUuid = SEASON_UUIDS[selectedYear];
+    if (!seasonUuid) throw new Error('Ismeretlen szezon');
+
+    // Aktuális/következő forduló meghatározása
+    var now = new Date();
+    var evList = (SEASON_EVENTS[selectedYear] || []);
+    var targetEv = null;
+
+    // Aktív forduló (most folyik)
+    for (var i = 0; i < evList.length; i++) {
+      var ev = evList[i];
+      var evStart = new Date(ev.date + 'T00:00:00');
+      var evEnd = new Date((ev.dateEnd || ev.date) + 'T23:59:59');
+      if (now >= evStart && now <= evEnd) { targetEv = ev; break; }
+    }
+
+    // Ha nincs aktív, a következő
+    if (!targetEv) {
+      for (var i = 0; i < evList.length; i++) {
+        var ev = evList[i];
+        if (new Date(ev.date + 'T00:00:00') > now) { targetEv = ev; break; }
+      }
+    }
+
+    // Ha nincs következő, az utolsó lezajlott
+    if (!targetEv && evList.length) {
+      targetEv = evList[evList.length - 1];
+    }
+
+    if (!targetEv) throw new Error('Nincs forduló adat');
+
+    // Lekérjük az összes MotoGP kategória session-jeit
+    var events = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=false');
+    var allEvents = events.concat ? events : (events.events || []);
+    // Keressük a fordulót
+    var apiEv = null;
+    for (var i = 0; i < allEvents.length; i++) {
+      var e = allEvents[i];
+      if ((e.short_name||'').toUpperCase() === targetEv.code.toUpperCase() ||
+          (e.additional_name||'').toUpperCase() === targetEv.code.toUpperCase()) {
+        apiEv = e; break;
+      }
+    }
+    if (!apiEv) {
+      // Fallback: befejezett events
+      var finEvents = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=true');
+      var allFin = finEvents.concat ? finEvents : (finEvents.events || []);
+      for (var i = 0; i < allFin.length; i++) {
+        var e = allFin[i];
+        if ((e.short_name||'').toUpperCase() === targetEv.code.toUpperCase()) {
+          apiEv = e; break;
+        }
+      }
+    }
+    if (!apiEv) throw new Error('Forduló nem található az API-ban: ' + targetEv.code);
+
+    // Kategóriánként session-ök
+    var cats = ['MotoGP', 'Moto2', 'Moto3'];
+    var schedule = [];
+    var sessTypeToName = {
+      'FP':'Free Practice', 'FP1':'Free Practice 1', 'FP2':'Free Practice 2',
+      'PR':'Practice', 'Q1':'Qualifying 1', 'Q2':'Qualifying 2',
+      'SPR':'Sprint Race', 'WUP':'Warm Up', 'RAC':'Race', 'RAC2':'Race 2'
+    };
+
+    for (var ci = 0; ci < cats.length; ci++) {
+      var cat = cats[ci];
+      var catUuid = CAT_UUIDS[cat];
+      if (!catUuid) continue;
+      try {
+        var sessions = await apiGet('sessions?eventUuid=' + apiEv.id + '&categoryUuid=' + catUuid);
+        if (!sessions || !sessions.length) continue;
+        for (var si = 0; si < sessions.length; si++) {
+          var s = sessions[si];
+          if (!s.date || !s.time_start) continue;
+          var sType = (s.type || '').toUpperCase();
+          var sName = sessTypeToName[sType] || s.type || s.name || sType;
+          var fullName = cat + ' ' + sName;
+          var type = (sType === 'RAC' || sType === 'RAC2' || sType === 'SPR') ? 'race' : 'session';
+          // Időpontok: s.date = "2026-05-15", s.time_start = "09:00:00"
+          var startStr = (s.time_start || '').slice(0, 5);
+          var endStr = (s.time_end || s.duration ? computeEndTime(s.time_start, s.duration_minutes) : '');
+          schedule.push({
+            date: s.date,
+            start: startStr,
+            end: endStr,
+            name: fullName,
+            remark: '',
+            type: type,
+            category: cat,
+            horn: false
+          });
+        }
+      } catch(ce) { /* skip category */ }
+    }
+
+    if (!schedule.length) throw new Error('Nincs session adat az API-ból');
+
+    schedule.sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); });
+
+    var dateRange = schedule[0].date + ' to ' + schedule[schedule.length-1].date;
+    var evName = (apiEv.name || targetEv.name || targetEv.code) + ' ' + selectedYear;
+
+    loadNewSchedule({
+      eventName: evName,
+      circuit: apiEv.circuit || '',
+      dateRange: dateRange,
+      schedule: schedule
+    });
+
+    var statusEl = document.getElementById('pdfStatus');
+    if (statusEl) {
+      statusEl.className = 'pdf-status ok';
+      statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve';
+    }
+  } catch(e) {
+    console.warn('[AUTO SCHEDULE] MotoGP betöltés sikertelen:', e.message);
+  }
+}
+
+function computeEndTime(timeStart, durationMin) {
+  if (!timeStart || !durationMin) return '';
+  var parts = timeStart.split(':');
+  var h = parseInt(parts[0]), m = parseInt(parts[1]);
+  var total = h * 60 + m + parseInt(durationMin);
+  return String(Math.floor(total/60)).padStart(2,'0') + ':' + String(total%60).padStart(2,'0');
 }
 
 function loadNewSchedule(parsed) {
