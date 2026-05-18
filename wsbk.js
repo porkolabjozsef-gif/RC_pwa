@@ -530,7 +530,8 @@ function loadWsbkStandings(rd) {
     }).then(function(pages){
       var rawText=pages.join(' ');
       var riders;
-      try { riders = parseStandingsText(rawText); } catch(e) { riders = null; }
+      try { riders = parseStandingsText(rawText); } catch(e) { console.log('[STD] parse err:',e.message); riders = null; }
+      console.log('[STD] url:', sessCodes[idx], 'riders:', riders?riders.length:0);
       if(!riders||riders.length<5){fetchStandingsPdf(idx+1);return;}
       var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
       if(riders[0].pts!==maxPts){fetchStandingsPdf(idx+1);return;}
