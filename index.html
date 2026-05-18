@@ -2860,6 +2860,33 @@ function updateDashboard() {
   const activeCategory = (current && current.category) || (next && next.category) || null;
   updateBgLogo(activeCategory);
 
+  // ── AUTO SERIES/CATEGORY + RECORD PANEL SWITCH ──
+  // A championship (WSBK/MotoGP) manuális — csak a sorozatot/kategóriát váltjuk automatikusan
+  const scheduleCategory = (current && current.category) || (next && next.category) || null;
+  if (scheduleCategory) {
+    const wsbkCats = { 'WorldSBK':'SBK','WorldSSP':'SSP','WorldWCR':'WCR','WorldSPB':'SPB','R3':'R3' };
+    const motogpCats = ['MotoGP','Moto2','Moto3'];
+    const isWsbkCat = wsbkCats.hasOwnProperty(scheduleCategory);
+    const isMotoGPCat = motogpCats.indexOf(scheduleCategory) >= 0;
+
+    // WSBK panel aktív → wsbkSeries automatikus váltás
+    if (isWsbkCat && typeof activeChampionship !== 'undefined' && activeChampionship === 'wsbk') {
+      var newSeries = wsbkCats[scheduleCategory];
+      if (typeof wsbkSeries !== 'undefined' && wsbkSeries !== newSeries) {
+        wsbkSeries = newSeries;
+        if (typeof renderRecordPanel === 'function') renderRecordPanel();
+      }
+    }
+
+    // MotoGP panel aktív → selectedCat automatikus váltás
+    if (isMotoGPCat && typeof activeChampionship !== 'undefined' && activeChampionship === 'motogp') {
+      if (typeof selectedCat !== 'undefined' && selectedCat !== scheduleCategory) {
+        selectedCat = scheduleCategory;
+        if (typeof renderRecordPanel === 'function') renderRecordPanel();
+      }
+    }
+  }
+
   // --- SIGNAL PANEL (pillanatnyi esemény) ---
   const signalPanel = document.getElementById('signalPanel');
   const signalIcon  = document.getElementById('signalIcon');
