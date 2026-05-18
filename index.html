@@ -1992,13 +1992,13 @@ async function doResults(rd) {
     'WUP':['WUP','WU','W'],'RAC':['RAC','R']
   };
   const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
-  // RAC esetén: ha van RAC2 session (újraindított futam), azt részesítjük előnyben
+  // RAC esetén: az utolsó RAC session a mérvadó (újraindítás esetén több RAC is lehet)
   let sess;
-  if (selectedSession === 'RAC') {
-    sess = sessions.find(s => (s.type||'').toUpperCase() === 'RAC2')
-        || sessions.find(s => typeCodes.some(code =>
-             (s.type||'').toUpperCase() === code.toUpperCase()
-           ));
+  if (selectedSession === 'RAC' || selectedSession === 'SPR') {
+    const matching = sessions.filter(s => typeCodes.some(code =>
+      (s.type||'').toUpperCase() === code.toUpperCase()
+    ));
+    sess = matching.length ? matching[matching.length - 1] : null;
   } else {
     sess = sessions.find(s => typeCodes.some(code =>
       (s.type||'').toUpperCase() === code.toUpperCase()
