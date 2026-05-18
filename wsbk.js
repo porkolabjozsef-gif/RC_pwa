@@ -535,7 +535,7 @@ function loadWsbkStandings(rd) {
       },Promise.resolve([]));
     }).then(function(pages){
       var rawText=pages.join(' ');
-      console.log('[WSBK STD] pdf.js szöveg:', rawText.slice(0,300));
+      console.log('[WSBK STD] pdf.js szöveg:', rawText.slice(0,800));
       var riders=parseStandingsText(rawText);
       console.log('[WSBK STD] riders:', riders?riders.length:0);
       if(!riders||riders.length<5){fetchStandingsPdf(idx+1);return;}
@@ -703,47 +703,75 @@ function fetchR3StandingsPdf(base, rd, eventCode) {
 }
 
 function parseStandingsText(text) {
-  var riders=[];
-  var seen={};
+  // pdf.js words.join(' ') formátum:
+  // SBK:     pos NAGYBETŰSNÉV pts [gap...] Keresztnév (NAT)
+  // SSP/SPB: gap NAGYBETŰSNÉV pos Keresztnév (NAT)  (R3-logika)
+  var NOISE = {
+    'ITA':1,'ESP':1,'GBR':1,'USA':1,'AUS':1,'POR':1,'FRA':1,'GER':1,'NED':1,
+    'BEL':1,'JPN':1,'THA':1,'INA':1,'MAL':1,'TUR':1,'CHI':1,'MEX':1,'POL':1,
+    'CZE':1,'DEN':1,'SUI':1,'AND':1,'IND':1,'BRA':1,'DOM':1,'AUT':1,'ARG':1,
+    'RSA':1,'FIN':1,'SWE':1,'NOR':1,'CAN':1,'KOR':1,'SBK':1,'SSP':1,'WCR':1,
+    'SPB':1,'CLA':1,'STD':1,'FIM':1,'ISLAND':1,'PORTIMAO':1,'ASSEN':1,
+    'BALATON':1,'ARAGON':1,'MISANO':1,'DONINGTON':1,'CREMONA':1,'ESTORIL':1,
+    'JEREZ':1,'MAGNY':1,'COURS':1,'DORNA':1,'WSBK':1,'WORLDSBK':1,'WORLDSSP':1,
+    'WORLDSPB':1,'WORLDWCR':1,'MOST':1,'CIRCUIT':1,'STANDINGS':1,'RIDERS':1,
+    'HUNGARIAN':1,'MOTUL':1,'PHILLIP':1,'PARK':1,'ROUND':1,'FROM':1,
+    'FIRST':1,'PREVIOUS':1,'POINTS':1,'SUPERSPORT':1,'SPORTBIKE':1,
+    'WOMEN':1,'RACING':1,'CHAMPIONSHIP':1,'INDEPENDENT':1,'CHALLENGE':1
+  };
 
-  // Minta a standings PDF rendezett szövegéből:
-  // pozíció NAGY_VEZÉKNÉV pontszám [lemaradás...]
-  // pl: "1 BULEGA 211" "2 LECUONA 137 74"
-  // A rendezés után ezek sorban jönnek, de közéjük kerül más szöveg is.
-  // Ezért: keressük a "(\d{1,2}) ([A-Z]{2,}) (\d{1,3})" mintát
-  // ahol az első szám 1-60 közt van, a harmadik szám > 0
-  var re=/\b(\d{1,2})\s+([A-Z][A-Z\-]{1,20})\s+(\d{1,3})\b/g;
+  function isNoise(w) { return !!NOISE[w]; }
+
+  var riders = [];
+  var leaderPts = null;
+  var lastPos = 0;
+
+  // SBK minta: pos NAGYBETŰSNÉV pts (csökkenő pts)
+  var re = /\b(\d{1,2})\s+([A-Z]{3,}(?:\s+[A-Z]{2,})*)\s+(\d{1,3})\b/g;
   var m;
-  while((m=re.exec(text))!==null){
-    var pos=parseInt(m[1]);
-    var last=m[2];
-    var pts=parseInt(m[3]);
-    if(pos<1||pos>60||pts<1||pts>900) continue;
-    // Kizárjuk a zajos találatokat: ha a "szó" ismert zaj-szó
-    var noiseWords=['ITA','ESP','GBR','USA','AUS','POR','FRA','GER','NED','BEL','JPN','THA','INA','MAL',
-                    'SUP','WUP','IND','SBK','SSP','WCR','SPB','CLA','STD'];
-    if(noiseWords.indexOf(last)>=0) continue;
-    if(seen[pos]) continue;
-    seen[pos]=1;
+  while ((m = re.exec(text)) !== null) {
+    var pos = parseInt(m[1]);
+    var nameRaw = m[2].trim();
+    var pts = parseInt(m[3]);
 
-    // Keresztnév keresése a közelben (következő "Szó (NAT)" minta)
-    var after=text.slice(m.index+m[0].length,m.index+m[0].length+80);
-    var nm=after.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/);
-    var first=nm?nm[1]:'';
-    var name=first?first+' '+last.charAt(0)+last.slice(1).toLowerCase()
-                  :last.charAt(0)+last.slice(1).toLowerCase();
-    riders.push({pos:pos,name:name,pts:pts});
+    if (pos < 1 || pos > 60 || pos <= lastPos) continue;
+    if (pts < 1 || pts > 999) continue;
+
+    var parts = nameRaw.split(/\s+/);
+    var noisy = false;
+    for (var pi = 0; pi < parts.length; pi++) {
+      if (isNoise(parts[pi])) { noisy = true; break; }
+    }
+    if (noisy) continue;
+
+    // Pontszám csökkenő ellenőrzés
+    if (leaderPts === null) {
+      leaderPts = pts;
+    } else if (pts > leaderPts) {
+      continue;
+    }
+
+    // Keresztnév keresése
+    var after = text.slice(m.index + m[0].length, m.index + m[0].length + 80);
+    var fnm = after.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/);
+    var first = fnm ? fnm[1] : '';
+    var nameLast = parts.map(function(w){ return w[0]+w.slice(1).toLowerCase(); }).join(' ');
+    var name = first ? first+' '+nameLast : nameLast;
+
+    riders.push({ pos: pos, name: name, pts: pts });
+    lastPos = pos;
   }
 
-  // Szanity: legyen folyamatos pozíciósorrend (1,2,3...)
-  riders.sort(function(a,b){return a.pos-b.pos;});
-  // Csak az első összefüggő sorozatot tartjuk meg (1-től N-ig hiányok nélkül)
-  var clean=[];
-  for(var i=0;i<riders.length;i++){
-    if(riders[i].pos===i+1) clean.push(riders[i]);
-    else break;
+  riders.sort(function(a,b){ return a.pos-b.pos; });
+  var seen = {};
+  var clean = [];
+  for (var ci = 0; ci < riders.length; ci++) {
+    if (!seen[riders[ci].pos]) {
+      seen[riders[ci].pos] = 1;
+      clean.push(riders[ci]);
+    }
   }
-  return clean.length>=3?clean:riders.slice(0,30);
+  return clean.length >= 3 ? clean : null;
 }
 
 // ============================================================
