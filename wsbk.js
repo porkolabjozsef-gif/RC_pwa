@@ -767,6 +767,7 @@ function parseStandingsText(text) {
 
   // Ha az SBK parser nem talált semmit → SSP/SPB/WCR parser
   // SSP struktúra: [gap] NAGYBETŰSNÉV pos [kör pontok] Keresztnév (NAT) [gap2]...
+  console.log('[STD fallback] SBK riders:', riders.length, 'trying SSP mode');
   if (riders.length < 3) {
     var reEntry = /([A-Z]{3,}(?:[- ][A-Z]{2,})*)\s+(\d{1,2})\b/g;
     var entries2 = [];
@@ -797,6 +798,7 @@ function parseStandingsText(text) {
       return null;
     }
 
+    console.log('[STD fallback] entries2:', entries2.length, entries2.slice(0,3).map(function(e){return e.pos+':'+e.last;}));
     var leaderPts2 = null, lastPos2 = 0;
     for (var ei2=0; ei2<entries2.length; ei2++) {
       var ent = entries2[ei2];
