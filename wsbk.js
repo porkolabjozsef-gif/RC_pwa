@@ -780,10 +780,11 @@ function parseStandingsText(text) {
       for (var lpi=0; lpi<lparts.length; lpi++) { if (NOISE[lparts[lpi]]) { enoisy=true; break; } }
       if (enoisy || epos < 1 || epos > 60) continue;
       // Keresztnév a pos után
-      var eafter = text.slice(me.index + me[0].length, me.index + me[0].length + 80);
+      var eafterStart = me.index + me[0].length;
+      var eafter = text.slice(eafterStart, eafterStart + 80);
       var efnm = eafter.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/);
       var efirst = efnm ? efnm[1] : '';
-      var enatEnd = efnm ? me.index + me[0].length + eafter.indexOf(efnm[0]) + efnm[0].length : me.index + me[0].length;
+      var enatEnd = efnm ? eafterStart + efnm.index + efnm[0].length : eafterStart;
       entries2.push({ start: me.index, end: me.index + me[0].length, natEnd: enatEnd,
                       pos: epos, last: lname, first: efirst });
     }
@@ -801,6 +802,7 @@ function parseStandingsText(text) {
     console.log('[STD fallback] entries2:', entries2.length, entries2.slice(0,3).map(function(e){return e.pos+':'+e.last;}));
     var leaderPts2 = null, lastPos2 = 0;
     for (var ei2=0; ei2<entries2.length; ei2++) {
+      if(ei2<4) console.log('[STD ei2]', ei2, entries2[ei2].pos, entries2[ei2].last, 'natEnd:', entries2[ei2].natEnd);
       var ent = entries2[ei2];
       if (ent.pos <= lastPos2) continue;
       var prevNatEnd = ei2 > 0 ? entries2[ei2-1].natEnd : 0;
@@ -811,7 +813,9 @@ function parseStandingsText(text) {
         var pfx = text.slice(0, ent.start).match(/\d+/g) || [];
         epts = pfx.length ? parseInt(pfx[0]) : null;
         leaderPts2 = epts;
+        console.log('[STD pts1]', ent.pos, ent.last, 'pfx[0]:', pfx[0], 'pts:', epts);
       } else {
+        console.log('[STD ptsx]', ent.pos, ent.last, 'prevNatEnd:', prevNatEnd, 'ent.start:', ent.start, 'between:', between.slice(0,30), 'bnums:', bnums.slice(0,3), 'leader:', leaderPts2);
         if (!bnums.length || !leaderPts2) continue;
         epts = r3s(bnums[0], leaderPts2);
       }
