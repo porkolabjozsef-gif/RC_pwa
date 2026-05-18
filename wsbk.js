@@ -477,14 +477,9 @@ function loadWsbkStandings(rd) {
     var stdYear = latestForStd.year;
     var stdUrl = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-std/'
       + stdYear + '/' + stdEventCode + '/' + wsbkSeries;
-    console.log('[WSBK STD] PDF fetch:', stdUrl);
     fetch(stdUrl)
-      .then(function(r){
-        console.log('[WSBK STD] PDF status:', r.status);
-        return r.json();
-      })
+      .then(function(r){ return r.json(); })
       .then(function(data){
-        console.log('[WSBK STD] PDF data:', JSON.stringify(data).slice(0,200));
         if(data && data.riders && data.riders.length >= 3) {
           var mapped = data.riders.map(function(r,i){
             return {pos: r.pos || (i+1), n: r.name, pts: r.pts};
@@ -498,8 +493,7 @@ function loadWsbkStandings(rd) {
   // Háttérben PDF parse is (extra ellenőrzés)
   if(typeof pdfjsLib === 'undefined') return;
   var latestResult = getLatestFinishedEvent();
-  console.log('[WSBK STD] latest:', latestResult ? latestResult.ev.code + ' ' + latestResult.year : 'null', 'series:', wsbkSeries);
-  if(!latestResult) { console.log('[WSBK STD] nincs lezajlott forduló'); return; }
+  if(!latestResult) return;
   var latest = latestResult.ev;
   var latestYear = latestResult.year;
 
@@ -535,9 +529,8 @@ function loadWsbkStandings(rd) {
       },Promise.resolve([]));
     }).then(function(pages){
       var rawText=pages.join(' ');
-      console.log('[WSBK STD] pdf.js szöveg:', rawText.slice(0,800));
-      var riders=parseStandingsText(rawText);
-      console.log('[WSBK STD] riders:', riders?riders.length:0);
+      var riders;
+      try { riders = parseStandingsText(rawText); } catch(e) { riders = null; }
       if(!riders||riders.length<5){fetchStandingsPdf(idx+1);return;}
       var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
       if(riders[0].pts!==maxPts){fetchStandingsPdf(idx+1);return;}
@@ -771,6 +764,63 @@ function parseStandingsText(text) {
     riders.push({ pos: pos, name: name, pts: pts });
   }
 
+  // Ha az SBK parser nem talált semmit → SSP/SPB/WCR parser
+  // SSP struktúra: [gap] NAGYBETŰSNÉV pos [kör pontok] Keresztnév (NAT) [gap2]...
+  if (riders.length < 3) {
+    var reEntry = /([A-Z]{3,}(?:[- ][A-Z]{2,})*)\s+(\d{1,2})\b/g;
+    var entries2 = [];
+    var me;
+    while ((me = reEntry.exec(text)) !== null) {
+      var lname = me[1].trim();
+      var epos = parseInt(me[2]);
+      var lparts = lname.replace(/-/g,' ').split(/\s+/);
+      var enoisy = false;
+      for (var lpi=0; lpi<lparts.length; lpi++) { if (NOISE[lparts[lpi]]) { enoisy=true; break; } }
+      if (enoisy || epos < 1 || epos > 60) continue;
+      // Keresztnév a pos után
+      var eafter = text.slice(me.index + me[0].length, me.index + me[0].length + 80);
+      var efnm = eafter.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/);
+      var efirst = efnm ? efnm[1] : '';
+      var enatEnd = efnm ? me.index + me[0].length + eafter.indexOf(efnm[0]) + efnm[0].length : me.index + me[0].length;
+      entries2.push({ start: me.index, end: me.index + me[0].length, natEnd: enatEnd,
+                      pos: epos, last: lname, first: efirst });
+    }
+
+    function r3s(s, ldr) {
+      var v = parseInt(s);
+      if (v < ldr) return ldr - v;
+      for (var sp=1; sp<s.length; sp++) {
+        var g=parseInt(s.slice(0,sp)), p=parseInt(s.slice(sp));
+        if (g>0 && g<ldr && ldr-g===p && p>0) return p;
+      }
+      return null;
+    }
+
+    var leaderPts2 = null, lastPos2 = 0;
+    for (var ei2=0; ei2<entries2.length; ei2++) {
+      var ent = entries2[ei2];
+      if (ent.pos <= lastPos2) continue;
+      var prevNatEnd = ei2 > 0 ? entries2[ei2-1].natEnd : 0;
+      var between = text.slice(prevNatEnd, ent.start);
+      var bnums = between.match(/\d+/g) || [];
+      var epts;
+      if (ent.pos === 1) {
+        var pfx = text.slice(0, ent.start).match(/\d+/g) || [];
+        epts = pfx.length ? parseInt(pfx[0]) : null;
+        leaderPts2 = epts;
+      } else {
+        if (!bnums.length || !leaderPts2) continue;
+        epts = r3s(bnums[0], leaderPts2);
+      }
+      if (!epts || epts <= 0) continue;
+      lastPos2 = ent.pos;
+      var eparts = ent.last.replace(/-/g,' ').split(/\s+/);
+      var eNameLast = eparts.map(function(w){ return w[0]+w.slice(1).toLowerCase(); }).join(' ');
+      var eName = ent.first ? ent.first+' '+eNameLast : eNameLast;
+      riders.push({ pos: ent.pos, name: eName, pts: epts });
+    }
+  }
+
   riders.sort(function(a,b){ return a.pos-b.pos; });
   var seen = {};
   var clean = [];
@@ -812,7 +862,6 @@ function renderStandingsTable(rd, riders, eventCode){
 function renderEmbeddedStandings(rd){
   var data=WSBK_STANDINGS_EMBEDDED[wsbkSeries]||[];
   var label=WSBK_SERIES_LABELS[wsbkSeries]||wsbkSeries;
-  console.log('[WSBK STD] renderEmbeddedStandings series:', wsbkSeries, 'data count:', data.length);
   if(!data.length){rd.innerHTML=wsbkNoDataHtml();return;}
   var leader=data[0].pts;
   var out='<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:5px;letter-spacing:1px;">'
