@@ -1,41 +1,36 @@
 name: Update Lap Records
-
 on:
   schedule:
-    # Hétfőnként 4:00 UTC-kor (06:00 CET, 07:00 CEST)
-    # WSBK/MotoGP fordulók péntektől vasárnapig zajlanak,
-    # hétfőn már biztosan minden eredmény és PDF elérhető.
+    # Szombat és vasárnap 17:00 UTC (19:00 CEST) — verseny napján frissítés
+    - cron: '0 17 * * 6'
+    - cron: '0 17 * * 0'
+    # Hétfő 4:00 UTC (06:00 CEST) — elsődleges hétfői frissítés
     - cron: '0 4 * * 1'
+    # Hétfő 6:00 UTC (08:00 CEST) — backup, ha a 4:00-s kihagyta
+    - cron: '0 6 * * 1'
   workflow_dispatch:
     # Kézzel is indítható a GitHub Actions felületéről
-
 jobs:
   update-records:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # szükséges a git push-hoz
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install dependencies
         run: |
           cd scripts
           npm install
-
       - name: Run records updater
         run: node scripts/update-records.js
         env:
-          # Ha a proxy CORS-t igényel szerver oldalon, ide kerülhet API kulcs
           WSBK_PROXY: 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/'
           MOTOGP_PROXY: 'https://motogp-proxy.porkolab-jozsef.workers.dev/'
-
       - name: Check for changes
         id: check_changes
         run: |
@@ -47,7 +42,6 @@ jobs:
             echo "Változás észlelve!"
             git diff records.js wsbk.js
           fi
-
       - name: Commit and push if changed
         if: steps.check_changes.outputs.changed == 'true'
         run: |
