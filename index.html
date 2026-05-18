@@ -2017,8 +2017,6 @@ async function doResults(rd) {
     sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
   }
 
-  console.log('[DEBUG] sessions:', sessions.map(s => s.type + '=' + s.id));
-  console.log('[DEBUG] selected sess:', sess ? sess.type + '=' + sess.id : 'none');
   const cls = await apiGet(`session/${sess.id}/classification?test=false`);
   const riders = cls.classification || cls;
   showResults(rd, riders, evFinal.name || evFinal.short_name, sess.type || sess.name, selectedCat);
