@@ -1992,9 +1992,18 @@ async function doResults(rd) {
     'WUP':['WUP','WU','W'],'RAC':['RAC','R']
   };
   const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
-  let sess = sessions.find(s => typeCodes.some(code =>
-    (s.type||'').toUpperCase() === code.toUpperCase()
-  ));
+  // RAC esetén: ha van RAC2 session (újraindított futam), azt részesítjük előnyben
+  let sess;
+  if (selectedSession === 'RAC') {
+    sess = sessions.find(s => (s.type||'').toUpperCase() === 'RAC2')
+        || sessions.find(s => typeCodes.some(code =>
+             (s.type||'').toUpperCase() === code.toUpperCase()
+           ));
+  } else {
+    sess = sessions.find(s => typeCodes.some(code =>
+      (s.type||'').toUpperCase() === code.toUpperCase()
+    ));
+  }
   if (!sess) {
     const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
     if (selectedSession === 'FP1') sess = fpSessions[0];
