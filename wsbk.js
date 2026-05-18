@@ -703,9 +703,11 @@ function fetchR3StandingsPdf(base, rd, eventCode) {
 }
 
 function parseStandingsText(text) {
-  // pdf.js words.join(' ') formátum:
-  // SBK:     pos NAGYBETŰSNÉV pts [gap...] Keresztnév (NAT)
-  // SSP/SPB: gap NAGYBETŰSNÉV pos Keresztnév (NAT)  (R3-logika)
+  // pdf.js getTextContent formátum (words.join(' ')):
+  // SBK/SSP/SPB/WCR: ... [pts] NAGYBETŰSNÉV Keresztnév (NAT) ...
+  // pts az utolsó szám közvetlenül a NAGYBETŰSNÉV előtt
+  // pos keresése visszafelé: legkisebb 1-60 közötti szám > lastPos
+
   var NOISE = {
     'ITA':1,'ESP':1,'GBR':1,'USA':1,'AUS':1,'POR':1,'FRA':1,'GER':1,'NED':1,
     'BEL':1,'JPN':1,'THA':1,'INA':1,'MAL':1,'TUR':1,'CHI':1,'MEX':1,'POL':1,
@@ -717,59 +719,63 @@ function parseStandingsText(text) {
     'WORLDSPB':1,'WORLDWCR':1,'MOST':1,'CIRCUIT':1,'STANDINGS':1,'RIDERS':1,
     'HUNGARIAN':1,'MOTUL':1,'PHILLIP':1,'PARK':1,'ROUND':1,'FROM':1,
     'FIRST':1,'PREVIOUS':1,'POINTS':1,'SUPERSPORT':1,'SPORTBIKE':1,
-    'WOMEN':1,'RACING':1,'CHAMPIONSHIP':1,'INDEPENDENT':1,'CHALLENGE':1
+    'WOMEN':1,'RACING':1,'CHAMPIONSHIP':1,'INDEPENDENT':1,'CHALLENGE':1,
+    'FEBRUARY':1,'MARCH':1,'APRIL':1,'MAY':1,'JUNE':1,'JULY':1,
+    'SEPTEMBER':1,'OCTOBER':1,'AUTODROM':1,'YR3EC':1
   };
 
-  function isNoise(w) { return !!NOISE[w]; }
+  // Megkeressük az összes NAGYBETŰSNÉV Keresztnév (NAT) mintát
+  var reRider = /(\d{1,3})\s+([A-Z]{3,}(?:\s+[A-Z]{2,})*)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/g;
+  var entries = [];
+  var m;
+  while ((m = reRider.exec(text)) !== null) {
+    var pts = parseInt(m[1]);
+    var lastName = m[2].trim();
+    var first = m[3].trim();
+    var startIdx = m.index;
+    var parts = lastName.split(/\s+/);
+    var noisy = false;
+    for (var pi = 0; pi < parts.length; pi++) { if (NOISE[parts[pi]]) { noisy = true; break; } }
+    if (noisy || pts < 1 || pts > 999) continue;
+    entries.push({ startIdx: startIdx, pts: pts, lastName: lastName, first: first });
+  }
 
   var riders = [];
   var leaderPts = null;
   var lastPos = 0;
 
-  // SBK minta: pos NAGYBETŰSNÉV pts (csökkenő pts)
-  var re = /\b(\d{1,2})\s+([A-Z]{3,}(?:\s+[A-Z]{2,})*)\s+(\d{1,3})\b/g;
-  var m;
-  while ((m = re.exec(text)) !== null) {
-    var pos = parseInt(m[1]);
-    var nameRaw = m[2].trim();
-    var pts = parseInt(m[3]);
+  for (var ei = 0; ei < entries.length; ei++) {
+    var entry = entries[ei];
+    var pts = entry.pts;
 
-    if (pos < 1 || pos > 60 || pos <= lastPos) continue;
-    if (pts < 1 || pts > 999) continue;
+    if (leaderPts === null) { leaderPts = pts; }
+    else if (pts > leaderPts) { continue; }
 
-    var parts = nameRaw.split(/\s+/);
-    var noisy = false;
-    for (var pi = 0; pi < parts.length; pi++) {
-      if (isNoise(parts[pi])) { noisy = true; break; }
-    }
-    if (noisy) continue;
+    // Pozíció keresése visszafelé a szövegben
+    var prefix = text.slice(Math.max(0, entry.startIdx - 60), entry.startIdx);
+    var prefNums = [];
+    var reNum = /(\d+)/g;
+    var nm;
+    while ((nm = reNum.exec(prefix)) !== null) prefNums.push(parseInt(nm[1]));
+    // Eltávolítjuk a pts-t ha az utolsó
+    if (prefNums.length && prefNums[prefNums.length-1] === pts) prefNums.pop();
+    // Legkisebb 1-60 közötti szám > lastPos
+    var posCands = prefNums.filter(function(n){ return n >= 1 && n <= 60 && n > lastPos; });
+    var pos = posCands.length ? Math.min.apply(null, posCands) : null;
+    if (pos === null) continue;
 
-    // Pontszám csökkenő ellenőrzés
-    if (leaderPts === null) {
-      leaderPts = pts;
-    } else if (pts > leaderPts) {
-      continue;
-    }
-
-    // Keresztnév keresése
-    var after = text.slice(m.index + m[0].length, m.index + m[0].length + 80);
-    var fnm = after.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/);
-    var first = fnm ? fnm[1] : '';
-    var nameLast = parts.map(function(w){ return w[0]+w.slice(1).toLowerCase(); }).join(' ');
-    var name = first ? first+' '+nameLast : nameLast;
-
-    riders.push({ pos: pos, name: name, pts: pts });
     lastPos = pos;
+    var parts2 = entry.lastName.split(/\s+/);
+    var nameLast = parts2.map(function(w){ return w[0]+w.slice(1).toLowerCase(); }).join(' ');
+    var name = entry.first ? entry.first + ' ' + nameLast : nameLast;
+    riders.push({ pos: pos, name: name, pts: pts });
   }
 
   riders.sort(function(a,b){ return a.pos-b.pos; });
   var seen = {};
   var clean = [];
   for (var ci = 0; ci < riders.length; ci++) {
-    if (!seen[riders[ci].pos]) {
-      seen[riders[ci].pos] = 1;
-      clean.push(riders[ci]);
-    }
+    if (!seen[riders[ci].pos]) { seen[riders[ci].pos]=1; clean.push(riders[ci]); }
   }
   return clean.length >= 3 ? clean : null;
 }
