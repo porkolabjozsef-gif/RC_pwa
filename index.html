@@ -127,6 +127,131 @@ body::after {
 
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
+
+/* ── BOOT SCREEN ── */
+#bootScreen {
+  position: fixed; inset: 0; background: #080808;
+  z-index: 99999; display: flex; align-items: center;
+  justify-content: center; overflow: hidden;
+}
+
+#bootScreen.hide {
+  animation: curtainRip 0.45s cubic-bezier(0.9,0,1,1) forwards;
+}
+
+@keyframes curtainRip {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(105%); }
+}
+
+/* Motor */
+#bootBike {
+  position: absolute;
+  animation: bikeRide 2.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+}
+
+@keyframes bikeRide {
+  0%   { transform: translateX(-110vw); opacity: 0; }
+  15%  { opacity: 1; }
+  38%  { transform: translateX(0); }
+  72%  { transform: translateX(0); }
+  82%  { transform: translateX(20vw); }
+  100% { transform: translateX(130vw); }
+}
+
+/* Kipufogó */
+#bootExhaust {
+  position: absolute;
+  display: flex; gap: 8px; align-items: center;
+  animation: exhaustLife 2.6s forwards;
+}
+
+@keyframes exhaustLife {
+  0%,35%  { opacity: 0; }
+  45%     { opacity: 1; }
+  70%     { opacity: 1; }
+  82%     { opacity: 0; }
+  100%    { opacity: 0; }
+}
+
+.exhaust-puff {
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  animation: puff 0.6s ease-out infinite;
+}
+.exhaust-puff:nth-child(1) { width:8px;  height:8px;  animation-delay:0s; }
+.exhaust-puff:nth-child(2) { width:14px; height:14px; animation-delay:0.15s; }
+.exhaust-puff:nth-child(3) { width:22px; height:22px; animation-delay:0.3s; }
+
+@keyframes puff {
+  0%   { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Speed lines */
+#bootLines {
+  position: absolute; inset: 0; overflow: hidden;
+  animation: linesLife 2.6s forwards;
+}
+
+@keyframes linesLife {
+  0%,68%  { opacity: 0; }
+  76%     { opacity: 1; }
+  86%     { opacity: 1; }
+  100%    { opacity: 0; }
+}
+
+.speed-line {
+  position: absolute; height: 1px;
+  background: linear-gradient(to right, transparent, rgba(220,30,30,0.7), transparent);
+}
+
+/* Glow a motor mögött */
+#bootGlow {
+  position: absolute;
+  width: 300px; height: 80px;
+  background: radial-gradient(ellipse, rgba(200,20,20,0.15) 0%, transparent 70%);
+  animation: glowLife 2.6s forwards;
+}
+
+@keyframes glowLife {
+  0%,35%  { opacity: 0; }
+  45%     { opacity: 1; }
+  70%     { opacity: 1; }
+  82%     { opacity: 0; }
+  100%    { opacity: 0; }
+}
+
+/* Cím */
+#bootTitle {
+  position: absolute; bottom: 28%;
+  font-size: 10px; letter-spacing: 10px;
+  color: rgba(255,255,255,0.2); text-transform: uppercase;
+  animation: titleLife 2.6s forwards;
+}
+
+@keyframes titleLife {
+  0%    { opacity: 0; }
+  15%   { opacity: 1; }
+  72%   { opacity: 1; }
+  100%  { opacity: 0; }
+}
+
+/* Vörös villanás az induláskor */
+#bootFlash {
+  position: absolute; inset: 0;
+  background: rgba(200,0,0,0.08);
+  animation: flashLife 2.6s forwards;
+  pointer-events: none;
+}
+
+@keyframes flashLife {
+  0%,72%  { opacity: 0; }
+  78%     { opacity: 1; }
+  88%     { opacity: 0; }
+  100%    { opacity: 0; }
+}
+
 /* ── PDF IMPORT BAR ── */
 .pdf-bar {
   background: #000d0a;
@@ -961,6 +1086,119 @@ body::after {
   </script>
 </head>
 <body>
+
+<div id="bootScreen">
+  <div id="bootLines">
+    <div class="speed-line" style="top:40%; width:55%; left:22%;"></div>
+    <div class="speed-line" style="top:43%; width:75%; left:8%;"></div>
+    <div class="speed-line" style="top:46%; width:85%; left:3%;"></div>
+    <div class="speed-line" style="top:49%; width:95%; left:0%;"></div>
+    <div class="speed-line" style="top:52%; width:80%; left:6%;"></div>
+    <div class="speed-line" style="top:55%; width:65%; left:14%;"></div>
+    <div class="speed-line" style="top:58%; width:48%; left:28%;"></div>
+  </div>
+
+  <div id="bootGlow"></div>
+
+  <div id="bootExhaust" style="left: calc(50% - 175px); top: 50%; transform: translateY(-55%);">
+    <div class="exhaust-puff"></div>
+    <div class="exhaust-puff"></div>
+    <div class="exhaust-puff"></div>
+  </div>
+
+  <div id="bootBike">
+    <svg width="300" height="180" viewBox="0 0 300 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Hátsó kerék -->
+      <circle cx="72" cy="128" r="38" stroke="#2a2a2a" stroke-width="9"/>
+      <circle cx="72" cy="128" r="28" stroke="#1e1e1e" stroke-width="3"/>
+      <circle cx="72" cy="128" r="6" fill="#555"/>
+      <!-- Küllők -->
+      <line x1="72" y1="100" x2="72" y2="156" stroke="#222" stroke-width="1.5"/>
+      <line x1="44" y1="128" x2="100" y2="128" stroke="#222" stroke-width="1.5"/>
+      <line x1="52" y1="108" x2="92" y2="148" stroke="#222" stroke-width="1.5"/>
+      <line x1="92" y1="108" x2="52" y2="148" stroke="#222" stroke-width="1.5"/>
+
+      <!-- Első kerék -->
+      <circle cx="228" cy="128" r="36" stroke="#2a2a2a" stroke-width="9"/>
+      <circle cx="228" cy="128" r="26" stroke="#1e1e1e" stroke-width="3"/>
+      <circle cx="228" cy="128" r="6" fill="#555"/>
+      <!-- Küllők -->
+      <line x1="228" y1="102" x2="228" y2="154" stroke="#222" stroke-width="1.5"/>
+      <line x1="202" y1="128" x2="254" y2="128" stroke="#222" stroke-width="1.5"/>
+      <line x1="209" y1="109" x2="247" y2="147" stroke="#222" stroke-width="1.5"/>
+      <line x1="247" y1="109" x2="209" y2="147" stroke="#222" stroke-width="1.5"/>
+
+      <!-- Swingarm -->
+      <path d="M72 122 Q100 110 125 108" stroke="#1e1e1e" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+      <!-- Váz -->
+      <path d="M108 108 L148 62 L185 65 L195 92 L170 110 Z" fill="#111" stroke="#cc0000" stroke-width="1.5"/>
+
+      <!-- Motor blokk -->
+      <rect x="115" y="96" width="52" height="32" rx="5" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1.5"/>
+      <rect x="122" y="102" width="10" height="18" rx="2" fill="#151515"/>
+      <rect x="136" y="102" width="10" height="18" rx="2" fill="#151515"/>
+      <rect x="150" y="102" width="10" height="18" rx="2" fill="#151515"/>
+
+      <!-- Kipufogó cső -->
+      <path d="M118 128 Q98 135 80 128" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M118 128 Q98 132 80 128" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+      <!-- Tank -->
+      <path d="M145 58 Q172 50 188 62 L185 78 Q168 70 142 76 Z" fill="#cc0000"/>
+      <path d="M145 58 Q128 54 118 67 L120 80 Q134 72 142 76 Z" fill="#991100"/>
+      <!-- Tank highlight -->
+      <path d="M148 60 Q168 54 182 63" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+      <!-- Farokirdom -->
+      <path d="M108 102 Q90 106 72 118 L76 130 Q96 118 114 112 Z" fill="#991100"/>
+
+      <!-- Oldalsó idom -->
+      <path d="M172 66 Q205 60 228 82 L218 100 Q196 88 174 94 Z" fill="#cc0000"/>
+      <!-- Idom highlight -->
+      <path d="M174 68 Q204 63 225 82" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+      <!-- Szélvédő -->
+      <path d="M185 62 Q205 46 226 64 L218 76 Q200 62 188 74 Z" fill="rgba(120,200,255,0.18)" stroke="rgba(120,200,255,0.5)" stroke-width="1"/>
+
+      <!-- Első villa -->
+      <line x1="212" y1="88" x2="228" y2="128" stroke="#2a2a2a" stroke-width="7" stroke-linecap="round"/>
+      <line x1="204" y1="88" x2="220" y2="128" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+      <!-- Villa keresztmerev -->
+      <line x1="205" y1="104" x2="215" y2="104" stroke="#333" stroke-width="3"/>
+
+      <!-- Kormány -->
+      <path d="M206 82 Q210 72 220 76" stroke="#333" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+      <!-- Pilóta sisak -->
+      <ellipse cx="168" cy="62" rx="20" ry="18" fill="#0d0d0d" stroke="#222" stroke-width="1.5"/>
+      <!-- Sisak csík -->
+      <path d="M150 62 Q158 52 180 56" stroke="#cc0000" stroke-width="2" fill="none"/>
+      <!-- Sisak plexi -->
+      <path d="M150 62 Q158 54 178 58 L178 68 Q158 70 150 65 Z" fill="rgba(120,200,255,0.12)" stroke="rgba(120,200,255,0.35)" stroke-width="1"/>
+
+      <!-- Pilóta test -->
+      <path d="M150 76 Q162 66 184 70 L180 92 Q162 88 148 90 Z" fill="#0a0a0a" stroke="#1a1a1a" stroke-width="1"/>
+      <!-- Pilóta kar -->
+      <path d="M178 74 Q195 72 208 80" stroke="#111" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+      <!-- Piros csík a vázon -->
+      <line x1="118" y1="76" x2="188" y2="70" stroke="#ff2200" stroke-width="2"/>
+      <line x1="118" y1="80" x2="188" y2="74" stroke="#ff2200" stroke-width="1" opacity="0.5"/>
+
+      <!-- Számpajzs -->
+      <rect x="220" y="76" width="26" height="17" rx="3" fill="#fff" stroke="#ddd" stroke-width="0.5"/>
+      <text x="233" y="89" font-family="Arial Black, sans-serif" font-size="10" font-weight="900" fill="#111" text-anchor="middle">1</text>
+
+      <!-- Első idom csúcs -->
+      <path d="M226 82 Q238 78 242 88 L232 96 Q222 90 218 84 Z" fill="#cc0000"/>
+    </svg>
+  </div>
+
+  <div id="bootFlash"></div>
+  <div id="bootTitle">Race Control Dashboard</div>
+</div>
+
 
 <div class="app">
 
@@ -2944,6 +3182,18 @@ if ('serviceWorker' in navigator) {
     .then(() => console.log('Service Worker aktív'))
     .catch(err => console.warn('SW hiba:', err));
 }
+</script>
+<script>
+(function() {
+  var boot = document.getElementById('bootScreen');
+  if (!boot) return;
+  setTimeout(function() {
+    boot.classList.add('hide');
+    setTimeout(function() {
+      boot.style.display = 'none';
+    }, 500);
+  }, 2900);
+})();
 </script>
 </body>
 </html>
