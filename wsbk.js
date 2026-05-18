@@ -530,8 +530,7 @@ function loadWsbkStandings(rd) {
     }).then(function(pages){
       var rawText=pages.join(' ');
       var riders;
-      try { riders = parseStandingsText(rawText); } catch(e) { console.log('[STD] parse err:',e.message); riders = null; }
-      console.log('[STD] url:', sessCodes[idx], 'riders:', riders?riders.length:0);
+      try { riders = parseStandingsText(rawText); } catch(e) { riders = null; }
       if(!riders||riders.length<5){fetchStandingsPdf(idx+1);return;}
       var maxPts=Math.max.apply(null,riders.map(function(r){return r.pts;}));
       if(riders[0].pts!==maxPts){fetchStandingsPdf(idx+1);return;}
@@ -767,7 +766,6 @@ function parseStandingsText(text) {
 
   // Ha az SBK parser nem talált semmit → SSP/SPB/WCR parser
   // SSP struktúra: [gap] NAGYBETŰSNÉV pos [kör pontok] Keresztnév (NAT) [gap2]...
-  console.log('[STD fallback] SBK riders:', riders.length, 'trying SSP mode');
   if (riders.length < 3) {
     var reEntry = /([A-Z]{3,}(?:[- ][A-Z]{2,})*)\s+(\d{1,2})\b/g;
     var entries2 = [];
@@ -799,10 +797,8 @@ function parseStandingsText(text) {
       return null;
     }
 
-    console.log('[STD fallback] entries2:', entries2.length, entries2.slice(0,3).map(function(e){return e.pos+':'+e.last;}));
     var leaderPts2 = null, lastPos2 = 0;
     for (var ei2=0; ei2<entries2.length; ei2++) {
-      if(ei2<4) console.log('[STD ei2]', ei2, entries2[ei2].pos, entries2[ei2].last, 'natEnd:', entries2[ei2].natEnd);
       var ent = entries2[ei2];
       if (ent.pos <= lastPos2) continue;
       var prevNatEnd = ei2 > 0 ? entries2[ei2-1].natEnd : 0;
@@ -810,12 +806,13 @@ function parseStandingsText(text) {
       var bnums = between.match(/\d+/g) || [];
       var epts;
       if (ent.pos === 1) {
+        // Az első versenyző pts-e: az entry.start előtti utolsó nagy szám (> 60)
+        // Nem az első szám (az lehet "1 / 2" fejlécből), hanem az utolsó > 60
         var pfx = text.slice(0, ent.start).match(/\d+/g) || [];
-        epts = pfx.length ? parseInt(pfx[0]) : null;
+        var bigNums = pfx.filter(function(n){ return parseInt(n) > 60; });
+        epts = bigNums.length ? parseInt(bigNums[bigNums.length-1]) : (pfx.length ? parseInt(pfx[pfx.length-1]) : null);
         leaderPts2 = epts;
-        console.log('[STD pts1]', ent.pos, ent.last, 'pfx[0]:', pfx[0], 'pts:', epts);
       } else {
-        console.log('[STD ptsx]', ent.pos, ent.last, 'prevNatEnd:', prevNatEnd, 'ent.start:', ent.start, 'between:', between.slice(0,30), 'bnums:', bnums.slice(0,3), 'leader:', leaderPts2);
         if (!bnums.length || !leaderPts2) continue;
         epts = r3s(bnums[0], leaderPts2);
       }
