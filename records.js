@@ -1,6 +1,6 @@
 // ============================================================
 // TRACK RECORDS — Race Control Dashboard
-// Utolsó frissítés: 2026-05-16
+// Utolsó frissítés: 2026-05-18
 // ============================================================
 // WSBK_RECORDS   — WSBK pályák rekordjai (wsbkEvent kód alapján)
 // MOTOGP_RECORDS — MotoGP pályák rekordjai (selectedEventCode alapján)
@@ -58,9 +58,9 @@ var WSBK_RECORDS = {
     R3:  {time:"1'58.122", rider:'A. Di Persio',      year:2025}
   },
   'CZE': { name:'Autodrom Most',         len:'4.212 km',
-    SBK: {time:"1'30.064", rider:'T. Razgatlioglu',  year:2024},
-    SSP: {time:"1'34.126", rider:'Y. Montella',       year:2024},
-    SPB: {time:'\u2014',   rider:'\u2014',            year:null}
+    SBK: {time:"1'29.616", rider:'?', year:2026},
+    SSP: {time:"1'33.802", rider:'?', year:2026},
+    SPB: {time:"1'39.473", rider:'D. Clerk', year:2026}
   },
   'ARA': { name:'Motorland Arag\u00f3n', len:'5.077 km',
     SBK: {time:"1'47.332", rider:'N. Bulega',        year:2025},
