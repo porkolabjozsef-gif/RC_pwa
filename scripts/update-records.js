@@ -129,7 +129,7 @@ async function fetchPdfText(url) {
 // Session kódok amiket ellenőrzünk — minden session ahol rekord születhet
 const WSBK_SESSION_CODES = ['L1A','L2A','L3A','Q1A','W1A','W2A','001','002','003'];
 
-async function fetchWsbkBestLap(year, eventCode, series) {
+async function fetchWsbkBestLap(year, eventCode, series, currentRecord) {
   const seriesUrl = WSBK_SERIES_URL[series];
   if (!seriesUrl) return null;
 
@@ -146,7 +146,16 @@ async function fetchWsbkBestLap(year, eventCode, series) {
     const times = [];
     let m;
     while ((m = timeRe.exec(text)) !== null) times.push({ time: m[1], pos: m.index });
-    const valid = times.filter(t => timeToSec(t.time) < 300 && timeToSec(t.time) > 60);
+    // Ha van jelenlegi rekord, csak az ahhoz képest ±20%-on belüli időket fogadjuk el
+    // Ez kizárja a sighting lapokat, safety car köröket, stb.
+    const refSec = (currentRecord && currentRecord.time && currentRecord.time !== '\u2014')
+      ? timeToSec(currentRecord.time) : null;
+    const valid = times.filter(t => {
+      const s = timeToSec(t.time);
+      if (s >= 240 || s <= 80) return false;           // abszolút határok
+      if (refSec && s > refSec * 1.15) return false;   // max 15%-kal lassabb a rekorднál
+      return true;
+    });
     if (!valid.length) return null;
 
     const best = valid.reduce((a, b) => timeToSec(a.time) < timeToSec(b.time) ? a : b);
@@ -375,7 +384,7 @@ async function main() {
       for (const series of ev.series) {
         const current = WSBK_RECORDS[ev.code]?.[series];
         if (!current) continue;
-        const fetched = await fetchWsbkBestLap(year, ev.code, series);
+        const fetched = await fetchWsbkBestLap(year, ev.code, series, current);
         if (!fetched) continue;
         const currentSec = current.time === '\u2014' ? Infinity : timeToSec(current.time);
         const fetchedSec = timeToSec(fetched.time);
