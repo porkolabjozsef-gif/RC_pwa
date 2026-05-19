@@ -126,59 +126,75 @@ async function fetchPdfText(url) {
   return data.text;
 }
 
+// Session kódok amiket ellenőrzünk — minden session ahol rekord születhet
+const WSBK_SESSION_CODES = ['L1A','L2A','L3A','Q1A','W1A','W2A','001','002','003'];
+
 async function fetchWsbkBestLap(year, eventCode, series) {
   const seriesUrl = WSBK_SERIES_URL[series];
   if (!seriesUrl) return null;
-  const url = `${WSBK_PROXY}${year}/${eventCode}/${seriesUrl}/Q1A/CLA/Results.pdf`;
-  try {
-    const text = await fetchPdfText(url);
-    if (!text) return null;
 
-    // Legjobb körös keresése (max 5 perc = 300 sec)
+  const NOISE = new Set(['ITA','ESP','GBR','USA','AUS','POR','FRA','GER','NED',
+    'BEL','JPN','THA','INA','MAL','TUR','BRA','DOM','AUT','ARG','SUI','RSA',
+    'CAN','FIN','SWE','NOR','KOR','CHI','MEX','POL','CZE','DEN','IND','SBK',
+    'SSP','WCR','SPB','FIM','BMW','VDS','HRC','RR','ELF','GRT','CLA','STD',
+    'SUP','NAT','POS','GRID','LAP','GAP','CLASS','BIKE','TEAM','RIDER','LAPS',
+    'TIME','RACE','BEST','SPEED','FASTEST','QUALIFYING','WORLD','RESULTS',
+    'ROUND','POINTS','FROM','FIRST','PREVIOUS','COPYRIGHT','DORNA']);
+
+  function extractBestFromText(text) {
     const timeRe = /\b(\d'\d{2}\.\d{3})\b/g;
     const times = [];
     let m;
-    while ((m = timeRe.exec(text)) !== null) times.push(m[1]);
-    if (!times.length) return null;
-
-    const valid = times.filter(t => timeToSec(t) < 300);
+    while ((m = timeRe.exec(text)) !== null) times.push({ time: m[1], pos: m.index });
+    const valid = times.filter(t => timeToSec(t.time) < 300 && timeToSec(t.time) > 60);
     if (!valid.length) return null;
-    const best = valid.reduce((a, b) => timeToSec(a) < timeToSec(b) ? a : b);
 
-    // A legjobb körös pozíciója a szövegben
-    const bestPos = text.indexOf(best);
-    const prefix  = text.slice(0, bestPos + best.length);
+    const best = valid.reduce((a, b) => timeToSec(a.time) < timeToSec(b.time) ? a : b);
+    const prefix = text.slice(0, best.pos + best.time.length);
 
-    // Csupa nagybetűs név keresése visszafelé: "N. BULEGA"
-    const NOISE = new Set(['ITA','ESP','GBR','USA','AUS','POR','FRA','GER','NED',
-      'BEL','JPN','THA','INA','MAL','TUR','BRA','DOM','AUT','ARG','SUI','RSA',
-      'CAN','FIN','SWE','NOR','KOR','CHI','MEX','POL','CZE','DEN','IND','SBK',
-      'SSP','WCR','SPB','FIM','BMW','VDS','HRC','RR','ELF','GRT','CLA','STD',
-      'SUP','NAT','POS','GRID','LAP','GAP','CLASS','BIKE','TEAM','RIDER','LAPS',
-      'TIME','RACE','BEST','SPEED','FASTEST','QUALIFYING']);
-
-    const nameRe2 = /([A-Z])\.\s+([A-Z]{2,}(?:-[A-Z]{2,})?)/g;
+    // Csupa nagybetűs név keresése: "N. BULEGA"
+    const nameRe = /([A-Z])\.\ s+([A-Z]{2,}(?:-[A-Z]{2,})?)/g;
     const namesWithPos = [];
-    while ((m = nameRe2.exec(prefix)) !== null) {
+    while ((m = nameRe.exec(prefix)) !== null) {
       if (!NOISE.has(m[2]) && m[2].length >= 3) {
-        namesWithPos.push({ pos: m.index, first: m[1], last: m[2] });
+        namesWithPos.push({ first: m[1], last: m[2] });
       }
     }
-
     let riderName = '?';
     if (namesWithPos.length) {
-      // A legjobb körhoz legközelebb lévő (utolsó a prefix-ben)
       const closest = namesWithPos[namesWithPos.length - 1];
-      // Formázás: "N. Bulega" (kezdőbetű nagybetű, többi kisbetű)
       const lastName = closest.last.charAt(0) + closest.last.slice(1).toLowerCase();
       riderName = `${closest.first}. ${lastName}`;
     }
+    return { time: best.time, rider: riderName };
+  }
 
-    return { time: best, rider: riderName, year: parseInt(year) };
-  } catch(e) {
-    console.log(`  ⚠ WSBK PDF hiba (${year}/${eventCode}/${series}): ${e.message}`);
+  // Összes session ellenőrzése — FP-k, Superpole, WUP, R1, SPR, R2
+  let overallBest = null;
+
+  for (const sessCode of WSBK_SESSION_CODES) {
+    const url = `${WSBK_PROXY}${year}/${eventCode}/${seriesUrl}/${sessCode}/CLA/Results.pdf`;
+    try {
+      const text = await fetchPdfText(url);
+      if (!text) continue;
+      const result = extractBestFromText(text);
+      if (!result) continue;
+      console.log(`    ${sessCode}: ${result.time} (${result.rider})`);
+      if (!overallBest || timeToSec(result.time) < timeToSec(overallBest.time)) {
+        overallBest = { ...result, year: parseInt(year) };
+      }
+    } catch(e) {
+      // Session nem létezik — normális
+    }
+    await sleep(300);
+  }
+
+  if (!overallBest) {
+    console.log(`  ⚠ Nincs érvényes körös: ${year}/${eventCode}/${series}`);
     return null;
   }
+
+  return overallBest;
 }
 
 async function fetchMotogpBestLap(year, eventCode, category) {
