@@ -1,6 +1,6 @@
 // ============================================================
 // TRACK RECORDS — Race Control Dashboard
-// Utolsó frissítés: 2026-05-18
+// Utolsó frissítés: 2026-05-19
 // ============================================================
 // WSBK_RECORDS   — WSBK pályák rekordjai (wsbkEvent kód alapján)
 // MOTOGP_RECORDS — MotoGP pályák rekordjai (selectedEventCode alapján)
@@ -34,57 +34,57 @@
 // ------------------------------------------------------------
 var WSBK_RECORDS = {
   'AUS': { name:'Phillip Island',        len:'4.448 km',
-    SBK: {time:"1'27.916", rider:'N. Bulega',        year:2024},
-    SSP: {time:"1'31.249", rider:'S. Manzi',          year:2024}
+    SBK: {time:"1'06.284", rider:'?', year:2025},
+    SSP: {time:"1'25.203", rider:'?', year:2026}
   },
   'POR': { name:'Portim\u00e3o',         len:'4.592 km',
-    SBK: {time:"1'38.495", rider:'N. Bulega',        year:2026},
-    SSP: {time:"1'42.643", rider:'C. Oncu',           year:2025},
-    WCR: {time:"1'52.572", rider:'M. Herrera',        year:2025},
-    SPB: {time:"1'48.553", rider:'M. Vannucci',       year:2026},
-    R3:  {time:"2'00.061", rider:'T. Sovicka',        year:2025}
+    SBK: {time:"1'06.096", rider:'?', year:2025},
+    SSP: {time:"1'00.680", rider:'?', year:2026},
+    WCR: {time:"1'00.277", rider:'?', year:2026},
+    SPB: {time:"1'48.400", rider:'?', year:2026},
+    R3: {time:"1'18.042", rider:'?', year:2025}
   },
   'NED': { name:'TT Circuit Assen',      len:'4.542 km',
-    SBK: {time:"1'32.144", rider:'N. Bulega',        year:2026},
-    SSP: {time:"1'36.184", rider:'C. Oncu',           year:2025},
-    WCR: {time:"1'47.031", rider:'M. Herrera',        year:2026},
-    SPB: {time:"1'42.499", rider:'L. Veneman',        year:2026},
+    SBK: {time:"1'01.777", rider:'?', year:2025},
+    SSP: {time:"1'02.042", rider:'?', year:2025},
+    WCR: {time:"1'00.554", rider:'?', year:2025},
+    SPB: {time:"1'02.146", rider:'?', year:2026},
     R3:  {time:"1'52.567", rider:'J. Giral',          year:2021}
   },
   'HUN': { name:'Balaton Park Circuit',  len:'4.075 km',
-    SBK: {time:"1'38.094", rider:'N. Bulega',        year:2026},
-    SSP: {time:"1'42.050", rider:'A. Arenas',         year:2026},
-    WCR: {time:"1'51.935", rider:'P. Ramos',          year:2026},
-    R3:  {time:"1'58.122", rider:'A. Di Persio',      year:2025}
+    SBK: {time:"1'01.515", rider:'?', year:2026},
+    SSP: {time:"1'00.728", rider:'?', year:2026},
+    WCR: {time:"1'03.754", rider:'?', year:2025},
+    R3: {time:"1'00.060", rider:'?', year:2025}
   },
   'CZE': { name:'Autodrom Most',         len:'4.212 km',
-    SBK: {time:"1'29.616", rider:'?', year:2026},
-    SSP: {time:"1'33.802", rider:'?', year:2026},
-    SPB: {time:"1'39.473", rider:'D. Clerk', year:2026}
+    SBK: {time:"1'09.585", rider:'?', year:2026},
+    SSP: {time:"1'10.517", rider:'?', year:2026},
+    SPB: {time:"1'11.037", rider:'?', year:2026}
   },
   'ARA': { name:'Motorland Arag\u00f3n', len:'5.077 km',
-    SBK: {time:"1'47.332", rider:'N. Bulega',        year:2025},
-    SSP: {time:"1'52.097", rider:'C. Oncu',           year:2025},
+    SBK: {time:"1'08.673", rider:'?', year:2025},
+    SSP: {time:"1'06.024", rider:'?', year:2025},
     SPB: {time:'\u2014',   rider:'\u2014',            year:null},
-    R3:  {time:"2'12.240", rider:'M. Vich',           year:2024}
+    R3: {time:"1'00.984", rider:'?', year:2025}
   },
   'ITA': { name:'Misano World Circuit',  len:'4.226 km',
-    SBK: {time:"1'31.618", rider:'N. Bulega',        year:2025},
-    SSP: {time:"1'36.495", rider:'N. Bulega',         year:2023},
+    SBK: {time:"1'00.743", rider:'?', year:2025},
+    SSP: {time:"1'01.994", rider:'?', year:2025},
     WCR: {time:"1'47.961", rider:'B. Neila',          year:2024},
     SPB: {time:'\u2014',   rider:'\u2014',            year:null},
     R3:  {time:"1'53.515", rider:'S. Yamane',         year:2024}
   },
   'GBR': { name:'Donington Park',        len:'4.023 km',
-    SBK: {time:"1'24.629", rider:'T. Razgatlioglu',  year:2024},
-    SSP: {time:"1'28.322", rider:'A. Huertas',        year:2024},
-    WCR: {time:"1'38.964", rider:'B. Neila',          year:2025},
-    R3:  {time:"1'44.682", rider:'S. Yamane',         year:2024}
+    SBK: {time:"1'07.008", rider:'?', year:2025},
+    SSP: {time:"1'01.784", rider:'?', year:2025},
+    WCR: {time:"1'04.337", rider:'?', year:2025},
+    R3: {time:"1'04.902", rider:'?', year:2025}
   },
   'FRA': { name:'Magny-Cours',           len:'4.411 km',
-    SBK: {time:"1'34.930", rider:'T. Razgatlioglu',  year:2025},
-    SSP: {time:"1'39.442", rider:'C. Oncu',           year:2025},
-    WCR: {time:"1'51.414", rider:'C. Jones',          year:2025},
+    SBK: {time:"1'02.585", rider:'?', year:2025},
+    SSP: {time:"1'03.981", rider:'?', year:2025},
+    WCR: {time:"1'06.854", rider:'?', year:2025},
     SPB: {time:'\u2014',   rider:'\u2014',            year:null},
     R3:  {time:"1'57.147", rider:'A. Mahendra',       year:2023}
   },
@@ -96,8 +96,8 @@ var WSBK_RECORDS = {
     R3:  {time:'\u2014',   rider:'\u2014',            year:null}
   },
   'EST': { name:'Estoril',               len:'4.182 km',
-    SBK: {time:"1'34.203", rider:'T. Razgatlioglu',  year:2025},
-    SSP: {time:"1'39.046", rider:'D. Aegerter',       year:2022},
+    SBK: {time:"1'07.588", rider:'?', year:2025},
+    SSP: {time:"1'39.042", rider:'?', year:2025},
     WCR: {time:"1'49.872", rider:'A. Carrasco',       year:2024},
     SPB: {time:'\u2014',   rider:'\u2014',            year:null},
     R3:  {time:"1'54.861", rider:'A. Di Persio',      year:2025}
