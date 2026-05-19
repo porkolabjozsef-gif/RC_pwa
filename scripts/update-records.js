@@ -2,11 +2,6 @@
 // update-records.js — Race Control Dashboard rekord + standings frissítő
 // Futtatás: node scripts/update-records.js
 // ============================================================
-// Működés:
-//   1. WSBK pályarekordok: Superpole PDF → legjobb kör → records.js
-//   2. MotoGP pályarekordok: API → Q2 legjobb kör → records.js
-//   3. WSBK bajnoki állás: Championship Standings PDF → wsbk.js
-// ============================================================
 
 import fetch from 'node-fetch';
 import pdf   from 'pdf-parse';
@@ -21,9 +16,6 @@ const WSBK_PATH    = path.join(__dirname, '..', 'wsbk.js');
 const WSBK_PROXY   = process.env.WSBK_PROXY   || 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-pdf/';
 const MOTOGP_PROXY = process.env.MOTOGP_PROXY  || 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
 
-// ============================================================
-// WSBK NAPTÁR
-// ============================================================
 const WSBK_EVENTS = {
   '2026': [
     {code:'AUS', series:['SBK','SSP'],                  dateEnd:'2026-02-22'},
@@ -57,9 +49,6 @@ const WSBK_EVENTS = {
 
 const WSBK_SERIES_URL = { SBK:'SBK', SSP:'SSP', WCR:'WCR', SPB:'SPB', R3:'YR3EC' };
 
-// ============================================================
-// MOTOGP NAPTÁR
-// ============================================================
 const MOTOGP_EVENTS = {
   '2026': [
     {code:'THA',dateEnd:'2026-03-01'},{code:'BRA',dateEnd:'2026-03-22'},
@@ -95,9 +84,6 @@ const CAT_UUIDS = {
   'Moto3':  '954f7e65-2ef2-4423-b949-4961cc603e45',
 };
 
-// ============================================================
-// SEGÉDFÜGGVÉNYEK
-// ============================================================
 function timeToSec(t) {
   const m = /(\d+)'(\d{2})\.(\d{3})/.exec(t);
   if (!m) return Infinity;
@@ -132,9 +118,6 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-// ============================================================
-// WSBK PDF SZÖVEG LEKÉRÉSE
-// ============================================================
 async function fetchPdfText(url) {
   const r = await fetchWithTimeout(url, 25000);
   if (!r.ok) return null;
@@ -143,9 +126,6 @@ async function fetchPdfText(url) {
   return data.text;
 }
 
-// ============================================================
-// WSBK PÁLYAREKORD KINYERÉSE — Superpole PDF
-// ============================================================
 async function fetchWsbkBestLap(year, eventCode, series) {
   const seriesUrl = WSBK_SERIES_URL[series];
   if (!seriesUrl) return null;
@@ -154,27 +134,53 @@ async function fetchWsbkBestLap(year, eventCode, series) {
     const text = await fetchPdfText(url);
     if (!text) return null;
 
+    // Legjobb körös keresése (max 5 perc = 300 sec)
     const timeRe = /\b(\d'\d{2}\.\d{3})\b/g;
     const times = [];
     let m;
     while ((m = timeRe.exec(text)) !== null) times.push(m[1]);
     if (!times.length) return null;
 
-    const best = times.reduce((a, b) => timeToSec(a) < timeToSec(b) ? a : b);
-    const nameRe = /\b([A-Z])\.\s+([A-Z][a-z][A-Za-z\-]+)\b/g;
-    const names = [];
-    while ((m = nameRe.exec(text)) !== null) names.push(`${m[1]}. ${m[2]}`);
+    const valid = times.filter(t => timeToSec(t) < 300);
+    if (!valid.length) return null;
+    const best = valid.reduce((a, b) => timeToSec(a) < timeToSec(b) ? a : b);
 
-    return { time: best, rider: names[0] || '?', year: parseInt(year) };
+    // A legjobb körös pozíciója a szövegben
+    const bestPos = text.indexOf(best);
+    const prefix  = text.slice(0, bestPos + best.length);
+
+    // Csupa nagybetűs név keresése visszafelé: "N. BULEGA"
+    const NOISE = new Set(['ITA','ESP','GBR','USA','AUS','POR','FRA','GER','NED',
+      'BEL','JPN','THA','INA','MAL','TUR','BRA','DOM','AUT','ARG','SUI','RSA',
+      'CAN','FIN','SWE','NOR','KOR','CHI','MEX','POL','CZE','DEN','IND','SBK',
+      'SSP','WCR','SPB','FIM','BMW','VDS','HRC','RR','ELF','GRT','CLA','STD',
+      'SUP','NAT','POS','GRID','LAP','GAP','CLASS','BIKE','TEAM','RIDER','LAPS',
+      'TIME','RACE','BEST','SPEED','FASTEST','QUALIFYING']);
+
+    const nameRe2 = /([A-Z])\.\s+([A-Z]{2,}(?:-[A-Z]{2,})?)/g;
+    const namesWithPos = [];
+    while ((m = nameRe2.exec(prefix)) !== null) {
+      if (!NOISE.has(m[2]) && m[2].length >= 3) {
+        namesWithPos.push({ pos: m.index, first: m[1], last: m[2] });
+      }
+    }
+
+    let riderName = '?';
+    if (namesWithPos.length) {
+      // A legjobb körhoz legközelebb lévő (utolsó a prefix-ben)
+      const closest = namesWithPos[namesWithPos.length - 1];
+      // Formázás: "N. Bulega" (kezdőbetű nagybetű, többi kisbetű)
+      const lastName = closest.last.charAt(0) + closest.last.slice(1).toLowerCase();
+      riderName = `${closest.first}. ${lastName}`;
+    }
+
+    return { time: best, rider: riderName, year: parseInt(year) };
   } catch(e) {
     console.log(`  ⚠ WSBK PDF hiba (${year}/${eventCode}/${series}): ${e.message}`);
     return null;
   }
 }
 
-// ============================================================
-// MOTOGP API: Q2 LEGJOBB KÖR
-// ============================================================
 async function fetchMotogpBestLap(year, eventCode, category) {
   try {
     const seasonUuid = SEASON_UUIDS[year];
@@ -218,24 +224,13 @@ async function fetchMotogpBestLap(year, eventCode, category) {
   }
 }
 
-// ============================================================
-// WSBK STANDINGS PDF PARSE
-// Minta a Championship Standings PDF-ben:
-//   "1 N. BULEGA ITA ... 248 ... 2 I. LECUONA ESP ... 166 ..."
-// vagy sortöréses változat:
-//   "1\nBULEGA\nNicolo\nITA\n...\n248\n"
-// ============================================================
 async function fetchWsbkStandings(year, eventCode, series) {
   const seriesUrl = WSBK_SERIES_URL[series];
   if (!seriesUrl) return null;
-
-  // Championship Standings PDF: 003/STD = Race 2 után (teljes forduló)
-  // 002/STD = Superpole Race után, 001/STD = Race 1 után
   const url = `${WSBK_PROXY}${year}/${eventCode}/${seriesUrl}/003/STD/ChampionshipStandings.pdf`;
   try {
     const text = await fetchPdfText(url);
     if (!text) return null;
-
     return parseStandingsPdf(text);
   } catch(e) {
     console.log(`  ⚠ Standings PDF hiba (${year}/${eventCode}/${series}): ${e.message}`);
@@ -243,99 +238,61 @@ async function fetchWsbkStandings(year, eventCode, series) {
   }
 }
 
-// ============================================================
-// STANDINGS PDF PARSER
-// A PDF-ben a sorrend: Pos, Versenyző neve, NAT, ... Pontszám
-// Legmegbízhatóbb minta: "(\d{1,2})\s+([A-Z]{2,})\s+(\d{1,3})\b"
-// ahol az első szám 1-60 közt van, a harmadik szám > 0
-// ============================================================
 function parseStandingsPdf(text) {
   const riders = [];
   const seen   = {};
-
   const NOISE = ['ITA','ESP','GBR','USA','AUS','POR','FRA','GER','NED','BEL',
     'JPN','THA','INA','MAL','TUR','BRA','DOM','AUT','ARG','SUI','RSA','CAN',
     'FIN','SWE','NOR','KOR','CHI','MEX','POL','CZE','DEN','IND','SBK','SSP',
     'WCR','SPB','FIM','BMW','VDS','HRC','RR','ELF','GRT','CLA','STD','SUP'];
-
-  const re = /\b(\d{1,2})\s+([A-Z][A-Z\-]{1,20})\s+(\d{1,3})\b/g;
+  const re = /(\d{1,2})\s+([A-Z][A-Z\-]{1,20})\s+(\d{1,3})/g;
   let m;
-
   while ((m = re.exec(text)) !== null) {
     const pos  = parseInt(m[1]);
     const last = m[2];
     const pts  = parseInt(m[3]);
-
     if (pos < 1 || pos > 60 || pts < 1 || pts > 1200) continue;
     if (NOISE.indexOf(last) >= 0) continue;
     if (seen[pos]) continue;
     seen[pos] = 1;
-
-    // Keresztnév keresése a közelben
     const after = text.slice(m.index + m[0].length, m.index + m[0].length + 100);
     const nm = after.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+\([A-Z]{2,3}\)/);
     const first = nm ? nm[1] : '';
     const name  = first
       ? first + ' ' + last.charAt(0) + last.slice(1).toLowerCase()
       : last.charAt(0) + last.slice(1).toLowerCase();
-
     riders.push({ pos, n: name, pts });
   }
-
-  // Szanity check: folyamatos 1..N sorrend
   riders.sort((a, b) => a.pos - b.pos);
   const clean = [];
   for (let i = 0; i < riders.length; i++) {
     if (riders[i].pos === i + 1) clean.push(riders[i]);
     else break;
   }
-
   const result = clean.length >= 3 ? clean : riders.slice(0, 30);
   return result.length >= 3 ? result : null;
 }
 
-// ============================================================
-// WSBK.JS BETÖLTÉSE ÉS ÍRÁSA
-// ============================================================
 function loadWsbkJs() {
   return fs.readFileSync(WSBK_PATH, 'utf8');
 }
 
-// WSBK_STANDINGS_EMBEDDED frissítése a wsbk.js-ben
 function updateStandingsInWsbkJs(src, series, riders, eventCode, year) {
-  // Keressük a sorozat blokkját a WSBK_STANDINGS_EMBEDDED-ben
-  // Minta: SBK: [\n    {...},\n    ...\n  ]
   const escapedSeries = series.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const blockRe = new RegExp(
     `(${escapedSeries}\\s*:\\s*\\[)([^\\[\\]]*?)(\\])`,
     's'
   );
-
-  // Ellenőrizzük hogy a WSBK_STANDINGS_EMBEDDED blokkban vagyunk
   const embStart = src.indexOf('var WSBK_STANDINGS_EMBEDDED');
-  if (embStart === -1) {
-    console.log(`  ⚠ WSBK_STANDINGS_EMBEDDED nem található`);
-    return src;
-  }
-
+  if (embStart === -1) { console.log(`  ⚠ WSBK_STANDINGS_EMBEDDED nem található`); return src; }
   const before = src.slice(0, embStart);
   const after  = src.slice(embStart);
-
-  // Új tartalom generálása
   const newItems = riders.map(r => `    {n:'${r.n}', pts:${r.pts}}`).join(',\n');
-  const updated  = after.replace(blockRe, (full, open, _old, close) => {
-    return open + '\n' + newItems + '\n  ' + close;
-  });
-
-  if (updated === after) {
-    console.log(`  ⚠ Standings update sikertelen: ${series}`);
-    return src;
-  }
-
+  const updated  = after.replace(blockRe, (full, open, _old, close) => open + '\n' + newItems + '\n  ' + close);
+  if (updated === after) { console.log(`  ⚠ Standings update sikertelen: ${series}`); return src; }
   return before + updated;
 }
 
-// A fejléc komment frissítése (pl. "HUN R2 után" → "CZE R2 után")
 function updateStandingsComment(src, eventCode, year) {
   return src.replace(
     /\/\/ Forrás:.*?ChampionshipStandings\.pdf[^\n]*/,
@@ -343,7 +300,6 @@ function updateStandingsComment(src, eventCode, year) {
   );
 }
 
-// A "HUN után" felirat frissítése a renderEmbeddedStandings-ban
 function updateStandingsLabel(src, eventCode) {
   return src.replace(
     /\([A-Z]{2,3}\s*R\d?\s*ut\\u00e1n\)/,
@@ -351,9 +307,6 @@ function updateStandingsLabel(src, eventCode) {
   );
 }
 
-// ============================================================
-// RECORDS.JS BETÖLTÉSE ÉS ÍRÁSA
-// ============================================================
 function loadRecords() {
   const src = fs.readFileSync(RECORDS_PATH, 'utf8');
   const fn  = new Function('module', 'exports', src + '\nmodule.exports={WSBK_RECORDS,MOTOGP_RECORDS};');
@@ -365,31 +318,30 @@ function loadRecords() {
 function updateRecordInSrc(src, section, trackCode, series, newRec) {
   const escapedCode   = trackCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedSeries = series.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
   const sectionStart = src.indexOf(`var ${section}`);
   if (sectionStart === -1) return src;
-
   const blockRe = new RegExp(
     `('${escapedCode}'\\s*:\\s*\\{[^}]*?(?:\\{[^}]*\\}[^}]*)*?)` +
     `(${escapedSeries}\\s*:\\s*\\{time:[^}]+\\})`,
     's'
   );
-
   const newLine  = `${series}: {time:"${newRec.time}", rider:'${newRec.rider}', year:${newRec.year}}`;
   const before   = src.slice(0, sectionStart);
   const after    = src.slice(sectionStart);
   const updated  = after.replace(blockRe, (full, prefix, _old) => prefix + newLine);
-
-  if (updated === after) {
-    console.log(`  ⚠ Nem sikerült frissíteni: ${section}['${trackCode}'].${series}`);
-    return src;
-  }
+  if (updated === after) { console.log(`  ⚠ Nem sikerült frissíteni: ${section}['${trackCode}'].${series}`); return src; }
   return before + updated;
 }
 
-// ============================================================
-// FŐ LOGIKA
-// ============================================================
+function getCurrentLeaderPts(src, series) {
+  const embStart = src.indexOf('var WSBK_STANDINGS_EMBEDDED');
+  if (embStart === -1) return -1;
+  const escapedSeries = series.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const blockRe = new RegExp(`${escapedSeries}\\s*:\\s*\\[\\s*\\{n:'[^']+',\\s*pts:(\\d+)\\}`);
+  const m = blockRe.exec(src.slice(embStart));
+  return m ? parseInt(m[1]) : -1;
+}
+
 async function main() {
   console.log('=== Race Control Dashboard — Rekord + Standings frissítő ===');
   console.log(`Futás ideje: ${new Date().toISOString()}`);
@@ -397,30 +349,20 @@ async function main() {
   const { src: originalSrc, WSBK_RECORDS, MOTOGP_RECORDS } = loadRecords();
   let recordsSrc = originalSrc;
   let recordChanges = 0;
-
   let wsbkSrc = loadWsbkJs();
   let standingsChanges = 0;
 
-  // ──────────────────────────────────────────────────────────
-  // 1. WSBK PÁLYAREKORDOK
-  // ──────────────────────────────────────────────────────────
   console.log('\n--- WSBK pályarekord ellenőrzés ---');
   for (const [year, events] of Object.entries(WSBK_EVENTS)) {
     for (const ev of events) {
-      if (!isFinished(ev.dateEnd)) {
-        console.log(`⏭ ${year}/${ev.code} — még nem zajlott le`);
-        continue;
-      }
+      if (!isFinished(ev.dateEnd)) { console.log(`⏭ ${year}/${ev.code} — még nem zajlott le`); continue; }
       for (const series of ev.series) {
         const current = WSBK_RECORDS[ev.code]?.[series];
         if (!current) continue;
-
         const fetched = await fetchWsbkBestLap(year, ev.code, series);
         if (!fetched) continue;
-
         const currentSec = current.time === '\u2014' ? Infinity : timeToSec(current.time);
         const fetchedSec = timeToSec(fetched.time);
-
         if (fetchedSec < currentSec) {
           console.log(`✅ REKORD: WSBK_RECORDS['${ev.code}'].${series}`);
           console.log(`   ${current.time || '—'} → ${fetched.time} (${fetched.rider}, ${fetched.year})`);
@@ -435,26 +377,17 @@ async function main() {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // 2. MOTOGP PÁLYAREKORDOK
-  // ──────────────────────────────────────────────────────────
   console.log('\n--- MotoGP pályarekord ellenőrzés ---');
   for (const [year, events] of Object.entries(MOTOGP_EVENTS)) {
     for (const ev of events) {
-      if (!isFinished(ev.dateEnd)) {
-        console.log(`⏭ ${year}/${ev.code} MotoGP — még nem zajlott le`);
-        continue;
-      }
+      if (!isFinished(ev.dateEnd)) { console.log(`⏭ ${year}/${ev.code} MotoGP — még nem zajlott le`); continue; }
       for (const cat of MOTOGP_CATEGORIES) {
         const current = MOTOGP_RECORDS[ev.code]?.[cat];
         if (!current) continue;
-
         const fetched = await fetchMotogpBestLap(year, ev.code, cat);
         if (!fetched) continue;
-
         const currentSec = current.time === '\u2014' ? Infinity : timeToSec(current.time);
         const fetchedSec = timeToSec(fetched.time);
-
         if (fetchedSec < currentSec) {
           console.log(`✅ REKORD: MOTOGP_RECORDS['${ev.code}'].${cat}`);
           console.log(`   ${current.time || '—'} → ${fetched.time} (${fetched.rider}, ${fetched.year})`);
@@ -469,13 +402,7 @@ async function main() {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // 3. WSBK BAJNOKI ÁLLÁS
-  // Csak az aktuális év (2026) legutolsó lezajlott fordulójához
-  // ──────────────────────────────────────────────────────────
   console.log('\n--- WSBK bajnoki állás frissítés ---');
-
-  // Legutóbbi lezajlott 2026-os forduló meghatározása
   const year2026  = '2026';
   const events26  = WSBK_EVENTS[year2026] || [];
   const finished  = events26.filter(ev => isFinished(ev.dateEnd));
@@ -485,28 +412,13 @@ async function main() {
     console.log('  Nincs lezajlott 2026-os forduló.');
   } else {
     console.log(`  Legutóbbi forduló: ${lastEvent.code} (${year2026})`);
-
-    // Minden sorozathoz letöltjük és frissítjük az állást
     const allSeries = ['SBK', 'SSP', 'WCR', 'SPB', 'R3'];
     for (const series of allSeries) {
-      // Csak akkor töltjük le, ha az adott forduló tartalmazza ezt a sorozatot
-      if (!lastEvent.series.includes(series)) {
-        console.log(`  ⏭ ${series}: nem futott ${lastEvent.code}-ban`);
-        continue;
-      }
-
+      if (!lastEvent.series.includes(series)) { console.log(`  ⏭ ${series}: nem futott ${lastEvent.code}-ban`); continue; }
       const riders = await fetchWsbkStandings(year2026, lastEvent.code, series);
-      if (!riders || riders.length < 3) {
-        console.log(`  ⚠ ${series}: nem sikerült a standings PDF parse (${lastEvent.code})`);
-        await sleep(500);
-        continue;
-      }
-
-      // Összehasonlítás a jelenlegi beégetett adatokkal
-      // Csak akkor frissítünk, ha a vezető pontszáma változott
+      if (!riders || riders.length < 3) { console.log(`  ⚠ ${series}: nem sikerült a standings PDF parse (${lastEvent.code})`); await sleep(500); continue; }
       const currentLeaderPts = getCurrentLeaderPts(wsbkSrc, series);
       const newLeaderPts     = riders[0].pts;
-
       if (newLeaderPts !== currentLeaderPts) {
         console.log(`✅ STANDINGS: ${series} — ${riders[0].n} ${currentLeaderPts}→${newLeaderPts} pts`);
         wsbkSrc = updateStandingsInWsbkJs(wsbkSrc, series, riders, lastEvent.code, year2026);
@@ -514,22 +426,15 @@ async function main() {
       } else {
         console.log(`  — ${series}: standings nem változott (vezető: ${riders[0].n} ${newLeaderPts} pts)`);
       }
-
       await sleep(600);
     }
-
-    // Fejléc és label frissítése ha volt változás
     if (standingsChanges > 0) {
       wsbkSrc = updateStandingsComment(wsbkSrc, lastEvent.code, year2026);
       wsbkSrc = updateStandingsLabel(wsbkSrc, lastEvent.code);
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // 4. FÁJLOK MENTÉSE
-  // ──────────────────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
-
   console.log(`\n=== Összesítés ===`);
   console.log(`  Rekord változások:   ${recordChanges}`);
   console.log(`  Standings változások: ${standingsChanges}`);
@@ -551,19 +456,6 @@ async function main() {
   } else {
     console.log(`  wsbk.js változatlan`);
   }
-}
-
-// ============================================================
-// SEGÉD: jelenlegi vezető pontszáma a wsbk.js-ből
-// ============================================================
-function getCurrentLeaderPts(src, series) {
-  const embStart = src.indexOf('var WSBK_STANDINGS_EMBEDDED');
-  if (embStart === -1) return -1;
-
-  const escapedSeries = series.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const blockRe = new RegExp(`${escapedSeries}\\s*:\\s*\\[\\s*\\{n:'[^']+',\\s*pts:(\\d+)\\}`);
-  const m = blockRe.exec(src.slice(embStart));
-  return m ? parseInt(m[1]) : -1;
 }
 
 main().catch(e => {
