@@ -21,8 +21,8 @@ var TRACK_RECORDS = {
     SBK:{time:"1'38.094",rider:'N. Bulega',year:2026},SSP:{time:"1'42.300",rider:'A. Arenas',year:2026},
     WCR:{time:"1'51.200",rider:'M. Herrera',year:2026},SPB:{time:"1'48.500",rider:'D. Salvador',year:2026},
     R3:{time:"1'54.100",rider:'A. Bocanegra',year:2026}},motogp:{
-    MotoGP:{time:'\u2014',rider:'\u2014',year:null},Moto2:{time:'\u2014',rider:'\u2014',year:null},
-    Moto3:{time:'\u2014',rider:'\u2014',year:null}}},
+    MotoGP:{time:"1'36.518",rider:'M. Marquez',year:2025},Moto2:{time:"1'40.964",rider:'D. Alonso',year:2025},
+    Moto3:{time:"1'45.700",rider:'D. Munoz',year:2025}}},
   'CZE': { name:'Autodrom Most', len:'4.212 km', wsbk:{
     SBK:{time:"1'29.616",rider:'N. Bulega',year:2026},SSP:{time:"1'33.802",rider:'C. Oncu',year:2026},
     WCR:{time:'\u2014',rider:'\u2014',year:null},SPB:{time:"1'39.473",rider:'D. Salvador',year:2026},
