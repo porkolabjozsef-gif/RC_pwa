@@ -1,18 +1,18 @@
 var TRACK_RECORDS = {
   'AUS': { name:'Phillip Island', len:'4.448 km', wsbk:{
-    SBK:{time:"1'28.522",rider:'J. Rea',year:2016},SSP:{time:"1'31.673",rider:'K. Smith',year:2019},
+    SBK:{time:"1'27.916",rider:'?',year:2025},SSP:{time:"1'31.673",rider:'K. Smith',year:2019},
     WCR:{time:"1'37.200",rider:'A. Vinales',year:2022},SPB:{time:"1'35.100",rider:'D. Salvador',year:2024},
     R3:{time:"1'38.500",rider:'M. Booth',year:2023}},motogp:{
     MotoGP:{time:"1'27.257",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'31.774",rider:'T. Arbolino',year:2023},
     Moto3:{time:"1'36.838",rider:'D. Holgado',year:2023}}},
   'POR': { name:'Portim\u00e3o', len:'4.592 km', wsbk:{
-    SBK:{time:"1'40.177",rider:'J. Rea',year:2019},SSP:{time:"1'44.589",rider:'A. Caricasulo',year:2019},
+    SBK:{time:"1'38.495",rider:'?',year:2026},SSP:{time:"1'44.589",rider:'A. Caricasulo',year:2019},
     WCR:{time:"1'52.300",rider:'A. Vinales',year:2022},SPB:{time:"1'49.100",rider:'J. Buis',year:2024},
     R3:{time:"1'55.200",rider:'G. Hendra',year:2023}},motogp:{
     MotoGP:{time:"1'38.985",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'44.162",rider:'T. Arbolino',year:2023},
     Moto3:{time:"1'50.344",rider:'D. Holgado',year:2023}}},
   'NED': { name:'TT Circuit Assen', len:'4.542 km', wsbk:{
-    SBK:{time:"1'33.787",rider:'J. Rea',year:2018},SSP:{time:"1'37.521",rider:'A. Caricasulo',year:2018},
+    SBK:{time:"1'26.905",rider:'?',year:2025},SSP:{time:"1'37.521",rider:'A. Caricasulo',year:2018},
     WCR:{time:"1'43.500",rider:'A. Vinales',year:2022},SPB:{time:"1'42.200",rider:'J. Buis',year:2024},
     R3:{time:"1'46.800",rider:'G. Hendra',year:2023}},motogp:{
     MotoGP:{time:"1'31.814",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'36.490",rider:'T. Arbolino',year:2023},
@@ -30,25 +30,25 @@ var TRACK_RECORDS = {
     MotoGP:{time:"1'22.956",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'27.430",rider:'T. Arbolino',year:2023},
     Moto3:{time:"1'33.162",rider:'D. Holgado',year:2023}}},
   'ARA': { name:'Motorland Arag\u00f3n', len:'5.077 km', wsbk:{
-    SBK:{time:"1'49.380",rider:'J. Rea',year:2019},SSP:{time:"1'53.700",rider:'A. Caricasulo',year:2019},
+    SBK:{time:"1'47.332",rider:'?',year:2025},SSP:{time:"1'53.700",rider:'A. Caricasulo',year:2019},
     WCR:{time:'\u2014',rider:'\u2014',year:null},SPB:{time:"1'58.200",rider:'J. Buis',year:2024},
     R3:{time:"2'01.500",rider:'G. Hendra',year:2023}},motogp:{
     MotoGP:{time:"1'46.635",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'52.480",rider:'T. Arbolino',year:2023},
     Moto3:{time:"1'58.994",rider:'D. Holgado',year:2023}}},
   'ITA': { name:'Autodromo di Imola', len:'4.909 km', wsbk:{
-    SBK:{time:"1'44.769",rider:'T. Sykes',year:2012},SSP:{time:"1'48.900",rider:'L. Mahias',year:2012},
+    SBK:{time:"1'34.294",rider:'?',year:2025},SSP:{time:"1'48.900",rider:'L. Mahias',year:2012},
     WCR:{time:"1'56.200",rider:'M. Herrera',year:2023},SPB:{time:"1'53.800",rider:'D. Salvador',year:2024},
     R3:{time:'\u2014',rider:'\u2014',year:null}},motogp:{
     MotoGP:{time:"1'31.958",rider:'F. Bagnaia',year:2024},Moto2:{time:"1'37.541",rider:'T. Arbolino',year:2024},
     Moto3:{time:"1'43.776",rider:'D. Holgado',year:2024}}},
   'GBR': { name:'Donington Park', len:'4.023 km', wsbk:{
-    SBK:{time:"1'28.127",rider:'J. Rea',year:2017},SSP:{time:"1'31.888",rider:'L. Mahias',year:2017},
+    SBK:{time:"1'25.185",rider:'?',year:2025},SSP:{time:"1'31.888",rider:'L. Mahias',year:2017},
     WCR:{time:"1'38.500",rider:'M. Herrera',year:2023},SPB:{time:'\u2014',rider:'\u2014',year:null},
     R3:{time:"1'41.200",rider:'G. Hendra',year:2023}},motogp:{
     MotoGP:{time:"1'58.361",rider:'F. Bagnaia',year:2023},Moto2:{time:"2'04.476",rider:'T. Arbolino',year:2023},
     Moto3:{time:"2'11.598",rider:'D. Holgado',year:2023}}},
   'FRA': { name:'Magny-Cours', len:'4.411 km', wsbk:{
-    SBK:{time:"1'34.833",rider:'J. Rea',year:2019},SSP:{time:"1'38.800",rider:'L. Mahias',year:2019},
+    SBK:{time:"1'28.759",rider:'?',year:2025},SSP:{time:"1'38.800",rider:'L. Mahias',year:2019},
     WCR:{time:"1'46.200",rider:'M. Herrera',year:2023},SPB:{time:"1'44.500",rider:'J. Buis',year:2024},
     R3:{time:"1'48.900",rider:'G. Hendra',year:2023}},motogp:{
     MotoGP:{time:"1'30.450",rider:'J. Martin',year:2024},Moto2:{time:"1'35.397",rider:'T. Arbolino',year:2023},
@@ -58,7 +58,7 @@ var TRACK_RECORDS = {
     WCR:{time:'\u2014',rider:'\u2014',year:null},SPB:{time:"1'38.500",rider:'D. Salvador',year:2024},
     R3:{time:"1'41.800",rider:'G. Hendra',year:2023}},motogp:null},
   'EST': { name:'Estoril', len:'4.182 km', wsbk:{
-    SBK:{time:"1'36.969",rider:'J. Rea',year:2021},SSP:{time:"1'40.800",rider:'A. Caricasulo',year:2021},
+    SBK:{time:"1'34.203",rider:'?',year:2025},SSP:{time:"1'40.800",rider:'A. Caricasulo',year:2021},
     WCR:{time:"1'48.500",rider:'M. Herrera',year:2023},SPB:{time:"1'46.200",rider:'J. Buis',year:2024},
     R3:{time:"1'50.500",rider:'G. Hendra',year:2023}},motogp:null},
   'JER': { name:'Circuito de Jerez', len:'4.423 km', wsbk:{
