@@ -36,7 +36,7 @@ var TRACK_RECORDS = {
     MotoGP:{time:"1'46.635",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'52.480",rider:'T. Arbolino',year:2023},
     Moto3:{time:"1'58.994",rider:'D. Holgado',year:2023}}},
   'ITA': { name:'Autodromo di Imola', len:'4.909 km', wsbk:{
-    SBK:{time:"1'34.294",rider:'?',year:2025},SSP:{time:"1'48.900",rider:'L. Mahias',year:2012},
+    SBK:{time:"1'27.347",rider:'?',year:2025},SSP:{time:"1'48.900",rider:'L. Mahias',year:2012},
     WCR:{time:"1'56.200",rider:'M. Herrera',year:2023},SPB:{time:"1'53.800",rider:'D. Salvador',year:2024},
     R3:{time:'\u2014',rider:'\u2014',year:null}},motogp:{
     MotoGP:{time:"1'31.958",rider:'F. Bagnaia',year:2024},Moto2:{time:"1'37.541",rider:'T. Arbolino',year:2024},
