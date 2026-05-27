@@ -144,7 +144,6 @@ body::after {
   100% { transform: translateX(105%); }
 }
 
-/* Motor */
 #bootBike {
   position: absolute;
   animation: bikeRide 2.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
@@ -159,7 +158,6 @@ body::after {
   100% { transform: translateX(130vw); }
 }
 
-/* Kipufogó */
 #bootExhaust {
   position: absolute;
   display: flex; gap: 8px; align-items: center;
@@ -188,7 +186,6 @@ body::after {
   100% { transform: scale(2.2); opacity: 0; }
 }
 
-/* Speed lines */
 #bootLines {
   position: absolute; inset: 0; overflow: hidden;
   animation: linesLife 2.6s forwards;
@@ -206,7 +203,6 @@ body::after {
   background: linear-gradient(to right, transparent, rgba(220,30,30,0.7), transparent);
 }
 
-/* Glow a motor mögött */
 #bootGlow {
   position: absolute;
   width: 300px; height: 80px;
@@ -222,7 +218,6 @@ body::after {
   100%    { opacity: 0; }
 }
 
-/* Cím */
 #bootTitle {
   position: absolute; bottom: 28%;
   font-size: 10px; letter-spacing: 10px;
@@ -237,7 +232,6 @@ body::after {
   100%  { opacity: 0; }
 }
 
-/* Vörös villanás az induláskor */
 #bootFlash {
   position: absolute; inset: 0;
   background: rgba(200,0,0,0.08);
@@ -293,9 +287,7 @@ body::after {
   flex-shrink: 0;
 }
 
-.pdf-file-btn:hover {
-  background: rgba(29,185,84,0.2);
-}
+.pdf-file-btn:hover { background: rgba(29,185,84,0.2); }
 
 .pdf-status {
   font-family: 'Share Tech Mono', monospace;
@@ -368,23 +360,9 @@ body::after {
   height: 32px;
 }
 
-.test-btn.go {
-  color: #000;
-  border-color: var(--yellow);
-  background: var(--yellow);
-}
-
-.test-btn.live {
-  color: var(--text-mid);
-  border-color: var(--border-hi);
-  background: transparent;
-}
-
-.test-btn.horn {
-  color: var(--text-mid);
-  border-color: var(--border-hi);
-  background: transparent;
-}
+.test-btn.go   { color: #000; border-color: var(--yellow); background: var(--yellow); }
+.test-btn.live { color: var(--text-mid); border-color: var(--border-hi); background: transparent; }
+.test-btn.horn { color: var(--text-mid); border-color: var(--border-hi); background: transparent; }
 
 .test-indicator {
   display: none;
@@ -411,6 +389,7 @@ body::after {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
 }
@@ -425,45 +404,187 @@ body::after {
   min-height: 0;
 }
 
-/* Phone portrait: single column stack */
-@media (max-width: 600px) {
-  .main-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto 1fr;
-    overflow-y: auto;
-  }
-  .col-left, .col-mid { overflow: visible; }
-  .col-right { min-height: 300px; }
-  .clock-time { font-size: 40px; }
-  .cd-num { font-size: 34px; }
-  .current-name { font-size: 16px; }
-  .header-title { font-size: 12px; letter-spacing: 1px; }
-}
+/* ================================================================
+   RESPONSIVE v2 — minden panel látható, nincs oldal-görgetés
+   ================================================================ */
 
-/* Tablet portrait (600-900px): 2 cols, schedule full width below */
-@media (min-width: 600px) and (max-width: 900px) {
+/* ── PHONE PORTRAIT  ≤ 599px ────────────────────────────────────
+   2 × 2 grid:
+   ┌──────────────┬─────────────┐
+   │ Óra +        │ CD +        │
+   │ Current event│ Next + Rec  │
+   ├──────────────┼─────────────┤
+   │ Logó /       │ Menetrend   │
+   │ Eredmények   │ (belső scr) │
+   └──────────────┴─────────────┘
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+
+  .header        { height: 32px; padding: 0 8px; }
+  .header-logo   { font-size: 8px; padding: 2px 8px; letter-spacing: 1px; }
+  .header-title  { font-size: 10px; letter-spacing: 2px; }
+  .header-live   { font-size: 8px; gap: 4px; }
+  .live-dot      { width: 6px; height: 6px; }
+
+  .pdf-bar       { height: 28px; padding: 0 8px; gap: 5px; }
+  .pdf-file-btn  { font-size: 8px; padding: 2px 7px; height: 22px; letter-spacing: 1px; }
+  .pdf-status    { font-size: 9px; }
+
   .main-body {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 55% 45%;
     grid-template-rows: auto 1fr;
+    overflow: hidden;
+    overflow-y: hidden;
+    min-height: 0;
   }
-  .col-right {
-    grid-column: 1 / -1;
-    border-top: 2px solid var(--border);
-  }
-  .clock-time { font-size: clamp(36px, 6vw, 52px); }
-  .cd-num { font-size: clamp(30px, 5vw, 44px); }
+
+  .col-left  { grid-column: 1; grid-row: 1; overflow: hidden; border-right: 1px solid var(--border); align-self: stretch; }
+  .col-mid   { grid-column: 2; grid-row: 1; overflow: hidden; }
+  .col-logo  { grid-column: 1; grid-row: 2; overflow: hidden; min-height: 0; border-right: 1px solid var(--border); border-top: 2px solid var(--border); }
+  .col-right { grid-column: 2; grid-row: 2; overflow: hidden; border-top: 2px solid var(--border); min-height: 0; }
+
+  .clock-panel  { height: 55px; padding: 3px 8px; }
+  .clock-time   { font-size: 24px; letter-spacing: 1px; }
+  .clock-sub    { font-size: 7px; letter-spacing: 1.5px; }
+
+  .current-panel    { padding: 4px 8px; border-left-width: 2px; }
+  .panel-label      { font-size: 7px; letter-spacing: 2px; margin-bottom: 3px; }
+  .status-row       { gap: 4px; margin-bottom: 3px; }
+  .status-pill      { font-size: 7px; padding: 1px 5px; }
+  .cat-tag          { font-size: 7px; padding: 1px 4px; }
+  .current-name     { font-size: 13px; margin-bottom: 1px; }
+  .current-remark   { font-size: 9px; margin-bottom: 3px; }
+  .times-row        { gap: 3px; margin-bottom: 3px; }
+  .time-box         { padding: 2px 4px; }
+  .time-box-label   { font-size: 7px; }
+  .time-box-val     { font-size: 11px; }
+  .progress-top     { font-size: 7px; margin-bottom: 3px; }
+  .progress-track   { height: 3px; }
+
+  .signal-panel { padding: 4px 8px; }
+  .signal-icon  { font-size: 12px; }
+  .signal-name  { font-size: 11px; }
+  .signal-time  { font-size: 9px; }
+  .signal-ttl   { font-size: 9px; }
+
+  .countdown-panel  { height: 55px; padding: 3px 6px; }
+  .countdown-sub    { font-size: 7px; letter-spacing: 1.5px; margin-bottom: 1px; }
+  .countdown-digits { gap: 2px; }
+  .cd-num  { font-size: 20px; letter-spacing: 1px; }
+  .cd-unit { font-size: 6px; margin-top: 0; }
+  .cd-sep  { font-size: 15px; margin-bottom: 7px; }
+
+  .next-panel   { padding: 4px 8px; border-left-width: 2px; }
+  .next-name    { font-size: 11px; }
+  .next-remark  { font-size: 9px; margin-top: 0; }
+  .next-time    { font-size: 9px; padding: 1px 5px; margin-top: 2px; }
+
+  #recordPanel  { padding: 4px 8px; }
+  #recordHeader { font-size: 7px; letter-spacing: 1px; margin-bottom: 2px; }
+
+  .schedule-header        { height: 30px; padding: 0 8px; }
+  .schedule-header-title  { font-size: 8px; letter-spacing: 1px; }
+  .schedule-header-badge  { font-size: 8px; }
+  #scheduleHeaderDate     { font-size: 8px; }
+
+  .day-header      { padding: 3px 8px; gap: 6px; }
+  .day-header-name { font-size: 8px; letter-spacing: 2px; }
+  .day-header-date { font-size: 8px; }
+
+  .sched-item    { grid-template-columns: 68px 1fr; padding: 3px 6px; border-left-width: 2px; }
+  .sched-name    { font-size: 12px; }
+  .sched-time    { font-size: 10px; }
+  .sched-remark  { font-size: 8px; }
+  .sched-item.t-procedure .sched-name { font-size: 11px; }
+  .no-events     { padding: 12px; font-size: 10px; }
+  .horn-icon     { font-size: 9px; }
 }
 
-/* Tablet landscape + desktop (900px+): 3 columns */
+/* ── PHONE LANDSCAPE  max-height ≤ 480px + min-width 600px ─────
+   3 oszlop kompakt, times-row elrejtve
+   ──────────────────────────────────────────────────────────────── */
+@media (max-height: 480px) and (min-width: 600px) {
+
+  .header  { height: 28px; padding: 0 8px; }
+  .pdf-bar { height: 24px; padding: 0 8px; }
+  .pdf-file-btn { height: 18px; font-size: 8px; padding: 1px 6px; }
+
+  .main-body {
+    grid-template-columns: 1.3fr 0.75fr 1.6fr;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+  }
+
+  .col-left  { grid-column: 1; grid-row: 1; overflow: hidden; }
+  .col-mid   { grid-column: 2; grid-row: 1 / 3; overflow: hidden; }
+  .col-logo  { grid-column: 1; grid-row: 2; overflow: hidden; min-height: 0; border-top: 1px solid var(--border); }
+  .col-right { grid-column: 3; grid-row: 1 / 3; overflow: hidden; }
+
+  .clock-panel      { height: 46px; padding: 2px 10px; }
+  .clock-time       { font-size: 22px; }
+  .clock-sub        { font-size: 7px; }
+  .countdown-panel  { height: 46px; padding: 2px 6px; }
+  .cd-num           { font-size: 18px; }
+  .cd-sep           { font-size: 14px; margin-bottom: 6px; }
+  .current-panel    { padding: 4px 10px; }
+  .current-name     { font-size: 13px; }
+  .times-row        { display: none; }
+  .next-panel       { padding: 3px 8px; }
+  .next-name        { font-size: 11px; }
+  .schedule-header  { height: 28px; }
+  .sched-item       { padding: 3px 8px; }
+  .sched-name       { font-size: 12px; }
+}
+
+/* ── TABLET PORTRAIT  600px – 899px ────────────────────────────
+   3 oszlop (col-logo felülírja az alap 1/3 span-t)
+   ──────────────────────────────────────────────────────────────── */
+@media (min-width: 600px) and (max-width: 899px) {
+
+  .main-body {
+    grid-template-columns: 1.35fr 0.85fr 1.55fr;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+  }
+
+  .col-left  { grid-column: 1; grid-row: 1; overflow: hidden; }
+  .col-mid   { grid-column: 2; grid-row: 1 / 3; overflow: hidden; }
+  .col-logo  { grid-column: 1; grid-row: 2; overflow: hidden; min-height: 0; }
+  .col-right { grid-column: 3; grid-row: 1 / 3; overflow: hidden; }
+
+  .clock-time   { font-size: clamp(34px, 5.5vw, 52px); }
+  .clock-sub    { font-size: clamp(9px, 1.2vw, 11px); }
+  .cd-num       { font-size: clamp(28px, 4.5vw, 42px); }
+  .current-name { font-size: clamp(14px, 2vw, 20px); }
+  .next-name    { font-size: clamp(12px, 1.7vw, 17px); }
+  .sched-name   { font-size: clamp(13px, 1.8vw, 16px); }
+  .sched-time   { font-size: clamp(11px, 1.4vw, 13px); }
+}
+
+/* ── DESKTOP  ≥ 900px ───────────────────────────────────────────
+   Eredeti 3 oszlopos layout, explicit grid pozíciók
+   ──────────────────────────────────────────────────────────────── */
 @media (min-width: 900px) {
-  .main-body { grid-template-columns: 1.4fr 0.8fr 1.6fr; }
-  .clock-time { font-size: clamp(44px, 4.5vw, 72px); }
-  .cd-num { font-size: clamp(36px, 4vw, 64px); }
+
+  .main-body {
+    grid-template-columns: 1.4fr 0.8fr 1.6fr;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+  }
+
+  .col-left  { grid-column: 1; grid-row: 1; }
+  .col-mid   { grid-column: 2; grid-row: 1 / 3; }
+  .col-logo  { grid-column: 1; grid-row: 2; }
+  .col-right { grid-column: 3; grid-row: 1 / 3; }
+
+  .clock-time   { font-size: clamp(44px, 4.5vw, 72px); }
+  .cd-num       { font-size: clamp(36px, 4vw, 64px); }
   .current-name { font-size: clamp(15px, 1.8vw, 24px); }
-  .next-name { font-size: clamp(14px, 1.6vw, 22px); }
+  .next-name    { font-size: clamp(14px, 1.6vw, 22px); }
+  .sched-name   { font-size: clamp(14px, 1.5vw, 17px); }
 }
 
-/* Large monitors (1400px+) */
+/* ── LARGE MONITOR  ≥ 1400px ────────────────────────────────── */
 @media (min-width: 1400px) {
   .sched-name { font-size: 18px; }
   .sched-time { font-size: 16px; }
@@ -585,9 +706,7 @@ body::after {
   flex-shrink: 0;
 }
 
-.current-panel::after {
-  display: none;
-}
+.current-panel::after { display: none; }
 
 .panel-label {
   font-family: 'Oswald', sans-serif;
@@ -608,12 +727,7 @@ body::after {
   letter-spacing: 1px;
 }
 
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
+.status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 
 .status-pill {
   font-family: 'Oswald', sans-serif;
@@ -654,10 +768,10 @@ body::after {
 .tag-WorldSBK { color: var(--green); border-color: rgba(29,185,84,0.4); background: rgba(29,185,84,0.08); }
 .tag-WorldSSP { color: #4AABFF; border-color: rgba(74,171,255,0.4); background: rgba(74,171,255,0.08); }
 .tag-WorldWCR { color: #FF9F40; border-color: rgba(255,159,64,0.4); background: rgba(255,159,64,0.08); }
-.tag-R3 { color: #A855F7; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.08); }
-.tag-MARSHAL { color: var(--red); border-color: rgba(232,0,13,0.4); background: rgba(232,0,13,0.08); }
+.tag-R3       { color: #A855F7; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.08); }
+.tag-MARSHAL  { color: var(--red); border-color: rgba(232,0,13,0.4); background: rgba(232,0,13,0.08); }
 .tag-OFFICIAL { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
-.tag-TRACK { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
+.tag-TRACK    { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
 
 .current-name {
   font-family: 'Oswald', sans-serif;
@@ -677,11 +791,7 @@ body::after {
   letter-spacing: 0.5px;
 }
 
-.times-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
+.times-row { display: flex; gap: 8px; margin-bottom: 8px; }
 
 .time-box {
   flex: 1;
@@ -705,8 +815,6 @@ body::after {
   color: var(--off-white);
   letter-spacing: 1px;
 }
-
-.progress-wrap { }
 
 .progress-top {
   display: flex;
@@ -738,7 +846,7 @@ body::after {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
 }
 
-/* SIGNAL PANEL — pillanatnyi események */
+/* SIGNAL PANEL */
 .signal-panel {
   display: none;
   background: #0d0900;
@@ -749,26 +857,15 @@ body::after {
   animation: signal-appear 0.2s ease-out;
 }
 
-.signal-panel.visible {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.signal-panel.visible { display: flex; align-items: center; gap: 10px; }
 
 @keyframes signal-appear {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.signal-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.signal-content {
-  flex: 1;
-  min-width: 0;
-}
+.signal-icon   { font-size: 16px; flex-shrink: 0; }
+.signal-content { flex: 1; min-width: 0; }
 
 .signal-time {
   font-family: 'Share Tech Mono', monospace;
@@ -822,12 +919,7 @@ body::after {
   margin-bottom: 4px;
 }
 
-.countdown-digits {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
+.countdown-digits { display: flex; align-items: center; justify-content: center; gap: 4px; }
 
 .cd-seg { text-align: center; }
 
@@ -913,8 +1005,6 @@ body::after {
 }
 
 /* ── RIGHT COLUMN: SCHEDULE ── */
-/* right-col merged into col-right above */
-
 .schedule-header {
   background: var(--bg3);
   border-bottom: 2px solid var(--border);
@@ -980,11 +1070,7 @@ body::after {
   color: var(--text-dim);
 }
 
-.day-header-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
+.day-header-line { flex: 1; height: 1px; background: var(--border); }
 
 /* SCHEDULE ITEM */
 .sched-item {
@@ -1003,12 +1089,11 @@ body::after {
 
 .sched-item:hover { background: var(--bg3); }
 
-/* Type colours */
-.sched-item.t-race    { border-left-color: var(--green);  background: rgba(29,185,84,0.04); }
-.sched-item.t-session { border-left-color: var(--yellow); background: rgba(245,196,0,0.03); }
-.sched-item.t-marshal { border-left-color: var(--red);    background: rgba(232,0,13,0.04); }
-.sched-item.t-official{ border-left-color: #444; }
-.sched-item.t-procedure { border-left-color: #333; opacity: 0.75; }
+.sched-item.t-race     { border-left-color: var(--green);  background: rgba(29,185,84,0.04); }
+.sched-item.t-session  { border-left-color: var(--yellow); background: rgba(245,196,0,0.03); }
+.sched-item.t-marshal  { border-left-color: var(--red);    background: rgba(232,0,13,0.04); }
+.sched-item.t-official { border-left-color: #444; }
+.sched-item.t-procedure{ border-left-color: #333; opacity: 0.75; }
 
 .sched-item.is-current {
   background: rgba(232,0,13,0.06) !important;
@@ -1033,10 +1118,7 @@ body::after {
   margin-top: 1px;
 }
 
-.sched-content {
-  min-width: 0;
-  overflow: hidden;
-}
+.sched-content { min-width: 0; overflow: hidden; }
 
 .sched-name {
   font-family: 'Rajdhani', sans-serif;
@@ -1108,89 +1190,48 @@ body::after {
 
   <div id="bootBike">
     <svg width="300" height="180" viewBox="0 0 300 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Hátsó kerék -->
       <circle cx="72" cy="128" r="38" stroke="#2a2a2a" stroke-width="9"/>
       <circle cx="72" cy="128" r="28" stroke="#1e1e1e" stroke-width="3"/>
       <circle cx="72" cy="128" r="6" fill="#555"/>
-      <!-- Küllők -->
       <line x1="72" y1="100" x2="72" y2="156" stroke="#222" stroke-width="1.5"/>
       <line x1="44" y1="128" x2="100" y2="128" stroke="#222" stroke-width="1.5"/>
       <line x1="52" y1="108" x2="92" y2="148" stroke="#222" stroke-width="1.5"/>
       <line x1="92" y1="108" x2="52" y2="148" stroke="#222" stroke-width="1.5"/>
-
-      <!-- Első kerék -->
       <circle cx="228" cy="128" r="36" stroke="#2a2a2a" stroke-width="9"/>
       <circle cx="228" cy="128" r="26" stroke="#1e1e1e" stroke-width="3"/>
       <circle cx="228" cy="128" r="6" fill="#555"/>
-      <!-- Küllők -->
       <line x1="228" y1="102" x2="228" y2="154" stroke="#222" stroke-width="1.5"/>
       <line x1="202" y1="128" x2="254" y2="128" stroke="#222" stroke-width="1.5"/>
       <line x1="209" y1="109" x2="247" y2="147" stroke="#222" stroke-width="1.5"/>
       <line x1="247" y1="109" x2="209" y2="147" stroke="#222" stroke-width="1.5"/>
-
-      <!-- Swingarm -->
       <path d="M72 122 Q100 110 125 108" stroke="#1e1e1e" stroke-width="6" fill="none" stroke-linecap="round"/>
-
-      <!-- Váz -->
       <path d="M108 108 L148 62 L185 65 L195 92 L170 110 Z" fill="#111" stroke="#cc0000" stroke-width="1.5"/>
-
-      <!-- Motor blokk -->
       <rect x="115" y="96" width="52" height="32" rx="5" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1.5"/>
       <rect x="122" y="102" width="10" height="18" rx="2" fill="#151515"/>
       <rect x="136" y="102" width="10" height="18" rx="2" fill="#151515"/>
       <rect x="150" y="102" width="10" height="18" rx="2" fill="#151515"/>
-
-      <!-- Kipufogó cső -->
       <path d="M118 128 Q98 135 80 128" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round"/>
       <path d="M118 128 Q98 132 80 128" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>
-
-      <!-- Tank -->
       <path d="M145 58 Q172 50 188 62 L185 78 Q168 70 142 76 Z" fill="#cc0000"/>
       <path d="M145 58 Q128 54 118 67 L120 80 Q134 72 142 76 Z" fill="#991100"/>
-      <!-- Tank highlight -->
       <path d="M148 60 Q168 54 182 63" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none" stroke-linecap="round"/>
-
-      <!-- Farokirdom -->
       <path d="M108 102 Q90 106 72 118 L76 130 Q96 118 114 112 Z" fill="#991100"/>
-
-      <!-- Oldalsó idom -->
       <path d="M172 66 Q205 60 228 82 L218 100 Q196 88 174 94 Z" fill="#cc0000"/>
-      <!-- Idom highlight -->
       <path d="M174 68 Q204 63 225 82" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-
-      <!-- Szélvédő -->
       <path d="M185 62 Q205 46 226 64 L218 76 Q200 62 188 74 Z" fill="rgba(120,200,255,0.18)" stroke="rgba(120,200,255,0.5)" stroke-width="1"/>
-
-      <!-- Első villa -->
       <line x1="212" y1="88" x2="228" y2="128" stroke="#2a2a2a" stroke-width="7" stroke-linecap="round"/>
       <line x1="204" y1="88" x2="220" y2="128" stroke="#222" stroke-width="5" stroke-linecap="round"/>
-      <!-- Villa keresztmerev -->
       <line x1="205" y1="104" x2="215" y2="104" stroke="#333" stroke-width="3"/>
-
-      <!-- Kormány -->
       <path d="M206 82 Q210 72 220 76" stroke="#333" stroke-width="5" fill="none" stroke-linecap="round"/>
-
-      <!-- Pilóta sisak -->
       <ellipse cx="168" cy="62" rx="20" ry="18" fill="#0d0d0d" stroke="#222" stroke-width="1.5"/>
-      <!-- Sisak csík -->
       <path d="M150 62 Q158 52 180 56" stroke="#cc0000" stroke-width="2" fill="none"/>
-      <!-- Sisak plexi -->
       <path d="M150 62 Q158 54 178 58 L178 68 Q158 70 150 65 Z" fill="rgba(120,200,255,0.12)" stroke="rgba(120,200,255,0.35)" stroke-width="1"/>
-
-      <!-- Pilóta test -->
       <path d="M150 76 Q162 66 184 70 L180 92 Q162 88 148 90 Z" fill="#0a0a0a" stroke="#1a1a1a" stroke-width="1"/>
-      <!-- Pilóta kar -->
       <path d="M178 74 Q195 72 208 80" stroke="#111" stroke-width="8" fill="none" stroke-linecap="round"/>
-
-      <!-- Piros csík a vázon -->
       <line x1="118" y1="76" x2="188" y2="70" stroke="#ff2200" stroke-width="2"/>
       <line x1="118" y1="80" x2="188" y2="74" stroke="#ff2200" stroke-width="1" opacity="0.5"/>
-
-      <!-- Számpajzs -->
       <rect x="220" y="76" width="26" height="17" rx="3" fill="#fff" stroke="#ddd" stroke-width="0.5"/>
       <text x="233" y="89" font-family="Arial Black, sans-serif" font-size="10" font-weight="900" fill="#111" text-anchor="middle">1</text>
-
-      <!-- Első idom csúcs -->
       <path d="M226 82 Q238 78 242 88 L232 96 Q222 90 218 84 Z" fill="#cc0000"/>
     </svg>
   </div>
@@ -1230,8 +1271,7 @@ body::after {
   <!-- TEST BAR -->
   <div class="test-bar" style="display:none">
     <div class="test-label">⚠ TEST MODE</div>
-    <input type="datetime-local" class="test-input" id="testDateInput"
-      value="2026-05-02T10:20" />
+    <input type="datetime-local" class="test-input" id="testDateInput" value="2026-05-02T10:20" />
     <button class="test-btn go"   onclick="activateTestMode()">▶ Set Time</button>
     <button class="test-btn live" onclick="resetTestMode()">↩ Live</button>
     <button class="test-btn horn" onclick="playHorn()">📯 Horn</button>
@@ -1288,7 +1328,6 @@ body::after {
         </div>
       </div>
 
-      <!-- SIGNAL: pillanatnyi esemény -->
       <div class="signal-panel" id="signalPanel">
         <div class="signal-icon" id="signalIcon">📋</div>
         <div class="signal-content">
@@ -1298,7 +1337,7 @@ body::after {
         <div class="signal-ttl" id="signalTTL">—</div>
       </div>
 
-    </div><!-- /col-left -->
+    </div>
 
     <!-- COL 2: COUNTDOWN + NEXT EVENT -->
     <div class="col-mid">
@@ -1340,9 +1379,9 @@ body::after {
         <div id="recordHeader" style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:2px;color:var(--text-dim);margin-bottom:5px;">&#11035; TRACK RECORD</div>
         <div id="recordContent"></div>
       </div>
-    </div><!-- /col-mid -->
+    </div>
 
-    <!-- 4. PANEL: LOGÓ + LIVE TIMING VÁLTÓ -->
+    <!-- 4. PANEL: LOGÓ + LIVE TIMING -->
     <div class="col-logo" id="logoPanel">
       <div class="logo-placeholder" id="logoPlaceholder" style="flex:1;display:flex;align-items:center;justify-content:center;">— Nincs aktív sorozat —</div>
       <img id="logoPanelImg" src="" alt="" style="display:none;max-width:70%;max-height:85%;object-fit:contain;margin:auto;" />
@@ -1382,19 +1421,14 @@ body::after {
 
 <script>
 // ============================================================
-// FULL SCHEDULE DATA — Superbike of Hungary 2026
-// Dates: 2026-04-29 to 2026-05-03
-// Times are CET (UTC+2 in summer)
-// Format: { date, start, end, name, remark, type, category }
-// Types: marshal, session, race, official
+// FULL SCHEDULE DATA
 // ============================================================
 
 const SCHEDULE = [];
-let scheduleManuallyLoaded = false; // true ha JSON-ból töltötték be
-// Menetrend betöltése JSON importtal szükséges
+let scheduleManuallyLoaded = false;
 
 // ============================================================
-// HORN SOUND — Web Audio API, ~1.5s race horn
+// HORN SOUND
 // ============================================================
 let audioCtx = null;
 
@@ -1403,15 +1437,14 @@ function getAudioCtx() {
   return audioCtx;
 }
 
-// Currently selected horn style (1-5)
 let currentHornStyle = 3;
 
 const HORN_PRESETS = {
-  1: { name: 'Soft city horn',  low: 220.00, high: 440.00, dist: 100, dur: 1.5 },  // A3 / A4 — lágy
-  2: { name: 'Standard horn',   low: 261.63, high: 523.25, dist: 200, dur: 1.5 },  // C4 / C5 — átlag autó
-  3: { name: 'Truck/bus horn',  low: 311.13, high: 622.25, dist: 300, dur: 1.5 },  // D#4 / D#5
-  4: { name: 'Sport car horn',  low: 349.23, high: 698.46, dist: 350, dur: 1.5 },  // F4 / F5 — élesebb
-  5: { name: 'High alarm horn', low: 392.00, high: 783.99, dist: 400, dur: 1.5 },  // G4 / G5 — magas
+  1: { name: 'Soft city horn',  low: 220.00, high: 440.00, dist: 100, dur: 1.5 },
+  2: { name: 'Standard horn',   low: 261.63, high: 523.25, dist: 200, dur: 1.5 },
+  3: { name: 'Truck/bus horn',  low: 311.13, high: 622.25, dist: 300, dur: 1.5 },
+  4: { name: 'Sport car horn',  low: 349.23, high: 698.46, dist: 350, dur: 1.5 },
+  5: { name: 'High alarm horn', low: 392.00, high: 783.99, dist: 400, dur: 1.5 },
 };
 
 function playHorn(styleNum) {
@@ -1423,8 +1456,6 @@ function playHorn(styleNum) {
     const osc2 = ctx.createOscillator();
     const gainNode = ctx.createGain();
     const distortion = ctx.createWaveShaper();
-
-    // Waveshaper curve — strength controls horn texture harshness
     const k = style.dist;
     const curve = new Float32Array(256);
     for (let i = 0; i < 256; i++) {
@@ -1432,23 +1463,18 @@ function playHorn(styleNum) {
       curve[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
     }
     distortion.curve = curve;
-
     osc1.type = 'sawtooth';
     osc1.frequency.setValueAtTime(style.low, ctx.currentTime);
-
     osc2.type = 'square';
     osc2.frequency.setValueAtTime(style.high, ctx.currentTime);
-
     gainNode.gain.setValueAtTime(0.0, ctx.currentTime);
     gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
     gainNode.gain.setValueAtTime(0.5, ctx.currentTime + duration - 0.2);
     gainNode.gain.linearRampToValueAtTime(0.0, ctx.currentTime + duration);
-
     osc1.connect(distortion);
     osc2.connect(distortion);
     distortion.connect(gainNode);
     gainNode.connect(ctx.destination);
-
     osc1.start(ctx.currentTime);
     osc2.start(ctx.currentTime);
     osc1.stop(ctx.currentTime + duration);
@@ -1458,26 +1484,14 @@ function playHorn(styleNum) {
   }
 }
 
-function selectHornStyle(num) {
-  currentHornStyle = num;
-  // Update visual selection
-  document.querySelectorAll('.horn-sample-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.querySelector('.horn-sample-btn[data-style="' + num + '"]');
-  if (btn) btn.classList.add('active');
-  // Play preview
-  playHorn(num);
-}
-
-// Track which horn events have already fired (by event idx)
 const hornFired = new Set();
 
 function checkHornEvents() {
-  if (testModeTime === null) return; // test mode only
+  if (testModeTime === null) return;
   const now = getNow();
   for (let ev of processedSchedule) {
     if (!ev.horn || !ev.startDt) continue;
-    const diff = now - ev.startDt;  // positive when now is AFTER event time
-    // Fire only when event time has been reached, within a 2-second window
+    const diff = now - ev.startDt;
     if (diff >= 0 && diff < 2000 && !hornFired.has(ev.idx)) {
       hornFired.add(ev.idx);
       playHorn();
@@ -1485,7 +1499,6 @@ function checkHornEvents() {
   }
 }
 
-// Also allow horn in live mode
 let liveHornFired = new Set();
 function checkLiveHorn() {
   if (testModeTime !== null) return;
@@ -1499,13 +1512,6 @@ function checkLiveHorn() {
     }
   }
 }
-
-// Test horn button handler
-function testHorn() {
-  // Unlock audio context on first user gesture
-  playHorn();
-}
-
 
 // ============================================================
 // HELPERS
@@ -1534,13 +1540,8 @@ function pad(n) { return String(n).padStart(2, '0'); }
 
 function getCategoryTag(cat) {
   const labels = {
-    'WorldSBK': 'WorldSBK',
-    'WorldSSP': 'WorldSSP',
-    'WorldWCR': 'WorldWCR',
-    'R3': 'R3 CUP',
-    'MARSHAL': 'MARSHAL',
-    'OFFICIAL': 'OFFICIAL',
-    'TRACK': 'TRACK',
+    'WorldSBK': 'WorldSBK', 'WorldSSP': 'WorldSSP', 'WorldWCR': 'WorldWCR',
+    'R3': 'R3 CUP', 'MARSHAL': 'MARSHAL', 'OFFICIAL': 'OFFICIAL', 'TRACK': 'TRACK',
   };
   const label = labels[cat];
   if (!label) return '';
@@ -1548,54 +1549,44 @@ function getCategoryTag(cat) {
 }
 
 function getItemClass(ev) {
-  if (ev.type === 'marshal') return 't-marshal';
-  if (ev.type === 'race') return 't-race';
-  if (ev.type === 'session') return 't-session';
-  if (ev.type === 'procedure') return 't-procedure';
+  if (ev.type === 'marshal')    return 't-marshal';
+  if (ev.type === 'race')       return 't-race';
+  if (ev.type === 'session')    return 't-session';
+  if (ev.type === 'procedure')  return 't-procedure';
   return '';
 }
 
-const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const DAY_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// Pre-process schedule: add parsed dates
 let processedSchedule = SCHEDULE.map((ev, i) => {
   const startDt = parseEventDateTime(ev.date, ev.start);
   const endDt = ev.end ? parseEventDateTime(ev.date, ev.end) : null;
   return { ...ev, startDt, endDt, idx: i };
 });
 
-// Sort by start time so we can fill in implicit end times
 processedSchedule.sort((a, b) => {
   if (!a.startDt) return 1;
   if (!b.startDt) return -1;
   return a.startDt - b.startDt;
 });
 
-// Fill implicit end time: every event without an explicit end ends when the next event starts
-// (only for sessions/races/marshal/official — procedures are momentary and stay momentary)
-// Limit: only use implicit end if next event starts within 4 hours (avoid cross-day bleed)
 for (let i = 0; i < processedSchedule.length; i++) {
   const ev = processedSchedule[i];
-  if (ev.endDt) continue;
-  if (ev.type === 'procedure') continue;
-
+  if (ev.endDt || ev.type === 'procedure') continue;
   for (let j = i + 1; j < processedSchedule.length; j++) {
     const nextEv = processedSchedule[j];
     if (!nextEv.startDt || nextEv.startDt <= ev.startDt) continue;
     const gapMs = nextEv.startDt - ev.startDt;
-    if (gapMs > 4 * 60 * 60 * 1000) break; // more than 4 hours away — stop
+    if (gapMs > 4 * 60 * 60 * 1000) break;
     ev.implicitEndDt = nextEv.startDt;
     break;
   }
 }
 
-// Re-assign idx after sorting (so it matches list order)
 processedSchedule.forEach((ev, i) => { ev.idx = i; });
 
-// Automatikus időterv betöltés induláskor (ha SCHEDULE üres)
 if (processedSchedule.length === 0) {
-  // Kis késleltetés hogy a wsbk.js betöltsön
   setTimeout(function() {
     var champ = typeof activeChampionship !== 'undefined' ? activeChampionship : 'motogp';
     if (typeof autoLoadSchedule === 'function') autoLoadSchedule(champ);
@@ -1603,61 +1594,39 @@ if (processedSchedule.length === 0) {
 }
 
 // ============================================================
-// ============================================================
-// JSON IMPORT — közvetlen betöltés
+// JSON IMPORT
 // ============================================================
 
 async function handleJsonUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-
   const statusEl = document.getElementById('pdfStatus');
-  const setStatus = (cls, msg) => {
-    statusEl.className = 'pdf-status ' + cls;
-    statusEl.textContent = msg;
-  };
-
+  const setStatus = (cls, msg) => { statusEl.className = 'pdf-status ' + cls; statusEl.textContent = msg; };
   setStatus('loading', `📂 Beolvasás: ${file.name} ...`);
-
   try {
     const text = await file.text();
     const parsed = JSON.parse(text);
-
-    if (!parsed.schedule || !Array.isArray(parsed.schedule)) {
-      throw new Error('Hiányzó schedule tömb — nem érvényes menetrend JSON');
-    }
-    if (parsed.schedule.length === 0) {
-      throw new Error('A schedule tömb üres');
-    }
-
+    if (!parsed.schedule || !Array.isArray(parsed.schedule)) throw new Error('Hiányzó schedule tömb — nem érvényes menetrend JSON');
+    if (parsed.schedule.length === 0) throw new Error('A schedule tömb üres');
     setStatus('loading', `📥 ${parsed.schedule.length} esemény betöltése...`);
-    scheduleManuallyLoaded = true;
     scheduleManuallyLoaded = true;
     loadNewSchedule(parsed);
     setStatus('ok', `✅ ${parsed.eventName || file.name} — ${parsed.schedule.length} esemény betöltve`);
-
   } catch (err) {
     console.error('JSON import error:', err);
     setStatus('error', `❌ ${err.message}`);
   }
-
   event.target.value = '';
 }
 
-// JSON export — az aktuális menetrendet JSON fájlként menti le
 function exportScheduleJson() {
   const data = {
     eventName: document.title.replace(' — Race Control', ''),
     exportedAt: new Date().toISOString(),
     schedule: processedSchedule.map(ev => ({
-      date: ev.date,
-      start: ev.start,
-      end: ev.end || '',
-      name: ev.name,
-      remark: ev.remark || '',
-      type: ev.type,
-      category: ev.category,
-      horn: ev.horn || false
+      date: ev.date, start: ev.start, end: ev.end || '',
+      name: ev.name, remark: ev.remark || '',
+      type: ev.type, category: ev.category, horn: ev.horn || false
     }))
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1701,134 +1670,76 @@ Szabályok:
 - category: a kategória neve a szövegből (WorldSBK, WorldSSP, WorldWCR, R3/FIM Yamaha R3 stb.)
 - Ha a kategória nem meghatározható, használd az "OFFICIAL" értéket
 - MINDEN időponthoz tartozó eseményt vegyél fel, beleértve a másodperces visszaszámlálást is
-- Tartsd meg az összes percről-percre eseményt pontosan
 - Csak valid JSON-t adj vissza, semmi más szöveget, magyarázatot vagy markdown kódblokk jelölést`;
 
 async function handlePdfUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-
   const statusEl = document.getElementById('pdfStatus');
-
-  const setStatus = (cls, msg) => {
-    statusEl.className = 'pdf-status ' + cls;
-    statusEl.textContent = msg;
-  };
-
+  const setStatus = (cls, msg) => { statusEl.className = 'pdf-status ' + cls; statusEl.textContent = msg; };
   setStatus('loading', `📄 Fájl beolvasása: ${file.name} ...`);
-
   try {
-    // Read PDF as base64
     const base64Data = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result.split(',')[1]);
       reader.onerror = () => reject(new Error('Fájl olvasási hiba'));
       reader.readAsDataURL(file);
     });
-
     setStatus('loading', `🤖 Claude elemzi a menetrendet... (ez 20-40 mp lehet)`);
-
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-dangerous-direct-browser-default': 'true',
-      },
+      headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-default': 'true' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 16000,
         system: CLAUDE_SYSTEM_PROMPT,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: 'application/pdf',
-                data: base64Data
-              }
-            },
-            {
-              type: 'text',
-              text: 'Kérlek dolgozd fel ezt a motorsport menetrendet és add vissza a teljes JSON-t.'
-            }
-          ]
-        }]
+        messages: [{ role: 'user', content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Data } },
+          { type: 'text', text: 'Kérlek dolgozd fel ezt a motorsport menetrendet és add vissza a teljes JSON-t.' }
+        ]}]
       })
     });
-
     if (!response.ok) {
       let errMsg = `HTTP ${response.status}`;
-      try {
-        const err = await response.json();
-        errMsg = err.error?.message || errMsg;
-      } catch(e) {}
+      try { const err = await response.json(); errMsg = err.error?.message || errMsg; } catch(e) {}
       throw new Error(errMsg);
     }
-
     setStatus('loading', '📊 Válasz feldolgozása...');
-
     const data = await response.json();
     const rawText = data.content.map(c => c.text || '').join('');
-
     if (!rawText) throw new Error('Üres válasz az API-tól');
-
-    // Clean and parse JSON — handle markdown code blocks
     const clean = rawText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
-
     let parsed;
     try {
       parsed = JSON.parse(clean);
     } catch(e) {
-      // Try to extract JSON object from text
       const match = clean.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(match[0]);
-      } else {
-        throw new Error('JSON értelmezési hiba: ' + e.message);
-      }
+      if (match) { parsed = JSON.parse(match[0]); }
+      else { throw new Error('JSON értelmezési hiba: ' + e.message); }
     }
-
-    if (!parsed.schedule || !Array.isArray(parsed.schedule)) {
-      throw new Error('Hiányzó schedule tömb a válaszban');
-    }
-
-    if (parsed.schedule.length === 0) {
-      throw new Error('A schedule tömb üres');
-    }
-
+    if (!parsed.schedule || !Array.isArray(parsed.schedule)) throw new Error('Hiányzó schedule tömb a válaszban');
+    if (parsed.schedule.length === 0) throw new Error('A schedule tömb üres');
     setStatus('loading', `📥 ${parsed.schedule.length} esemény betöltése...`);
-
     loadNewSchedule(parsed);
-
     setStatus('ok', `✅ ${parsed.eventName || file.name} — ${parsed.schedule.length} esemény betöltve`);
-
   } catch (err) {
     console.error('PDF import error:', err);
     setStatus('error', `❌ ${err.message}`);
   }
-
   event.target.value = '';
 }
 
-
 // ============================================================
-// AUTOMATIKUS IDŐTERV BETÖLTÉS — JSON nélkül
+// AUTOMATIKUS IDŐTERV BETÖLTÉS
 // ============================================================
 
 async function autoLoadSchedule(championship) {
-  if (scheduleManuallyLoaded) return; // JSON már betöltve, nem írjuk felül
-
-  if (championship === 'wsbk') {
-    await autoLoadWsbkSchedule();
-  } else if (championship === 'motogp') {
-    await autoLoadMotogpSchedule();
-  }
+  if (scheduleManuallyLoaded) return;
+  if (championship === 'wsbk') { await autoLoadWsbkSchedule(); }
+  else if (championship === 'motogp') { await autoLoadMotogpSchedule(); }
 }
 
 async function autoLoadWsbkSchedule() {
-  // WSBK schedule proxy-ból
   try {
     var auto = typeof autoSelectWsbkEvent === 'function' ? autoSelectWsbkEvent() : {code: wsbkEvent, year: wsbkYear};
     var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-schedule/' + auto.code + '/' + auto.year;
@@ -1836,124 +1747,75 @@ async function autoLoadWsbkSchedule() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var data = await r.json();
     if (!data.sessions || !data.sessions.length) throw new Error('Nincs session adat');
-
-    // Forduló neve és naptári infó a WSBK_EVENTS-ből
     var evInfo = (WSBK_EVENTS[auto.year] || []).find(function(e){ return e.code === auto.code; });
     var evName = evInfo ? evInfo.name : auto.code;
     var circuit = evInfo ? (evInfo.circuit || '') : '';
-
-    // Session-ök konvertálása schedule formátumba
     var schedule = data.sessions.map(function(s) {
       var cat = s.series || 'WorldSBK';
       var type = 'session';
       var name = s.name || cat;
       var lname = name.toLowerCase();
       if (lname.includes('race') || lname.includes('superpole race') || lname.includes('sprint')) type = 'race';
-
       return {
-        date: s.start.slice(0, 10),
-        start: s.start.slice(11, 16),
-        end: s.end ? s.end.slice(11, 16) : '',
-        name: name,
-        remark: '',
-        type: type,
-        category: cat,
-        horn: false,
-        finished: s.finished || false
+        date: s.start.slice(0, 10), start: s.start.slice(11, 16),
+        end: s.end ? s.end.slice(11, 16) : '', name: name,
+        remark: '', type: type, category: cat, horn: false, finished: s.finished || false
       };
     });
-
     if (!schedule.length) throw new Error('Üres menetrend');
-
     var firstDate = schedule[0].date;
     var lastDate = schedule[schedule.length-1].date;
-    var dateRange = firstDate + ' to ' + lastDate;
-
-    loadNewSchedule({
-      eventName: evName,
-      circuit: circuit,
-      dateRange: dateRange,
-      schedule: schedule
-    });
-
+    loadNewSchedule({ eventName: evName, circuit: circuit, dateRange: firstDate + ' to ' + lastDate, schedule: schedule });
     var statusEl = document.getElementById('pdfStatus');
-    if (statusEl) {
-      statusEl.className = 'pdf-status ok';
-      statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve';
-    }
-  } catch(e) {
-    console.warn('[AUTO SCHEDULE] WSBK betöltés sikertelen:', e.message);
-  }
+    if (statusEl) { statusEl.className = 'pdf-status ok'; statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve'; }
+  } catch(e) { console.warn('[AUTO SCHEDULE] WSBK betöltés sikertelen:', e.message); }
 }
 
 async function autoLoadMotogpSchedule() {
-  // MotoGP API-ból
   try {
     var seasonUuid = SEASON_UUIDS[selectedYear];
     if (!seasonUuid) throw new Error('Ismeretlen szezon');
-
-    // Aktuális/következő forduló meghatározása
     var now = new Date();
     var evList = (SEASON_EVENTS[selectedYear] || []);
     var targetEv = null;
-
-    // Aktív forduló (most folyik)
     for (var i = 0; i < evList.length; i++) {
       var ev = evList[i];
       var evStart = new Date(ev.date + 'T00:00:00');
       var evEnd = new Date((ev.dateEnd || ev.date) + 'T23:59:59');
       if (now >= evStart && now <= evEnd) { targetEv = ev; break; }
     }
-
-    // Ha nincs aktív, a következő
     if (!targetEv) {
       for (var i = 0; i < evList.length; i++) {
         var ev = evList[i];
         if (new Date(ev.date + 'T00:00:00') > now) { targetEv = ev; break; }
       }
     }
-
-    // Ha nincs következő, az utolsó lezajlott
-    if (!targetEv && evList.length) {
-      targetEv = evList[evList.length - 1];
-    }
-
+    if (!targetEv && evList.length) targetEv = evList[evList.length - 1];
     if (!targetEv) throw new Error('Nincs forduló adat');
-
-    // Lekérjük az összes MotoGP kategória session-jeit
     var events = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=false');
     var allEvents = events.concat ? events : (events.events || []);
-    // Keressük a fordulót
     var apiEv = null;
     for (var i = 0; i < allEvents.length; i++) {
       var e = allEvents[i];
       if ((e.short_name||'').toUpperCase() === targetEv.code.toUpperCase() ||
-          (e.additional_name||'').toUpperCase() === targetEv.code.toUpperCase()) {
-        apiEv = e; break;
-      }
+          (e.additional_name||'').toUpperCase() === targetEv.code.toUpperCase()) { apiEv = e; break; }
     }
     if (!apiEv) {
-      // Fallback: befejezett events
       var finEvents = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=true');
       var allFin = finEvents.concat ? finEvents : (finEvents.events || []);
       for (var i = 0; i < allFin.length; i++) {
         var e = allFin[i];
-        if ((e.short_name||'').toUpperCase() === targetEv.code.toUpperCase()) {
-          apiEv = e; break;
-        }
+        if ((e.short_name||'').toUpperCase() === targetEv.code.toUpperCase()) { apiEv = e; break; }
       }
     }
     if (!apiEv) throw new Error('Forduló nem található az API-ban: ' + targetEv.code);
-
-    // Kategóriánként session-ök
     var cats = ['MotoGP', 'Moto2', 'Moto3'];
     var schedule = [];
     var sessTypeToName = {
-      'FP':'Free Practice', 'FP1':'Free Practice 1', 'FP2':'Free Practice 2',
-      'PR':'Practice', 'Q1':'Qualifying 1', 'Q2':'Qualifying 2',
-      'SPR':'Sprint Race', 'WUP':'Warm Up', 'RAC':'Race', 'RAC2':'Race 2'
+      'FP':'Free Practice','FP1':'Free Practice 1','FP2':'Free Practice 2',
+      'PR':'Practice','Q1':'Qualifying 1','Q2':'Qualifying 2',
+      'SPR':'Sprint Race','WUP':'Warm Up','RAC':'Race','RAC2':'Race 2'
     };
-
     for (var ci = 0; ci < cats.length; ci++) {
       var cat = cats[ci];
       var catUuid = CAT_UUIDS[cat];
@@ -1968,45 +1830,20 @@ async function autoLoadMotogpSchedule() {
           var sName = sessTypeToName[sType] || s.type || s.name || sType;
           var fullName = cat + ' ' + sName;
           var type = (sType === 'RAC' || sType === 'RAC2' || sType === 'SPR') ? 'race' : 'session';
-          // Időpontok: s.date = "2026-05-15", s.time_start = "09:00:00"
           var startStr = (s.time_start || '').slice(0, 5);
           var endStr = (s.time_end || s.duration ? computeEndTime(s.time_start, s.duration_minutes) : '');
-          schedule.push({
-            date: s.date,
-            start: startStr,
-            end: endStr,
-            name: fullName,
-            remark: '',
-            type: type,
-            category: cat,
-            horn: false
-          });
+          schedule.push({ date: s.date, start: startStr, end: endStr, name: fullName, remark: '', type: type, category: cat, horn: false });
         }
-      } catch(ce) { /* skip category */ }
+      } catch(ce) {}
     }
-
     if (!schedule.length) throw new Error('Nincs session adat az API-ból');
-
     schedule.sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); });
-
     var dateRange = schedule[0].date + ' to ' + schedule[schedule.length-1].date;
     var evName = (apiEv.name || targetEv.name || targetEv.code) + ' ' + selectedYear;
-
-    loadNewSchedule({
-      eventName: evName,
-      circuit: apiEv.circuit || '',
-      dateRange: dateRange,
-      schedule: schedule
-    });
-
+    loadNewSchedule({ eventName: evName, circuit: apiEv.circuit || '', dateRange: dateRange, schedule: schedule });
     var statusEl = document.getElementById('pdfStatus');
-    if (statusEl) {
-      statusEl.className = 'pdf-status ok';
-      statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve';
-    }
-  } catch(e) {
-    console.warn('[AUTO SCHEDULE] MotoGP betöltés sikertelen:', e.message);
-  }
+    if (statusEl) { statusEl.className = 'pdf-status ok'; statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve'; }
+  } catch(e) { console.warn('[AUTO SCHEDULE] MotoGP betöltés sikertelen:', e.message); }
 }
 
 function computeEndTime(timeStart, durationMin) {
@@ -2018,21 +1855,16 @@ function computeEndTime(timeStart, durationMin) {
 }
 
 function loadNewSchedule(parsed) {
-  // Convert parsed schedule to processedSchedule format
   const newRaw = parsed.schedule.map((ev, i) => {
     const startDt = parseEventDateTime(ev.date, ev.start);
     const endDt = ev.end ? parseEventDateTime(ev.date, ev.end) : null;
     return { ...ev, startDt, endDt, idx: i };
   });
-
-  // Sort by start time
   newRaw.sort((a, b) => {
     if (!a.startDt) return 1;
     if (!b.startDt) return -1;
     return a.startDt - b.startDt;
   });
-
-  // Fill implicit end times
   for (let i = 0; i < newRaw.length; i++) {
     const ev = newRaw[i];
     if (ev.endDt || ev.type === 'procedure') continue;
@@ -2045,55 +1877,31 @@ function loadNewSchedule(parsed) {
       break;
     }
   }
-
-  // Re-index
   newRaw.forEach((ev, i) => { ev.idx = i; });
-
-  // Replace global schedule
   processedSchedule.length = 0;
   newRaw.forEach(ev => processedSchedule.push(ev));
-
-  // Reset horn tracking
   hornFired.clear();
   liveHornFired.clear();
-
-  // Kategória logók betöltése
   categoryLogos = parsed.categoryLogos || {};
-  currentBgCategory = null; // reset hogy újra kiértékelje
-
-  // Update header with event name
+  currentBgCategory = null;
   if (parsed.eventName) {
     const parts = parsed.eventName.toUpperCase().split(' ');
-    // Highlight last word in red
     const last = parts.pop();
-    document.getElementById('headerTitle').innerHTML =
-      parts.join(' ') + ' <span>' + last + '</span>';
-    document.getElementById('headerTitle').previousElementSibling.textContent =
-      parsed.circuit || 'RACE CONTROL';
+    document.getElementById('headerTitle').innerHTML = parts.join(' ') + ' <span>' + last + '</span>';
+    document.getElementById('headerTitle').previousElementSibling.textContent = parsed.circuit || 'RACE CONTROL';
   }
-
-  // Update test bar date to first event in new schedule
   if (parsed.dateRange) {
     const dates = parsed.dateRange.match(/(\d{4}-\d{2}-\d{2})/g);
-    if (dates && dates.length >= 1) {
-      const input = document.getElementById('testDateInput');
-      input.value = dates[0] + 'T09:00';
-    }
+    if (dates && dates.length >= 1) { document.getElementById('testDateInput').value = dates[0] + 'T09:00'; }
   } else if (newRaw.length > 0 && newRaw[0].startDt) {
-    // Fallback: use first event's date
-    const firstDate = newRaw[0].date;
-    const input = document.getElementById('testDateInput');
-    input.value = firstDate + 'T09:00';
+    document.getElementById('testDateInput').value = newRaw[0].date + 'T09:00';
   }
-
-  // Rebuild dashboard
   buildSchedule();
   updateDashboard();
 }
 
 // ============================================================
-// ============================================================
-// 4. PANEL — LOGÓ + EREDMÉNYEK (automatikus, gomb nélkül)
+// 4. PANEL — LOGO + EREDMÉNYEK
 // ============================================================
 const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
 const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
@@ -2175,30 +1983,19 @@ let isFetching = false;
 
 const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
 const SESSION_TYPES_OTHER  = ['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
-function getSessionTypes() {
-  return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER;
-}
+function getSessionTypes() { return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER; }
 
-// Panel inicializálás — oldalbetöltéskor automatikusan indul
 function initResultsPanel() {
-  // Auto kategória a menetrendből
   const { current, next } = findCurrentAndNext(getNow());
   const activeCat = (current && current.category) || (next && next.category);
-  if (MOTOGP_CATEGORIES.includes(activeCat)) {
-    autoCat = activeCat;
-    selectedCat = activeCat;
-  }
-  // Automatikusan az aktuális szezon és helyes forduló dátum alapján
+  if (MOTOGP_CATEGORIES.includes(activeCat)) { autoCat = activeCat; selectedCat = activeCat; }
   selectedYear = '2026';
   const evs = SEASON_EVENTS['2026'] || [];
   const now = new Date();
   const todayStr = now.toISOString().slice(0,10);
-  // 1. Aktív forduló (ma versenynapon vagyunk)
   const activeEv = evs.find(e => e.date && e.dateEnd && todayStr >= e.date && todayStr <= e.dateEnd);
-  // 2. Utolsó lezajlott forduló
   const lastPassed = evs.filter(e => e.dateEnd && new Date(e.dateEnd) < now).pop();
   selectedEventCode = (activeEv || lastPassed || evs[0]).code;
-  
   renderPanel();
   doFetch();
   fetchInterval = setInterval(doFetch, 30000);
@@ -2216,15 +2013,9 @@ function autoSelectMotoGPEvent() {
 function resetAutoTimer() {
   clearTimeout(autoTimer);
   autoTimer = setTimeout(() => {
-    // Visszatér az aktív sorozathoz
     const { current, next } = findCurrentAndNext(getNow());
     const activeCat = (current && current.category) || (next && next.category);
-    if (MOTOGP_CATEGORIES.includes(activeCat)) {
-      selectedCat = activeCat;
-    } else {
-      selectedCat = autoCat;
-    }
-    // Dátum alapján helyes forduló
+    if (MOTOGP_CATEGORIES.includes(activeCat)) { selectedCat = activeCat; } else { selectedCat = autoCat; }
     selectedEventCode = autoSelectMotoGPEvent();
     selectedSession = 'RAC';
     renderPanel();
@@ -2232,34 +2023,15 @@ function resetAutoTimer() {
   }, 30000);
 }
 
-function switchYear(year) {
-  selectedYear = year;
-  selectedEventCode = autoSelectMotoGPEvent();
-  resetAutoTimer();
-  renderPanel();
-  doFetch();
-}
-function switchEventCode(code) {
-  selectedEventCode = code;
-  resetAutoTimer();
-  doFetch();
-  if(typeof renderRecordPanel==='function') renderRecordPanel();
-}
+function switchYear(year) { selectedYear = year; selectedEventCode = autoSelectMotoGPEvent(); resetAutoTimer(); renderPanel(); doFetch(); }
+function switchEventCode(code) { selectedEventCode = code; resetAutoTimer(); doFetch(); if(typeof renderRecordPanel==='function') renderRecordPanel(); }
 function switchCat(cat) {
   selectedCat = cat;
-  // Reset session if SPR not available
   if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
-  resetAutoTimer();
-  renderPanel();
-  doFetch();
+  resetAutoTimer(); renderPanel(); doFetch();
   if(typeof renderRecordPanel==='function') renderRecordPanel();
 }
-function switchSession(sess) {
-  selectedSession = sess;
-  resetAutoTimer();
-  renderPanel(); // újrarajzol hogy a gomb kiemelés frissüljön
-  doFetch();
-}
+function switchSession(sess) { selectedSession = sess; resetAutoTimer(); renderPanel(); doFetch(); }
 
 function renderPanel() {
   const panel = document.getElementById('logoPanel');
@@ -2268,35 +2040,21 @@ function renderPanel() {
   const ph  = document.getElementById('logoPlaceholder');
   if (img) img.style.display = 'none';
   if (ph)  ph.style.display  = 'none';
-
   let tp = document.getElementById('timingPanel');
-  if (!tp) {
-    tp = document.createElement('div');
-    tp.id = 'timingPanel';
-    panel.appendChild(tp);
-  }
+  if (!tp) { tp = document.createElement('div'); tp.id = 'timingPanel'; panel.appendChild(tp); }
   tp.style.cssText = 'width:100%;flex:1;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
-
   const evList = SEASON_EVENTS[selectedYear] || [];
-
-  // Get logo URLs for all 3 categories
   function catLogo(cat) { return getLogoUrl(cat) || ''; }
-
-  // Active category from schedule
   const { current, next } = findCurrentAndNext(getNow());
   const schedCat = (current && current.category) || (next && next.category);
   const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
-
-  // ROW 0: MotoGP / WSBK valto
   var champRow = '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
   champRow += '<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--green);background:rgba(29,185,84,0.15);color:var(--green);">MotoGP</button>';
   champRow += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">WSBK</button>';
   champRow += '</div>';
   tp.innerHTML = champRow;
   tp.insertAdjacentHTML('beforeend', `
-    <!-- ROW 1: Szezon + helyszín + 3 logó -->
     <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <!-- Szezon + helyszín -->
       <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
         <select onchange="switchYear(this.value)"
           style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);
@@ -2309,8 +2067,6 @@ function renderPanel() {
           ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
         </select>
       </div>
-
-      <!-- 3 kategória logó mint választó -->
       <div style="display:flex;flex:1;gap:4px;justify-content:flex-end;">
         ${MOTOGP_CATEGORIES.map(cat => {
           const active = cat === selectedCat;
@@ -2330,8 +2086,6 @@ function renderPanel() {
         }).join('')}
       </div>
     </div>
-
-    <!-- ROW 2: Session gombok -->
     <div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">
       ${getSessionTypes().map(sess => {
         const active = sess === selectedSession;
@@ -2349,14 +2103,11 @@ function renderPanel() {
         border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
         color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STD</button>
     </div>
-
-    <!-- ROW 3: Eredmény -->
     <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
       <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
     </div>
   `);
 }
-
 
 async function doFetch() {
   if (isFetching) return;
@@ -2365,16 +2116,11 @@ async function doFetch() {
   if (!rd) { isFetching = false; return; }
   rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
   try {
-    if (selectedSession === 'STANDINGS') {
-      await doStandings(rd);
-    } else {
-      await doResults(rd);
-    }
+    if (selectedSession === 'STANDINGS') { await doStandings(rd); }
+    else { await doResults(rd); }
   } catch(e) {
     rd.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
-  } finally {
-    isFetching = false;
-  }
+  } finally { isFetching = false; }
 }
 
 async function apiGet(path) {
@@ -2385,32 +2131,22 @@ async function apiGet(path) {
     clearTimeout(t);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return await r.json();
-  } catch(e) {
-    clearTimeout(t);
-    throw e.name === 'AbortError' ? new Error('Időtúllépés') : e;
-  }
+  } catch(e) { clearTimeout(t); throw e.name === 'AbortError' ? new Error('Időtúllépés') : e; }
 }
 
 async function doResults(rd) {
   const seasonUuid = SEASON_UUIDS[selectedYear];
   if (!seasonUuid) throw new Error('Ismeretlen szezon');
-
-  // Try live timing first (only for current year)
   if (selectedYear === '2026') {
     try {
       const live = await apiGet('timing-gateway/livetiming-lite');
       if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
         const liveCat = (live.head.category || '').replace('™','');
         if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
-            selectedCat.toLowerCase().includes(liveCat.toLowerCase())) {
-          showLive(rd, live);
-          return;
-        }
+            selectedCat.toLowerCase().includes(liveCat.toLowerCase())) { showLive(rd, live); return; }
       }
-    } catch(e) { /* no live */ }
+    } catch(e) {}
   }
-
-  // Get events
   const events = await apiGet(`events?seasonUuid=${seasonUuid}&isFinished=true`);
   const races = events.filter(e => !e.test);
   if (!races.length) throw new Error('Nincs befejezett futam');
@@ -2418,14 +2154,10 @@ async function doResults(rd) {
     (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
     (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase()
   );
-
-  // Jövőbeli esemény — nincs még eredmény
   if(!ev) {
     const evInfo = (SEASON_EVENTS[selectedYear]||[]).find(e=>e.code===selectedEventCode);
     const evName = evInfo ? evInfo.name : selectedEventCode;
-    const dateStr = evInfo && evInfo.date
-      ? evInfo.date.replace(/-/g,'.') + (evInfo.dateEnd ? ' – ' + evInfo.dateEnd.replace(/-/g,'.') : '')
-      : '';
+    const dateStr = evInfo && evInfo.date ? evInfo.date.replace(/-/g,'.') + (evInfo.dateEnd ? ' – ' + evInfo.dateEnd.replace(/-/g,'.') : '') : '';
     rd.innerHTML = '<div style="text-align:center;padding:20px 8px;">'
       + '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">'+evName.toUpperCase()+'</div>'
       + (dateStr ? '<div style="font-family:Oswald,sans-serif;font-size:14px;color:var(--yellow);">'+dateStr+'</div>' : '')
@@ -2434,30 +2166,21 @@ async function doResults(rd) {
     if(typeof renderRecordPanel==='function') renderRecordPanel();
     return;
   }
-
   const evFinal = ev || races[races.length - 1];
-
   const sessions = await apiGet(`sessions?eventUuid=${evFinal.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   if (!sessions.length) throw new Error('Nincs session');
-
-  // Map session type
   const sessTypeMap = {
     'FP1':['FP','FP1','P1'],'FP2':['FP2','P2'],'PR':['PR','P'],
     'Q1':['Q1'],'Q2':['Q2','Q'],'SPR':['SPR','S'],
     'WUP':['WUP','WU','W'],'RAC':['RAC','R']
   };
   const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
-  // RAC esetén: az utolsó RAC session a mérvadó (újraindítás esetén több RAC is lehet)
   let sess;
   if (selectedSession === 'RAC' || selectedSession === 'SPR') {
-    const matching = sessions.filter(s => typeCodes.some(code =>
-      (s.type||'').toUpperCase() === code.toUpperCase()
-    ));
+    const matching = sessions.filter(s => typeCodes.some(code => (s.type||'').toUpperCase() === code.toUpperCase()));
     sess = matching.length ? matching[matching.length - 1] : null;
   } else {
-    sess = sessions.find(s => typeCodes.some(code =>
-      (s.type||'').toUpperCase() === code.toUpperCase()
-    ));
+    sess = sessions.find(s => typeCodes.some(code => (s.type||'').toUpperCase() === code.toUpperCase()));
   }
   if (!sess) {
     const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
@@ -2471,7 +2194,6 @@ async function doResults(rd) {
     const finished = sessions.filter(s => s.status === 'Finished');
     sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
   }
-
   const cls = await apiGet(`session/${sess.id}/classification?test=false`);
   const riders = cls.classification || cls;
   showResults(rd, riders, evFinal.name || evFinal.short_name, sess.type || sess.name, selectedCat);
@@ -2480,21 +2202,11 @@ async function doResults(rd) {
 async function doStandings(rd) {
   const seasonUuid = SEASON_UUIDS[selectedYear];
   if (!seasonUuid) throw new Error('Ismeretlen szezon');
-
-  // Try XML worldstanding first
   try {
     const xmlUrl = `https://resources.motogp.com/files/results/${selectedYear}/${selectedEventCode}/${selectedCat}/RAC/worldstanding.XML`;
     const r = await fetch(xmlUrl);
-    if (r.ok) {
-      const xml = await r.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(xml, 'text/xml');
-      showStandingsXml(rd, doc);
-      return;
-    }
+    if (r.ok) { const xml = await r.text(); const parser = new DOMParser(); const doc = parser.parseFromString(xml, 'text/xml'); showStandingsXml(rd, doc); return; }
   } catch(e) {}
-
-  // Fallback: API standings
   const data = await apiGet(`standings?seasonUuid=${seasonUuid}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
   const riders = data.classification || data;
   if (!riders || !riders.length) throw new Error('Nincs pontállás');
@@ -2586,7 +2298,8 @@ function showStandingsXml(el, doc) {
   el.innerHTML = html + '</table>';
 }
 
-// LISTA GÖRGETÉS — szabad görgetés + LIVE gomb
+// ============================================================
+// LISTA GÖRGETÉS
 // ============================================================
 let userScrolled = false;
 let scrollTimer = null;
@@ -2610,30 +2323,10 @@ function goLive() {
   const nextEl    = body ? body.querySelector('.is-next') : null;
   const target = currentEl || nextEl;
   if (target && body) {
-    // Kézzel számítjuk az offsetet a sticky fejléc miatt
-    const headerHeight = document.querySelector('.schedule-header') ? 
-      document.querySelector('.schedule-header').offsetHeight : 0;
+    const headerHeight = document.querySelector('.schedule-header') ? document.querySelector('.schedule-header').offsetHeight : 0;
     const targetTop = target.offsetTop - headerHeight;
     body.scrollTo({ top: targetTop, behavior: 'smooth' });
-  } else if (body) {
-    body.scrollTop = 0;
-  }
-}
-
-// ============================================================
-// KILÉPÉS
-function confirmExit() {
-  if (confirm('Biztosan kilép a Race Control dashboardból?')) {
-    // Android PWA-ban: visszalép a home screenre
-    if (window.AndroidBridge) {
-      // Native Android WebView esetén
-      window.AndroidBridge.exitApp();
-    } else {
-      // PWA: history back vagy home screen
-      window.history.go(-(window.history.length - 1));
-      setTimeout(() => { window.location.href = 'about:blank'; }, 100);
-    }
-  }
+  } else if (body) { body.scrollTop = 0; }
 }
 
 // TEST BAR toggle
@@ -2647,8 +2340,7 @@ function toggleTestBar() {
   btn.style.background = hidden ? 'rgba(245,196,0,0.15)' : 'rgba(245,196,0,0.1)';
 }
 
-// ── CATEGORY LOGOS ──────────────────────────────────────────
-// Beépített logó könyvtár — kategória neve alapján automatikus
+// ── CATEGORY LOGOS ──
 const BUILTIN_LOGOS = {
   'MotoGP':   'https://porkolabjozsef-gif.github.io/RC_pwa/motogp.png',
   'Moto2':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto2.png',
@@ -2664,28 +2356,22 @@ let categoryLogos = {};
 let currentBgCategory = null;
 
 function getLogoUrl(category) {
-  // 1. JSON-ban megadott egyedi logó (ha van)
   if (categoryLogos[category]) return categoryLogos[category];
-  // 2. Beépített könyvtár
   if (BUILTIN_LOGOS[category]) return BUILTIN_LOGOS[category];
-  // 3. Nincs logó
   return null;
 }
 
 function updateBgLogo(category) {
   if (category === currentBgCategory) return;
   currentBgCategory = category;
-
   const url = getLogoUrl(category);
   const panelImg = document.getElementById('logoPanelImg');
   const placeholder = document.getElementById('logoPlaceholder');
-
   if (!url) {
     if (panelImg) { panelImg.style.display = 'none'; panelImg.src = ''; }
     if (placeholder) placeholder.style.display = 'block';
     return;
   }
-
   if (panelImg) {
     if (placeholder) placeholder.style.display = 'none';
     panelImg.style.display = 'block';
@@ -2693,27 +2379,19 @@ function updateBgLogo(category) {
     panelImg.style.transition = 'opacity 1s ease';
     panelImg.onerror = () => {
       panelImg.style.display = 'none';
-      if (placeholder) {
-        placeholder.textContent = category;
-        placeholder.style.display = 'block';
-        placeholder.style.fontSize = '32px';
-        placeholder.style.letterSpacing = '6px';
-        placeholder.style.color = 'var(--text-mid)';
-      }
+      if (placeholder) { placeholder.textContent = category; placeholder.style.display = 'block'; placeholder.style.fontSize = '32px'; placeholder.style.letterSpacing = '6px'; placeholder.style.color = 'var(--text-mid)'; }
     };
     panelImg.src = url;
   }
 }
 
 // TEST MODE
-// ============================================================
-let testModeTime = null; // null = live, Date = frozen test time
-let testModeOffset = 0;  // ms offset from real time if we want running test clock
+let testModeTime = null;
+let testModeOffset = 0;
 let testModeStartedAt = null;
 
 function getNow() {
   if (testModeTime === null) return new Date();
-  // Run the clock forward from the set test time
   const elapsed = Date.now() - testModeStartedAt;
   return new Date(testModeTime.getTime() + elapsed);
 }
@@ -2723,7 +2401,6 @@ function activateTestMode() {
   if (!val) return;
   testModeTime = new Date(val);
   testModeStartedAt = Date.now();
-
   hornFired.clear();
   document.getElementById('testModeIndicator').classList.add('visible');
   document.getElementById('testModeTime').textContent = val.replace('T', ' ');
@@ -2740,19 +2417,12 @@ function resetTestMode() {
   buildSchedule();
 }
 
-function setQuick(val) {
-  document.getElementById('testDateInput').value = val;
-  activateTestMode();
-}
-
 // ============================================================
 // CLOCK
 // ============================================================
 function updateClock() {
   const now = getNow();
-  document.getElementById('clockTime').textContent =
-    pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-
+  document.getElementById('clockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
   const dayName = DAY_NAMES[now.getDay()];
   const dateStr = now.getDate() + ' ' + MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
   document.getElementById('clockSub').textContent = dayName.toUpperCase() + ' ' + dateStr + (testModeTime ? ' — TEST MODE' : ' — CET');
@@ -2765,87 +2435,41 @@ function updateClock() {
 // FIND CURRENT / NEXT EVENT
 // ============================================================
 function findCurrentAndNext(now) {
-  // Rules:
-  // 1. Find the "next" event = first event that hasn't started yet
-  // 2. Find "current" candidates = events that have started but not ended
-  //    - Procedure (no duration): current for max 60 seconds, then gone
-  //    - Session/race/marshal/official WITH explicit endDt: current until endDt,
-  //      BUT if the next event has already started (overlap), next event wins
-  //    - Session/race with only implicitEndDt: same rule
-  //    - No endDt, no implicitEndDt, not procedure: 30 min fallback
-  // 3. Among candidates: most recent procedure wins over a running session
-  //    (a board signal is more immediate than the background session)
-  // 4. If next event has started (its startDt <= now), it becomes current immediately
-
   let next = null;
   let currentSession = null;
   let currentProcedure = null;
 
   for (let ev of processedSchedule) {
     if (!ev.startDt) continue;
-
     const started = now >= ev.startDt;
     const isProcedure = ev.type === 'procedure';
-
-    // Determine effective end
     let effectiveEnd = ev.endDt || ev.implicitEndDt || null;
-
     let ended;
     if (effectiveEnd) {
       ended = now >= effectiveEnd;
     } else if (isProcedure) {
-      ended = (now - ev.startDt) > 60 * 1000;   // 60s max for procedures
+      ended = (now - ev.startDt) > 60 * 1000;
     } else if (ev.type === 'race' || ev.type === 'session') {
-      // Race/session without end time: stays active until next event starts
       let nextStart = null;
       for (let j = ev.idx + 1; j < processedSchedule.length; j++) {
         const nev = processedSchedule[j];
-        if (nev.startDt && nev.type !== 'procedure' && nev.startDt > ev.startDt) {
-          nextStart = nev.startDt;
-          break;
-        }
+        if (nev.startDt && nev.type !== 'procedure' && nev.startDt > ev.startDt) { nextStart = nev.startDt; break; }
       }
       ended = nextStart ? now >= nextStart : (now - ev.startDt) > 4 * 60 * 60 * 1000;
     } else {
-      ended = (now - ev.startDt) > 30 * 60 * 1000; // 30 min fallback for others
+      ended = (now - ev.startDt) > 30 * 60 * 1000;
     }
-
-    if (!started) {
-      // This is a future event
-      if (!next) next = ev;
-      continue;
-    }
-
-    if (ended) continue; // already past
-
-    // Event is active (started, not ended)
+    if (!started) { if (!next) next = ev; continue; }
+    if (ended) continue;
     if (isProcedure) {
-      // Keep the MOST RECENT active procedure
-      if (!currentProcedure || ev.startDt > currentProcedure.startDt) {
-        currentProcedure = ev;
-      }
+      if (!currentProcedure || ev.startDt > currentProcedure.startDt) currentProcedure = ev;
     } else {
-      // Session/race/marshal/official: first one found (sorted by start)
       if (!currentSession) currentSession = ev;
     }
   }
-
-  // If the next event has already started, it should be current
-  // (handles the case where two events overlap and the newer one wins)
-  // This is already handled by the loop above — the newer started event
-  // will be found as currentSession/Procedure if it's in the schedule.
-
-  // Priority: most recent procedure wins (board signal = immediate action)
-  // Fall back to session if no active procedure
-  // current = stable session/race shown in main panel (with countdown)
-  // signal  = momentary procedure shown in mini signal panel (max 60s)
   const current = currentSession || null;
   const signal  = currentProcedure || null;
-
-  // If no session is active, fall back: show the signal in current panel too
-  // (e.g. before day's first session starts)
   const displayCurrent = current || signal || null;
-
   return { current: displayCurrent, signal, next };
 }
 
@@ -2856,38 +2480,24 @@ function updateDashboard() {
   const now = getNow();
   const { current, signal, next } = findCurrentAndNext(now);
 
-  // Háttér logó frissítése az aktuális kategória alapján
   const activeCategory = (current && current.category) || (next && next.category) || null;
   updateBgLogo(activeCategory);
 
-  // ── AUTO SERIES/CATEGORY + RECORD PANEL SWITCH ──
-  // A championship (WSBK/MotoGP) manuális — csak a sorozatot/kategóriát váltjuk automatikusan
   const scheduleCategory = (current && current.category) || (next && next.category) || null;
   if (scheduleCategory) {
     const wsbkCats = { 'WorldSBK':'SBK','WorldSSP':'SSP','WorldWCR':'WCR','WorldSPB':'SPB','R3':'R3' };
     const motogpCats = ['MotoGP','Moto2','Moto3'];
     const isWsbkCat = wsbkCats.hasOwnProperty(scheduleCategory);
     const isMotoGPCat = motogpCats.indexOf(scheduleCategory) >= 0;
-
-    // WSBK panel aktív → wsbkSeries automatikus váltás
     if (isWsbkCat && typeof activeChampionship !== 'undefined' && activeChampionship === 'wsbk') {
       var newSeries = wsbkCats[scheduleCategory];
-      if (typeof wsbkSeries !== 'undefined' && wsbkSeries !== newSeries) {
-        wsbkSeries = newSeries;
-        if (typeof renderRecordPanel === 'function') renderRecordPanel();
-      }
+      if (typeof wsbkSeries !== 'undefined' && wsbkSeries !== newSeries) { wsbkSeries = newSeries; if (typeof renderRecordPanel === 'function') renderRecordPanel(); }
     }
-
-    // MotoGP panel aktív → selectedCat automatikus váltás
     if (isMotoGPCat && typeof activeChampionship !== 'undefined' && activeChampionship === 'motogp') {
-      if (typeof selectedCat !== 'undefined' && selectedCat !== scheduleCategory) {
-        selectedCat = scheduleCategory;
-        if (typeof renderRecordPanel === 'function') renderRecordPanel();
-      }
+      if (typeof selectedCat !== 'undefined' && selectedCat !== scheduleCategory) { selectedCat = scheduleCategory; if (typeof renderRecordPanel === 'function') renderRecordPanel(); }
     }
   }
 
-  // --- SIGNAL PANEL (pillanatnyi esemény) ---
   const signalPanel = document.getElementById('signalPanel');
   const signalIcon  = document.getElementById('signalIcon');
   const signalName  = document.getElementById('signalName');
@@ -2899,26 +2509,22 @@ function updateDashboard() {
     signalIcon.textContent = signal.horn ? '📯' : '📋';
     signalName.textContent = signal.name;
     signalTime.textContent = signal.start;
-    // How many seconds since the signal started
     const elapsed = Math.floor((now - signal.startDt) / 1000);
     const remaining = Math.max(0, 60 - elapsed);
     signalTTL.textContent = remaining + 's';
     signalTTL.classList.toggle('urgent', remaining < 15);
-  } else {
-    signalPanel.classList.remove('visible');
-  }
+  } else { signalPanel.classList.remove('visible'); }
 
-  // --- CURRENT EVENT PANEL ---
-  const statusPill = document.getElementById('statusPill');
-  const sessionCategory = document.getElementById('sessionCategory');
-  const currentEventName = document.getElementById('currentEventName');
-  const currentEventDetail = document.getElementById('currentEventDetail');
-  const currentStart = document.getElementById('currentStart');
-  const currentEnd = document.getElementById('currentEnd');
-  const currentDuration = document.getElementById('currentDuration');
+  const statusPill        = document.getElementById('statusPill');
+  const sessionCategory   = document.getElementById('sessionCategory');
+  const currentEventName  = document.getElementById('currentEventName');
+  const currentEventDetail= document.getElementById('currentEventDetail');
+  const currentStart      = document.getElementById('currentStart');
+  const currentEnd        = document.getElementById('currentEnd');
+  const currentDuration   = document.getElementById('currentDuration');
   const progressContainer = document.getElementById('progressContainer');
-  const progressFill = document.getElementById('progressFill');
-  const progressPct = document.getElementById('progressPct');
+  const progressFill      = document.getElementById('progressFill');
+  const progressPct       = document.getElementById('progressPct');
   const currentEventIndex = document.getElementById('currentIdx');
 
   if (current) {
@@ -2929,7 +2535,6 @@ function updateDashboard() {
     currentEventDetail.textContent = current.remark || '';
     currentStart.textContent = current.start;
     currentEnd.textContent = current.end || '—';
-
     const effectiveEnd = current.endDt || current.implicitEndDt;
     if (current.startDt && effectiveEnd) {
       const totalMs = effectiveEnd - current.startDt;
@@ -2940,113 +2545,78 @@ function updateDashboard() {
       progressContainer.style.display = 'block';
       progressFill.style.width = pct + '%';
       progressPct.textContent = pct + '%';
-    } else {
-      currentDuration.textContent = '—';
-      progressContainer.style.display = 'none';
-    }
-
+    } else { currentDuration.textContent = '—'; progressContainer.style.display = 'none'; }
     const pos = processedSchedule.filter(e => e.startDt && e.startDt <= now).length;
     const total = processedSchedule.length;
     currentEventIndex.textContent = pos + ' / ' + total;
-
   } else if (next) {
     statusPill.textContent = 'BREAK';
     statusPill.className = 'status-pill break';
     sessionCategory.innerHTML = getCategoryTag(next.category);
     currentEventName.textContent = 'No active session';
     currentEventDetail.textContent = 'Next: ' + next.name;
-    currentStart.textContent = '—';
-    currentEnd.textContent = '—';
-    currentDuration.textContent = '—';
-    progressContainer.style.display = 'none';
-    currentEventIndex.textContent = '—';
-
+    currentStart.textContent = '—'; currentEnd.textContent = '—'; currentDuration.textContent = '—';
+    progressContainer.style.display = 'none'; currentEventIndex.textContent = '—';
   } else {
     statusPill.textContent = 'ENDED';
     statusPill.className = 'status-pill break';
     sessionCategory.innerHTML = '';
     currentEventName.textContent = 'Event concluded';
     currentEventDetail.textContent = 'All sessions completed.';
-    currentStart.textContent = '—';
-    currentEnd.textContent = '—';
-    currentDuration.textContent = '—';
+    currentStart.textContent = '—'; currentEnd.textContent = '—'; currentDuration.textContent = '—';
     progressContainer.style.display = 'none';
     currentEventIndex.textContent = processedSchedule.length + ' / ' + processedSchedule.length;
   }
 
-  // --- COUNTDOWN PANEL ---
   const countdownLabel = document.getElementById('countdownLabel');
-  const cdHours = document.getElementById('cdHours');
+  const cdHours   = document.getElementById('cdHours');
   const cdMinutes = document.getElementById('cdMinutes');
   const cdSeconds = document.getElementById('cdSeconds');
 
-  // Countdown tracks the active SESSION end — not the momentary signal
   const sessionForCountdown = (current && current.type !== 'procedure') ? current : null;
-  const effectiveEndForCountdown = sessionForCountdown
-    ? (sessionForCountdown.endDt || sessionForCountdown.implicitEndDt)
-    : null;
+  const effectiveEndForCountdown = sessionForCountdown ? (sessionForCountdown.endDt || sessionForCountdown.implicitEndDt) : null;
   let targetDt = null;
   let cdLabelText = '';
 
-  if (sessionForCountdown && effectiveEndForCountdown) {
-    targetDt = effectiveEndForCountdown;
-    cdLabelText = 'TIME REMAINING';
-  } else if (next) {
-    targetDt = next.startDt;
-    cdLabelText = 'TIME UNTIL NEXT';
-  }
+  if (sessionForCountdown && effectiveEndForCountdown) { targetDt = effectiveEndForCountdown; cdLabelText = 'TIME REMAINING'; }
+  else if (next) { targetDt = next.startDt; cdLabelText = 'TIME UNTIL NEXT'; }
 
   if (targetDt) {
     const diffMs = targetDt - now;
     const totalSec = Math.max(0, Math.floor(diffMs / 1000));
     const { h, m, s } = toHHMMSS(totalSec);
-
     countdownLabel.textContent = cdLabelText;
-    cdHours.textContent = pad(h);
-    cdMinutes.textContent = pad(m);
-    cdSeconds.textContent = pad(s);
-
+    cdHours.textContent = pad(h); cdMinutes.textContent = pad(m); cdSeconds.textContent = pad(s);
     const urgent = totalSec < 180;
-    [cdHours, cdMinutes, cdSeconds].forEach(el => {
-      el.classList.toggle('urgent', urgent);
-    });
+    [cdHours, cdMinutes, cdSeconds].forEach(el => el.classList.toggle('urgent', urgent));
   } else {
     countdownLabel.textContent = 'No upcoming events';
-    cdHours.textContent = '00';
-    cdMinutes.textContent = '00';
-    cdSeconds.textContent = '00';
+    cdHours.textContent = '00'; cdMinutes.textContent = '00'; cdSeconds.textContent = '00';
     [cdHours, cdMinutes, cdSeconds].forEach(el => el.classList.remove('urgent'));
   }
 
-  // --- NEXT EVENT PANEL ---
-  const nextEventName = document.getElementById('nextEventName');
-  const nextEventDetail = document.getElementById('nextEventDetail');
+  const nextEventName     = document.getElementById('nextEventName');
+  const nextEventDetail   = document.getElementById('nextEventDetail');
   const nextSessionCategory = document.getElementById('nextSessionCategory');
-  const nextTimePill = document.getElementById('nextTimePill');
-  const nextEventBadge = document.getElementById('nextEventBadge');
+  const nextTimePill      = document.getElementById('nextTimePill');
+  const nextEventBadge    = document.getElementById('nextEventBadge');
 
   if (next) {
     nextEventName.textContent = next.name;
     nextEventDetail.textContent = next.remark || '';
     nextSessionCategory.innerHTML = getCategoryTag(next.category);
     nextTimePill.textContent = next.start + (next.end ? ' → ' + next.end : '');
-    // Show date if next event is on different day
     const nowDay = now.toISOString().slice(0,10);
-    const sameDayNext = next.date === nowDay ||
-      (next.startDt && next.startDt.getDate() === now.getDate() && next.startDt.getMonth() === now.getMonth());
-    if (sameDayNext) {
-      nextEventBadge.textContent = 'TODAY';
-    } else {
+    const sameDayNext = next.date === nowDay || (next.startDt && next.startDt.getDate() === now.getDate() && next.startDt.getMonth() === now.getMonth());
+    if (sameDayNext) { nextEventBadge.textContent = 'TODAY'; }
+    else {
       const [y, mo, d] = next.date.split('-').map(Number);
       const dayName = DAY_NAMES[new Date(y, mo-1, d).getDay()].slice(0,3).toUpperCase();
       nextEventBadge.textContent = dayName + ' ' + d + ' ' + MONTH_NAMES[mo-1].toUpperCase();
     }
   } else {
-    nextEventName.textContent = 'No upcoming events';
-    nextEventDetail.textContent = 'Schedule complete';
-    nextSessionCategory.innerHTML = '';
-    nextTimePill.textContent = '—';
-    nextEventBadge.textContent = '—';
+    nextEventName.textContent = 'No upcoming events'; nextEventDetail.textContent = 'Schedule complete';
+    nextSessionCategory.innerHTML = ''; nextTimePill.textContent = '—'; nextEventBadge.textContent = '—';
   }
 }
 
@@ -3057,31 +2627,18 @@ function buildSchedule() {
   const now = getNow();
   const body = document.getElementById('scheduleBody');
   const countBadge = document.getElementById('scheduleCount');
-
-  // Group by date, filter out fully past events
   const groups = {};
   let futureCount = 0;
-  let currentFound = false;
 
   for (let ev of processedSchedule) {
     if (!ev.startDt) continue;
-
-    // Determine if past — only filter events that have actually started AND ended
     let isPast = false;
-    if (now < ev.startDt) {
-      isPast = false; // jövőbeli esemény, soha nem past
-    } else if (ev.endDt && now > ev.endDt) {
-      isPast = true;
-    } else if (!ev.endDt && ev.implicitEndDt && now > ev.implicitEndDt) {
-      isPast = true;
-    } else if (!ev.endDt && !ev.implicitEndDt && ev.type === 'procedure' && (now - ev.startDt) > 60 * 1000) {
-      isPast = true;
-    } else if (!ev.endDt && !ev.implicitEndDt && ev.type !== 'procedure' && (now - ev.startDt) > 30 * 60 * 1000) {
-      isPast = true;
-    }
-
+    if (now < ev.startDt) { isPast = false; }
+    else if (ev.endDt && now > ev.endDt) { isPast = true; }
+    else if (!ev.endDt && ev.implicitEndDt && now > ev.implicitEndDt) { isPast = true; }
+    else if (!ev.endDt && !ev.implicitEndDt && ev.type === 'procedure' && (now - ev.startDt) > 60 * 1000) { isPast = true; }
+    else if (!ev.endDt && !ev.implicitEndDt && ev.type !== 'procedure' && (now - ev.startDt) > 30 * 60 * 1000) { isPast = true; }
     if (isPast) continue;
-
     if (!groups[ev.date]) groups[ev.date] = [];
     groups[ev.date].push(ev);
     futureCount++;
@@ -3089,10 +2646,7 @@ function buildSchedule() {
 
   countBadge.textContent = futureCount + ' events remaining';
 
-  if (futureCount === 0) {
-    body.innerHTML = '<div class="no-events">✅ Minden esemény véget ért.</div>';
-    return;
-  }
+  if (futureCount === 0) { body.innerHTML = '<div class="no-events">✅ Minden esemény véget ért.</div>'; return; }
 
   let html = '';
   const { current, next } = findCurrentAndNext(now);
@@ -3102,28 +2656,19 @@ function buildSchedule() {
     const dt = new Date(y, mo - 1, d);
     const dayName = DAY_NAMES[dt.getDay()].toUpperCase();
     const dateLabel = d + ' ' + MONTH_NAMES[mo - 1].toUpperCase() + ' ' + y;
-
     html += `<div class="day-header">
       <span class="day-header-name">${dayName}</span>
       <span class="day-header-date">${dateLabel}</span>
       <div class="day-header-line"></div>
     </div>`;
-
     for (let ev of groups[date]) {
       const isCurrent = current && current.idx === ev.idx;
       const isNext = next && next.idx === ev.idx;
       const typeClass = getItemClass(ev);
       const currentClass = isCurrent ? ' is-current' : (isNext ? ' is-next' : '');
       const tag = getCategoryTag(ev.category);
-
-      const timeDisplay = ev.end
-        ? `${ev.start}<span class="end-time">→ ${ev.end}</span>`
-        : ev.start;
-
-      const durationDisplay = (ev.startDt && ev.endDt)
-        ? Math.round((ev.endDt - ev.startDt) / 60000) + ' min'
-        : '';
-
+      const timeDisplay = ev.end ? `${ev.start}<span class="end-time">→ ${ev.end}</span>` : ev.start;
+      const durationDisplay = (ev.startDt && ev.endDt) ? Math.round((ev.endDt - ev.startDt) / 60000) + ' min' : '';
       html += `<div class="sched-item ${typeClass}${currentClass}">
         <div class="sched-time">${timeDisplay}</div>
         <div class="sched-content">
@@ -3137,49 +2682,32 @@ function buildSchedule() {
 
   body.innerHTML = html;
 
-  // Auto-scroll only if user hasn't manually scrolled
   const currentEl = body.querySelector('.is-current');
   const nextEl = body.querySelector('.is-next');
   const target = currentEl || nextEl;
   if (target && !userScrolled) {
-    setTimeout(() => {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 300);
+    setTimeout(() => { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
   }
 }
 
 // ============================================================
-// INIT
-// ============================================================
-// ============================================================
-// WAKE LOCK — képernyő ébren tartása
+// WAKE LOCK
 // ============================================================
 let wakeLock = null;
 
 async function requestWakeLock() {
   try {
-    if ('wakeLock' in navigator) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      console.log('Wake Lock aktív — kijelző ébren marad');
-    }
-  } catch (err) {
-    console.warn('Wake Lock nem elérhető:', err);
-  }
+    if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); console.log('Wake Lock aktív'); }
+  } catch (err) { console.warn('Wake Lock nem elérhető:', err); }
 }
 
-// Ha a felhasználó visszatér az apphoz, újra kér Wake Lock-ot
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    requestWakeLock();
-  }
-});
-
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWakeLock(); });
 requestWakeLock();
 
 // ============================================================
-// Init
+// INIT
+// ============================================================
 if (processedSchedule.length === 0) {
-  // No schedule loaded — show empty state
   document.getElementById('currentEventName').textContent = 'Nincs betöltött menetrend';
   document.getElementById('currentEventDetail').textContent = 'Töltsd be a JSON fájlt a zöld sávban';
   document.getElementById('nextEventName').textContent = '—';
@@ -3203,7 +2731,6 @@ setInterval(buildSchedule, 1000);
 setInterval(checkHornEvents, 100);
 setInterval(checkLiveHorn, 100);
 
-// PWA Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js')
     .then(() => console.log('Service Worker aktív'))
@@ -3216,9 +2743,7 @@ if ('serviceWorker' in navigator) {
   if (!boot) return;
   setTimeout(function() {
     boot.classList.add('hide');
-    setTimeout(function() {
-      boot.style.display = 'none';
-    }, 500);
+    setTimeout(function() { boot.style.display = 'none'; }, 500);
   }, 2900);
 })();
 </script>
