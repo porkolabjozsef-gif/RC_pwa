@@ -335,28 +335,54 @@ function updateStandingsLabel(src, eventCode) {
 
 function loadRecords() {
   const src = fs.readFileSync(RECORDS_PATH, 'utf8');
-  const fn  = new Function('module', 'exports', src + '\nmodule.exports={WSBK_RECORDS,MOTOGP_RECORDS};');
+  // TRACK_RECORDS struktúra: { 'CZE': { wsbk: { SBK:..., SSP:... }, motogp: { MotoGP:... } } }
+  // A records.js tartalmaz egy renderRecordPanel() függvényt is amit DOM-ra hivatkozik —
+  // Node.js-ben nincs document, ezért stub-okat adunk a `new Function` scope-jába
+  const stub = 'var document = { getElementById: function(){ return null; } };\n' +
+               'var window = {};\n';
+  const fn  = new Function('module', 'exports', stub + src + '\nmodule.exports = typeof TRACK_RECORDS !== "undefined" ? {TRACK_RECORDS} : {WSBK_RECORDS, MOTOGP_RECORDS};');
   const mod = { exports: {} };
   fn(mod, mod.exports);
+
+  // Ha TRACK_RECORDS struktúra
+  if (mod.exports.TRACK_RECORDS) {
+    const TR = mod.exports.TRACK_RECORDS;
+    const WSBK_RECORDS = {};
+    const MOTOGP_RECORDS = {};
+    for (const [code, data] of Object.entries(TR)) {
+      if (data.wsbk)   WSBK_RECORDS[code]   = data.wsbk;
+      if (data.motogp) MOTOGP_RECORDS[code] = data.motogp;
+    }
+    return { src, WSBK_RECORDS, MOTOGP_RECORDS, TRACK_RECORDS: TR };
+  }
+
+  // Régi struktúra
   return { src, WSBK_RECORDS: mod.exports.WSBK_RECORDS, MOTOGP_RECORDS: mod.exports.MOTOGP_RECORDS };
 }
 
 function updateRecordInSrc(src, section, trackCode, series, newRec) {
+  // TRACK_RECORDS struktúra: 'CZE': { wsbk:{ SBK:{...} }, motogp:{ MotoGP:{...} } }
+  // section: 'WSBK_RECORDS' → wsbk blokk, 'MOTOGP_RECORDS' → motogp blokk
+  const subKey = section === 'WSBK_RECORDS' ? 'wsbk' : 'motogp';
   const escapedCode   = trackCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedSeries = series.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const sectionStart = src.indexOf(`var ${section}`);
-  if (sectionStart === -1) return src;
+  const escapedSubKey = subKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Minta: 'CZE': { ... wsbk:{ ... SBK:{time:...} ... }
   const blockRe = new RegExp(
-    `('${escapedCode}'\\s*:\\s*\\{[^}]*?(?:\\{[^}]*\\}[^}]*)*?)` +
+    `('${escapedCode}'[^}]*?${escapedSubKey}\\s*:\\s*\\{[^}]*?)` +
     `(${escapedSeries}\\s*:\\s*\\{time:[^}]+\\})`,
     's'
   );
-  const newLine  = `${series}: {time:"${newRec.time}", rider:'${newRec.rider}', year:${newRec.year}}`;
-  const before   = src.slice(0, sectionStart);
-  const after    = src.slice(sectionStart);
-  const updated  = after.replace(blockRe, (full, prefix, _old) => prefix + newLine);
-  if (updated === after) { console.log(`  ⚠ Nem sikerült frissíteni: ${section}['${trackCode}'].${series}`); return src; }
-  return before + updated;
+
+  const newLine = `${series}:{time:"${newRec.time}",rider:'${newRec.rider}',year:${newRec.year}}`;
+  const updated = src.replace(blockRe, (full, prefix, _old) => prefix + newLine);
+
+  if (updated === src) {
+    console.log(`  ⚠ Nem sikerült frissíteni: ${trackCode}.${subKey}.${series}`);
+    return src;
+  }
+  return updated;
 }
 
 function getCurrentLeaderPts(src, series) {
