@@ -772,6 +772,7 @@ body::after {
 .tag-MARSHAL  { color: var(--red); border-color: rgba(232,0,13,0.4); background: rgba(232,0,13,0.08); }
 .tag-OFFICIAL { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
 .tag-TRACK    { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
+.tag-Moto4NC  { color: #76c442; border-color: rgba(118,196,66,0.45); background: rgba(118,196,66,0.09); }
 
 .current-name {
   font-family: 'Oswald', sans-serif;
@@ -1541,7 +1542,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function getCategoryTag(cat) {
   const labels = {
     'WorldSBK': 'WorldSBK', 'WorldSSP': 'WorldSSP', 'WorldWCR': 'WorldWCR',
-    'R3': 'R3 CUP', 'MARSHAL': 'MARSHAL', 'OFFICIAL': 'OFFICIAL', 'TRACK': 'TRACK',
+    'R3': 'R3 CUP', 'MARSHAL': 'MARSHAL', 'OFFICIAL': 'OFFICIAL', 'TRACK': 'TRACK', 'Moto4NC': 'M4NC',
   };
   const label = labels[cat];
   if (!label) return '';
@@ -1898,6 +1899,7 @@ function loadNewSchedule(parsed) {
   }
   buildSchedule();
   updateDashboard();
+  saveScheduleToStorage(parsed);
 }
 
 // ============================================================
@@ -1979,6 +1981,8 @@ let autoCat = 'MotoGP';
 let selectedSession = 'RAC';
 let autoTimer = null;
 let fetchInterval = null;
+let m4ncCircuit = 'BAL';
+let m4ncSession = 'RAC1';
 let isFetching = false;
 
 const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
@@ -2053,6 +2057,7 @@ function renderPanel() {
   champRow += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">WSBK</button>';
   champRow += '</div>';
   tp.innerHTML = champRow;
+
   tp.insertAdjacentHTML('beforeend', `
     <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
       <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
@@ -2079,29 +2084,58 @@ function renderPanel() {
             position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
             ${auto?`<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>`:''}
             ${logo
-              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);\'>${cat}</span>'">`
+              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid)\\'>${cat}</span>'">`
               : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'};">${cat}</span>`
             }
           </button>`;
         }).join('')}
+        ${M4NC_EVENTS[selectedEventCode] ? (()=>{
+          const active = selectedCat === 'Moto4NC';
+          const logo = catLogo('Moto4NC');
+          return `<button onclick="switchCat('Moto4NC')"
+            style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;
+            background:${active?'rgba(118,196,66,0.2)':'rgba(255,255,255,0.03)'};
+            border-color:${active?'#76c442':'rgba(255,255,255,0.15)'};
+            position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
+            ${logo
+              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\\'font-family:Oswald,sans-serif;font-size:9px;color:#76c442\\'>M4NC</span>'">`
+              : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'#76c442':'var(--text-mid)'};">M4NC</span>`
+            }
+          </button>`;
+        })() : ''}
       </div>
     </div>
     <div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">
-      ${getSessionTypes().map(sess => {
-        const active = sess === selectedSession;
-        return `<button onclick="switchSession('${sess}')"
+      ${selectedCat === 'Moto4NC' ?
+        ['FP1','FP2','QUA','RAC1','RAC2'].map(s => {
+          const lbl = {FP1:'FP1',FP2:'FP2',QUA:'QUAL',RAC1:'RAC1',RAC2:'RAC2'}[s]||s;
+          const sub = {FP1:'péntek',FP2:'péntek',QUA:'péntek',RAC1:'szombat',RAC2:'vasárnap'}[s]||'';
+          return `<button onclick="switchM4ncSession('${s}')"
+            style="flex:1;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;
+            padding:4px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
+            background:${s===m4ncSession?'rgba(118,196,66,0.25)':'rgba(255,255,255,0.05)'};
+            border-color:${s===m4ncSession?'#76c442':'rgba(255,255,255,0.15)'};
+            color:${s===m4ncSession?'#76c442':'var(--text-mid)'};">
+            <div>${lbl}</div><div style="font-size:7px;opacity:0.65;margin-top:1px;">${sub}</div>
+          </button>`;
+        }).join('')
+        :
+        getSessionTypes().map(sess => {
+          const active = sess === selectedSession;
+          return `<button onclick="switchSession('${sess}')"
+            style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+            padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
+            background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
+            border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};
+            color:${active?'var(--yellow)':'var(--text-dim)'};">${sess}</button>`;
+        }).join('')
+        + `<button onclick="switchSession('STANDINGS')"
           style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
           padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
-          background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-          border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};
-          color:${active?'var(--yellow)':'var(--text-mid)'};">${sess}</button>`;
-      }).join('')}
-      <button onclick="switchSession('STANDINGS')"
-        style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
-        padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
-        background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
-        border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
-        color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-mid)'};">STD</button>
+          background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
+          border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
+          color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-dim)'};">STD</button>`
+      }
     </div>
     <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
       <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
@@ -2116,7 +2150,9 @@ async function doFetch() {
   if (!rd) { isFetching = false; return; }
   rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
   try {
-    if (selectedSession === 'STANDINGS') { await doStandings(rd); }
+    if (selectedCat === 'Moto4NC') {
+      isFetching = false; await doM4ncFetch(); return;
+    } else if (selectedSession === 'STANDINGS') { await doStandings(rd); }
     else { await doResults(rd); }
   } catch(e) {
     rd.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
@@ -2299,6 +2335,57 @@ function showStandingsXml(el, doc) {
 }
 
 // ============================================================
+// M4NC — Moto4 Northern Cup (MotoGP helyszíneken)
+// Mapping: MotoGP event code → M4NC circuit code
+// ============================================================
+const M4NC_EVENTS = { 'HUN': 'BAL', 'CZE': 'BRN', 'GER': 'SAC' };
+
+function switchM4ncSession(s) { m4ncSession = s; renderPanel(); doFetch(); }
+
+async function doM4ncFetch() {
+  const rd = document.getElementById('timingResults');
+  if (!rd) return;
+  const circ = M4NC_EVENTS[selectedEventCode];
+  if (!circ) { rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:8px;">Ezen a helyszínen nincs M4NC</div>'; return; }
+  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
+  try {
+    const data = await apiGet('m4nc/2026/' + circ + '/' + m4ncSession);
+    if (data.error) {
+      rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:8px;text-align:center;">Még nincs eredmény<br><span style="font-size:8px;color:var(--text-dim);">' + (data.tried||'') + '</span></div>';
+      return;
+    }
+    showM4ncResults(rd, data, circ);
+  } catch(e) {
+    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">❌ ' + e.message + '</div>';
+  }
+}
+
+function showM4ncResults(el, data, circ) {
+  if (!data || !data.rows || !data.rows.length) {
+    el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:8px;">Nincs adat</div>';
+    return;
+  }
+  const sess = data.session || m4ncSession;
+  const sessLabel = {FP1:'Free Practice 1',FP2:'Free Practice 2',RAC1:'Race 1',RAC2:'Race 2'}[sess] || sess;
+  let html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">'
+    + '<span style="color:#76c442;">Moto4 Northern Cup · ' + (circ||'') + '</span>'
+    + '<span>' + m4ncDay + ' · ' + sessLabel + '</span></div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  data.rows.forEach(function(r, i) {
+    const pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
+    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
+      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + r.pos + '</td>'
+      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + r.num + '</td>'
+      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + r.nat + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:#76c442;font-size:9px;">' + r.lap + '</td>'
+      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + r.gap + '</td>'
+      + '</tr>';
+  });
+  el.innerHTML = html + '</table>';
+}
+
+// ============================================================
 // LISTA GÖRGETÉS
 // ============================================================
 let userScrolled = false;
@@ -2329,7 +2416,6 @@ function goLive() {
   } else if (body) { body.scrollTop = 0; }
 }
 
-// TEST BAR toggle
 function toggleTestBar() {
   const bar = document.querySelector('.test-bar');
   const btn = document.getElementById('testToggleBtn');
@@ -2340,7 +2426,6 @@ function toggleTestBar() {
   btn.style.background = hidden ? 'rgba(245,196,0,0.15)' : 'rgba(245,196,0,0.1)';
 }
 
-// ── CATEGORY LOGOS ──
 const BUILTIN_LOGOS = {
   'MotoGP':   'https://porkolabjozsef-gif.github.io/RC_pwa/motogp.png',
   'Moto2':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto2.png',
@@ -2350,6 +2435,7 @@ const BUILTIN_LOGOS = {
   'WorldWCR': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldwcr.png',
   'R3':       'https://porkolabjozsef-gif.github.io/RC_pwa/r3.png',
   'WorldSPB': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldspb.png',
+  'Moto4NC':  'https://porkolabjozsef-gif.github.io/RC_pwa/moto4nc.png',
 };
 
 let categoryLogos = {};
@@ -2375,17 +2461,14 @@ function updateBgLogo(category) {
   if (panelImg) {
     if (placeholder) placeholder.style.display = 'none';
     panelImg.style.display = 'block';
-    panelImg.style.opacity = '1';
-    panelImg.style.transition = 'opacity 1s ease';
     panelImg.onerror = () => {
       panelImg.style.display = 'none';
-      if (placeholder) { placeholder.textContent = category; placeholder.style.display = 'block'; placeholder.style.fontSize = '32px'; placeholder.style.letterSpacing = '6px'; placeholder.style.color = 'var(--text-mid)'; }
+      if (placeholder) { placeholder.textContent = category; placeholder.style.display = 'block'; }
     };
     panelImg.src = url;
   }
 }
 
-// TEST MODE
 let testModeTime = null;
 let testModeOffset = 0;
 let testModeStartedAt = null;
@@ -2417,9 +2500,6 @@ function resetTestMode() {
   buildSchedule();
 }
 
-// ============================================================
-// CLOCK
-// ============================================================
 function updateClock() {
   const now = getNow();
   document.getElementById('clockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
@@ -2431,9 +2511,6 @@ function updateClock() {
   document.getElementById('clockTime').classList.toggle('test-mode', testModeTime !== null);
 }
 
-// ============================================================
-// FIND CURRENT / NEXT EVENT
-// ============================================================
 function findCurrentAndNext(now) {
   let next = null;
   let currentSession = null;
@@ -2473,9 +2550,6 @@ function findCurrentAndNext(now) {
   return { current: displayCurrent, signal, next };
 }
 
-// ============================================================
-// UPDATE DASHBOARD
-// ============================================================
 function updateDashboard() {
   const now = getNow();
   const { current, signal, next } = findCurrentAndNext(now);
@@ -2620,9 +2694,6 @@ function updateDashboard() {
   }
 }
 
-// ============================================================
-// BUILD SCHEDULE LIST
-// ============================================================
 function buildSchedule() {
   const now = getNow();
   const body = document.getElementById('scheduleBody');
@@ -2690,6 +2761,48 @@ function buildSchedule() {
   }
 }
 
+
+// ============================================================
+// SCHEDULE PERSISTENCE — localStorage
+// Az időterv megmarad az utolsó esemény napjának végéig
+// ============================================================
+const RC_STORAGE_KEY = 'rc_schedule_v1';
+
+function saveScheduleToStorage(parsed) {
+  if (!parsed || !parsed.schedule || !parsed.schedule.length) return;
+  // Az utolsó esemény dátuma → azon a napon 23:59-ig marad
+  let lastDate = '';
+  for (const ev of parsed.schedule) {
+    if (ev.date && ev.date > lastDate) lastDate = ev.date;
+  }
+  if (!lastDate) return;
+  const [y, mo, d] = lastDate.split('-').map(Number);
+  const expires = new Date(y, mo - 1, d, 23, 59, 59).getTime();
+  try {
+    localStorage.setItem(RC_STORAGE_KEY, JSON.stringify({ parsed, expires }));
+    console.log('[RC] Menetrend elmentve, lejár:', new Date(expires).toLocaleDateString());
+  } catch(e) {
+    console.warn('[RC] localStorage mentés sikertelen:', e);
+  }
+}
+
+function loadScheduleFromStorage() {
+  try {
+    const raw = localStorage.getItem(RC_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data?.parsed || !data?.expires) return null;
+    if (Date.now() > data.expires) {
+      localStorage.removeItem(RC_STORAGE_KEY);
+      console.log('[RC] Tárolt menetrend lejárt, törölve.');
+      return null;
+    }
+    return data.parsed;
+  } catch(e) {
+    return null;
+  }
+}
+
 // ============================================================
 // WAKE LOCK
 // ============================================================
@@ -2697,8 +2810,8 @@ let wakeLock = null;
 
 async function requestWakeLock() {
   try {
-    if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); console.log('Wake Lock aktív'); }
-  } catch (err) { console.warn('Wake Lock nem elérhető:', err); }
+    if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); }
+  } catch (err) {}
 }
 
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWakeLock(); });
@@ -2707,6 +2820,18 @@ requestWakeLock();
 // ============================================================
 // INIT
 // ============================================================
+// Mentett menetrend visszaállítása (ha az utolsó esemény még nem telt el)
+const _storedSchedule = loadScheduleFromStorage();
+if (_storedSchedule && !scheduleManuallyLoaded) {
+  scheduleManuallyLoaded = true;
+  loadNewSchedule(_storedSchedule);
+  const _statusEl = document.getElementById('pdfStatus');
+  if (_statusEl) {
+    _statusEl.className = 'pdf-status ok';
+    _statusEl.textContent = '✅ ' + (_storedSchedule.eventName || 'Menetrend') + ' — mentett időterv visszaállítva';
+  }
+}
+
 if (processedSchedule.length === 0) {
   document.getElementById('currentEventName').textContent = 'Nincs betöltött menetrend';
   document.getElementById('currentEventDetail').textContent = 'Töltsd be a JSON fájlt a zöld sávban';
