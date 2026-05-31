@@ -420,84 +420,124 @@ body::after {
    ──────────────────────────────────────────────────────────────── */
 @media (max-width: 599px) {
 
-  .header        { height: 32px; padding: 0 8px; }
-  .header-logo   { font-size: 8px; padding: 2px 8px; letter-spacing: 1px; }
-  .header-title  { font-size: 10px; letter-spacing: 2px; }
-  .header-live   { font-size: 8px; gap: 4px; }
-  .live-dot      { width: 6px; height: 6px; }
+  /* ─── HEADER ─── */
+  .header        { height: 30px; padding: 0 6px; }
+  .header-logo   { font-size: 7px; padding: 2px 6px; letter-spacing: 1px; }
+  .header-title  { font-size: 9px; letter-spacing: 2px; }
+  .header-live   { font-size: 7px; gap: 3px; }
+  .live-dot      { width: 5px; height: 5px; }
 
-  .pdf-bar       { height: 28px; padding: 0 8px; gap: 5px; }
-  .pdf-file-btn  { font-size: 8px; padding: 2px 7px; height: 22px; letter-spacing: 1px; }
-  .pdf-status    { font-size: 9px; }
+  /* ─── PDF BAR ─── */
+  .pdf-bar       { height: 26px; padding: 0 6px; gap: 4px; }
+  .pdf-file-btn  { font-size: 7px; padding: 1px 6px; height: 20px; letter-spacing: 1px; }
+  .pdf-status    { font-size: 8px; }
 
+  /* ─── 2×2 GRID: egyenlő sorok ─── */
   .main-body {
     grid-template-columns: 55% 45%;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr 1fr;   /* egyenlő magasság! */
     overflow: hidden;
-    overflow-y: hidden;
     min-height: 0;
   }
 
-  .col-left  { grid-column: 1; grid-row: 1; overflow: hidden; border-right: 1px solid var(--border); align-self: stretch; }
-  .col-mid   { grid-column: 2; grid-row: 1; overflow: hidden; }
-  .col-logo  { grid-column: 1; grid-row: 2; overflow: hidden; min-height: 0; border-right: 1px solid var(--border); border-top: 2px solid var(--border); }
-  .col-right { grid-column: 2; grid-row: 2; overflow: hidden; border-top: 2px solid var(--border); min-height: 0; }
+  .col-left  {
+    grid-column: 1; grid-row: 1;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+  .col-mid   {
+    grid-column: 2; grid-row: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .col-logo  {
+    grid-column: 1; grid-row: 2;
+    overflow: hidden;
+    min-height: 0;
+    border-right: 1px solid var(--border);
+    border-top: 2px solid var(--border);
+  }
+  .col-right {
+    grid-column: 2; grid-row: 2;
+    overflow: hidden;
+    min-height: 0;
+    border-top: 2px solid var(--border);
+  }
 
-  .clock-panel  { height: 55px; padding: 3px 8px; }
-  .clock-time   { font-size: 24px; letter-spacing: 1px; }
-  .clock-sub    { font-size: 7px; letter-spacing: 1.5px; }
+  /* ─── CLOCK PANEL ─── */
+  .clock-panel  { height: auto; min-height: 0; padding: 4px 6px; flex-shrink: 0; }
+  .clock-time   { font-size: 22px; letter-spacing: 0; }
+  .clock-sub    { font-size: 6px; letter-spacing: 1px; }
 
-  .current-panel    { padding: 4px 8px; border-left-width: 2px; }
-  .panel-label      { font-size: 7px; letter-spacing: 2px; margin-bottom: 3px; }
-  .status-row       { gap: 4px; margin-bottom: 3px; }
-  .status-pill      { font-size: 7px; padding: 1px 5px; }
-  .cat-tag          { font-size: 7px; padding: 1px 4px; }
-  .current-name     { font-size: 13px; margin-bottom: 1px; }
-  .current-remark   { font-size: 9px; margin-bottom: 3px; }
-  .times-row        { gap: 3px; margin-bottom: 3px; }
-  .time-box         { padding: 2px 4px; }
-  .time-box-label   { font-size: 7px; }
-  .time-box-val     { font-size: 11px; }
-  .progress-top     { font-size: 7px; margin-bottom: 3px; }
-  .progress-track   { height: 3px; }
+  /* ─── CURRENT EVENT ─── */
+  .current-panel    { padding: 3px 6px; border-left-width: 2px; flex-shrink: 0; }
+  .panel-label      { font-size: 6px; letter-spacing: 2px; margin-bottom: 2px; }
+  .status-row       { gap: 3px; margin-bottom: 2px; }
+  .status-pill      { font-size: 6px; padding: 1px 4px; }
+  .cat-tag          { font-size: 6px; padding: 1px 3px; }
+  .current-name     { font-size: 12px; margin-bottom: 1px; line-height: 1.1; }
+  .current-remark   { font-size: 8px; margin-bottom: 2px; }
+  .times-row        { gap: 2px; margin-bottom: 2px; }
+  .time-box         { padding: 2px 3px; }
+  .time-box-label   { font-size: 6px; }
+  .time-box-val     { font-size: 10px; }
+  .progress-top     { font-size: 6px; margin-bottom: 2px; }
+  .progress-track   { height: 2px; }
 
-  .signal-panel { padding: 4px 8px; }
-  .signal-icon  { font-size: 12px; }
-  .signal-name  { font-size: 11px; }
-  .signal-time  { font-size: 9px; }
-  .signal-ttl   { font-size: 9px; }
+  /* ─── SIGNAL ─── */
+  .signal-panel { padding: 3px 6px; }
+  .signal-icon  { font-size: 11px; }
+  .signal-name  { font-size: 10px; }
+  .signal-time  { font-size: 8px; }
+  .signal-ttl   { font-size: 8px; }
 
-  .countdown-panel  { height: 55px; padding: 3px 6px; }
-  .countdown-sub    { font-size: 7px; letter-spacing: 1.5px; margin-bottom: 1px; }
+  /* ─── COUNTDOWN ─── */
+  .countdown-panel  { height: auto; padding: 4px 6px; flex-shrink: 0; }
+  .countdown-sub    { font-size: 6px; letter-spacing: 1px; margin-bottom: 1px; }
   .countdown-digits { gap: 2px; }
-  .cd-num  { font-size: 20px; letter-spacing: 1px; }
-  .cd-unit { font-size: 6px; margin-top: 0; }
-  .cd-sep  { font-size: 15px; margin-bottom: 7px; }
+  .cd-num  { font-size: 18px; letter-spacing: 0; }
+  .cd-unit { font-size: 5px; }
+  .cd-sep  { font-size: 13px; margin-bottom: 6px; }
 
-  .next-panel   { padding: 4px 8px; border-left-width: 2px; }
-  .next-name    { font-size: 11px; }
-  .next-remark  { font-size: 9px; margin-top: 0; }
-  .next-time    { font-size: 9px; padding: 1px 5px; margin-top: 2px; }
+  /* ─── NEXT EVENT ─── */
+  .next-panel   { padding: 3px 6px; border-left-width: 2px; }
+  .next-name    { font-size: 10px; }
+  .next-remark  { font-size: 8px; margin-top: 0; }
+  .next-time    { font-size: 8px; padding: 1px 4px; margin-top: 2px; }
 
-  #recordPanel  { padding: 4px 8px; }
-  #recordHeader { font-size: 7px; letter-spacing: 1px; margin-bottom: 2px; }
+  /* ─── LAP RECORD ─── */
+  #recordPanel  { padding: 3px 6px; }
+  #recordHeader { font-size: 6px; letter-spacing: 1px; margin-bottom: 1px; }
 
-  .schedule-header        { height: 30px; padding: 0 8px; }
-  .schedule-header-title  { font-size: 8px; letter-spacing: 1px; }
-  .schedule-header-badge  { font-size: 8px; }
-  #scheduleHeaderDate     { font-size: 8px; }
+  /* ─── SCHEDULE (bal felső panel) ─── */
+  .schedule-header        { height: 26px; padding: 0 6px; }
+  .schedule-header-title  { font-size: 7px; letter-spacing: 1px; }
+  .schedule-header-badge  { font-size: 7px; }
+  #scheduleHeaderDate     { font-size: 7px; }
 
-  .day-header      { padding: 3px 8px; gap: 6px; }
-  .day-header-name { font-size: 8px; letter-spacing: 2px; }
-  .day-header-date { font-size: 8px; }
+  .day-header      { padding: 2px 6px; gap: 4px; }
+  .day-header-name { font-size: 7px; letter-spacing: 1px; }
+  .day-header-date { font-size: 7px; }
 
-  .sched-item    { grid-template-columns: 68px 1fr; padding: 3px 6px; border-left-width: 2px; }
-  .sched-name    { font-size: 12px; }
-  .sched-time    { font-size: 10px; }
-  .sched-remark  { font-size: 8px; }
-  .sched-item.t-procedure .sched-name { font-size: 11px; }
-  .no-events     { padding: 12px; font-size: 10px; }
-  .horn-icon     { font-size: 9px; }
+  .sched-item    {
+    grid-template-columns: 60px 1fr;
+    padding: 2px 5px;
+    border-left-width: 2px;
+    min-height: 28px;        /* touch-friendly */
+  }
+  .sched-name    { font-size: 11px; }
+  .sched-time    { font-size: 9px; }
+  .sched-remark  { font-size: 7px; }
+  .sched-item.t-procedure .sched-name { font-size: 10px; }
+  .no-events     { padding: 10px; font-size: 9px; }
+  .horn-icon     { font-size: 8px; }
+
+  /* ─── WSBK PANEL gombjai (touch-friendly) ─── */
+  .wsbk-btn, [onclick*="wsbk"], [onclick*="switchCat"] {
+    min-height: 28px;
+  }
+
 }
 
 /* ── PHONE LANDSCAPE  max-height ≤ 480px + min-width 600px ─────
@@ -505,65 +545,57 @@ body::after {
    ──────────────────────────────────────────────────────────────── */
 @media (max-height: 480px) and (min-width: 600px) {
 
-  .header  { height: 28px; padding: 0 8px; }
-  .pdf-bar { height: 24px; padding: 0 8px; }
-  .pdf-file-btn { height: 18px; font-size: 8px; padding: 1px 6px; }
+  /* Landscape telefon: 3 oszlop, nagyon kompakt */
+  .header  { height: 26px; padding: 0 6px; }
+  .header-title { font-size: 9px; }
+  .pdf-bar { height: 22px; padding: 0 6px; }
+  .pdf-file-btn { height: 16px; font-size: 7px; }
 
   .main-body {
-    grid-template-columns: 1.3fr 0.75fr 1.6fr;
+    grid-template-columns: 1.2fr 0.7fr 1.5fr;
     grid-template-rows: auto 1fr;
-    overflow: hidden;
   }
 
-  .col-left  { grid-column: 1; grid-row: 1; overflow: hidden; }
-  .col-mid   { grid-column: 2; grid-row: 1 / 3; overflow: hidden; }
-  .col-logo  { grid-column: 1; grid-row: 2; overflow: hidden; min-height: 0; border-top: 1px solid var(--border); }
-  .col-right { grid-column: 3; grid-row: 1 / 3; overflow: hidden; }
+  .clock-panel    { height: 40px; padding: 2px 8px; }
+  .clock-time     { font-size: 20px; }
+  .clock-sub      { font-size: 5px; }
+  .times-row      { display: none; }     /* helytakarékosság */
+  .progress-track { display: none; }
 
-  .clock-panel      { height: 46px; padding: 2px 10px; }
-  .clock-time       { font-size: 22px; }
-  .clock-sub        { font-size: 7px; }
-  .countdown-panel  { height: 46px; padding: 2px 6px; }
-  .cd-num           { font-size: 18px; }
-  .cd-sep           { font-size: 14px; margin-bottom: 6px; }
-  .current-panel    { padding: 4px 10px; }
-  .current-name     { font-size: 13px; }
-  .times-row        { display: none; }
-  .next-panel       { padding: 3px 8px; }
-  .next-name        { font-size: 11px; }
-  .schedule-header  { height: 28px; }
-  .sched-item       { padding: 3px 8px; }
-  .sched-name       { font-size: 12px; }
+  .countdown-panel  { height: 40px; padding: 2px 8px; }
+  .cd-num           { font-size: 16px; }
+  .cd-unit          { font-size: 4px; }
+
+  .current-name  { font-size: 11px; }
+  .next-name     { font-size: 9px; }
+
+  .sched-item    { padding: 1px 5px; min-height: 24px; }
+  .sched-name    { font-size: 10px; }
+  .sched-time    { font-size: 8px; }
+
 }
 
-/* ── TABLET PORTRAIT  600px – 899px ────────────────────────────
-   3 oszlop (col-logo felülírja az alap 1/3 span-t)
-   ──────────────────────────────────────────────────────────────── */
 @media (min-width: 600px) and (max-width: 899px) {
 
   .main-body {
-    grid-template-columns: 1.35fr 0.85fr 1.55fr;
+    grid-template-columns: 1.3fr 0.75fr 1.5fr;
     grid-template-rows: auto 1fr;
     overflow: hidden;
   }
 
   .col-left  { grid-column: 1; grid-row: 1; overflow: hidden; }
-  .col-mid   { grid-column: 2; grid-row: 1 / 3; overflow: hidden; }
+  .col-mid   { grid-column: 2; grid-row: 1 / 3; overflow: hidden; display: flex; flex-direction: column; }
   .col-logo  { grid-column: 1; grid-row: 2; overflow: hidden; min-height: 0; }
   .col-right { grid-column: 3; grid-row: 1 / 3; overflow: hidden; }
 
-  .clock-time   { font-size: clamp(34px, 5.5vw, 52px); }
-  .clock-sub    { font-size: clamp(9px, 1.2vw, 11px); }
-  .cd-num       { font-size: clamp(28px, 4.5vw, 42px); }
-  .current-name { font-size: clamp(14px, 2vw, 20px); }
-  .next-name    { font-size: clamp(12px, 1.7vw, 17px); }
-  .sched-name   { font-size: clamp(13px, 1.8vw, 16px); }
-  .sched-time   { font-size: clamp(11px, 1.4vw, 13px); }
+  .clock-time { font-size: clamp(30px, 4vw, 44px); }
+  .cd-num     { font-size: clamp(22px, 3.5vw, 36px); }
+
+  .sched-item { padding: 3px 8px; }
+  .sched-name { font-size: 13px; }
+
 }
 
-/* ── DESKTOP  ≥ 900px ───────────────────────────────────────────
-   Eredeti 3 oszlopos layout, explicit grid pozíciók
-   ──────────────────────────────────────────────────────────────── */
 @media (min-width: 900px) {
 
   .main-body {
