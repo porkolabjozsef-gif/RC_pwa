@@ -30,7 +30,7 @@ var TRACK_RECORDS = {
     MotoGP:{time:"1'22.956",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'27.430",rider:'T. Arbolino',year:2023},
     Moto3:{time:"1'33.162",rider:'D. Holgado',year:2023}}},
   'ARA': { name:'Motorland Arag\u00f3n', len:'5.077 km', wsbk:{
-    SBK:{time:"1'47.332",rider:'?',year:2025},SSP:{time:"1'53.700",rider:'A. Caricasulo',year:2019},
+    SBK:{time:"1'46.836",rider:'?',year:2026},SSP:{time:"1'53.700",rider:'A. Caricasulo',year:2019},
     WCR:{time:'\u2014',rider:'\u2014',year:null},SPB:{time:"1'58.200",rider:'J. Buis',year:2024},
     R3:{time:"2'01.500",rider:'G. Hendra',year:2023}},motogp:{
     MotoGP:{time:"1'46.635",rider:'F. Bagnaia',year:2023},Moto2:{time:"1'52.480",rider:'T. Arbolino',year:2023},
