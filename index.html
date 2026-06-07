@@ -613,10 +613,11 @@ function doPlayHorn(ctx) {
 
   // Master envelope — gyors attack (15ms), teljes sustain, gyors decay
   const master = ctx.createGain();
+  // Szimmetrikus envelope: 15ms attack = 15ms decay
   master.gain.setValueAtTime(0.001, t);
-  master.gain.linearRampToValueAtTime(0.9, t + 0.015); // 15ms attack
-  master.gain.setValueAtTime(0.9, t + 0.85);
-  master.gain.linearRampToValueAtTime(0.001, t + 1.05);
+  master.gain.linearRampToValueAtTime(0.9, t + 0.015);
+  master.gain.setValueAtTime(0.9,           t + 1.235);
+  master.gain.linearRampToValueAtTime(0.001, t + 1.25);
   master.connect(shaper);
 
   // Négyszög hullám: max felharmonikusok, átüt a motorzajon
@@ -630,7 +631,7 @@ function doPlayHorn(ctx) {
     osc.connect(g);
     g.connect(master);
     osc.start(t);
-    osc.stop(t + 1.1);
+    osc.stop(t + 1.26);
   });
 
   // Vizuális flash
