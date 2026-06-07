@@ -578,8 +578,7 @@ const stored=loadScheduleFromStorage();
 if(stored){scheduleManuallyLoaded=true;loadNewSchedule(stored)}
 updateClock();updateDashboard();buildSchedule();
 setInterval(updateClock,1000);setInterval(updateDashboard,1000);setInterval(buildSchedule,1000);
-if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker.js').catch(()=>{});
-</script>
+
 
 // ============================================================
 // SOUND ENGINE
@@ -674,6 +673,9 @@ function checkHornEvents() {
 
 setInterval(checkHornEvents, 500);
 
+</script>
+
+if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker.js').catch(()=>{});
 </script>
 
 <script>
