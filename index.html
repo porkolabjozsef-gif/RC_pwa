@@ -425,8 +425,10 @@ const stored=loadScheduleFromStorage();
 if(stored){scheduleManuallyLoaded=true;loadNewSchedule(stored)}
 updateClock();updateDashboard();buildSchedule();
 setInterval(updateClock,1000);setInterval(updateDashboard,1000);setInterval(buildSchedule,1000);
-if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker.js').catch(()={});
-// ── BOOT ANIMATION ──
+if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+</script>
+<script>
+// Boot screen — külön script blokk, hogy a főkód hibája ne blokkolja
 (function(){
   var boot=document.getElementById('bootScreen');
   if(!boot)return;
