@@ -138,6 +138,68 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 .clock-logo{display:flex;align-items:center;gap:10px;margin-top:6px;min-height:28px}
 #seriesLogo{height:28px;max-width:140px;object-fit:contain;display:none}
 #seriesBadge{font-size:11px;font-weight:800;letter-spacing:3px;color:var(--sub);text-transform:uppercase;padding:3px 10px;border:1.5px solid var(--border);border-radius:3px;display:none}
+
+/* ── LANDSCAPE LAYOUT ── */
+@media (orientation: landscape) {
+  #app {
+    flex-direction: row;
+    height: 100%;
+    overflow: hidden;
+  }
+  .left-panel {
+    width: 42%;
+    min-width: 260px;
+    max-width: 400px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid var(--border);
+    overflow-y: auto;
+    height: 100%;
+  }
+  /* Clock compacter in landscape */
+  .clock-section {
+    padding: 10px 16px 8px;
+    flex-direction: column;
+    gap: 2px;
+  }
+  #clockTime { font-size: clamp(36px, 8vw, 56px); }
+  #clockSub  { font-size: clamp(10px, 2vw, 13px); }
+  .clock-logo { margin-top: 4px; }
+  #seriesLogo { height: 22px; }
+
+  /* Current event in landscape */
+  .current-section { padding: 10px 16px 8px; }
+  #currentEventName { font-size: clamp(18px, 4vw, 28px); }
+  #currentEventDetail { font-size: clamp(12px, 2.5vw, 15px); }
+
+  /* Countdown fills remaining space in landscape */
+  .countdown-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 10px 16px;
+    text-align: center;
+  }
+  #countdownTime { font-size: clamp(48px, 12vw, 80px); }
+
+  /* Schedule takes right side */
+  .schedule-section {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    border-left: none;
+  }
+  .schedule-header { padding: 8px 16px; }
+  .sched-item { padding: 9px 16px; }
+  #scheduleBody { height: calc(100% - 44px); }
+}
+
+/* Portrait: left-panel transparent (no structural effect) */
+@media (orientation: portrait) {
+  .left-panel { display: contents; }
+}
 </style>
 </head>
 <body>
@@ -193,24 +255,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
   <div id="bootFlash"></div>
 </div>
 <div id="app">
-  <header class="clock-section">
-    <div id="clockTime">--:--:--</div>
-    <div id="clockSub">—</div>
-    <span class="test-active-badge" id="testBadge">● TEST MÓD</span>
-    <div class="clock-logo">
-      <img id="seriesLogo" src="" alt="">
-      <span id="seriesBadge"></span>
+  <div class="left-panel">
+    <header class="clock-section">
+      <div id="clockTime">--:--:--</div>
+      <div id="clockSub">—</div>
+      <span class="test-active-badge" id="testBadge">● TEST MÓD</span>
+      <div class="clock-logo">
+        <img id="seriesLogo" src="" alt="">
+        <span id="seriesBadge"></span>
+      </div>
+    </header>
+    <section class="current-section" id="currentSection">
+      <div class="section-label" id="currentLabel">JELENLEG</div>
+      <div id="currentEventName">Nincs betöltött menetrend</div>
+      <div id="currentEventDetail">Töltsd be a JSON fájlt</div>
+    </section>
+    <div class="countdown-section">
+      <div id="countdownLabel">VISSZASZÁMLÁLÓ</div>
+      <div id="countdownTime">--:--</div>
+      <div id="countdownCtx">—</div>
     </div>
-  </header>
-  <section class="current-section" id="currentSection">
-    <div class="section-label" id="currentLabel">JELENLEG</div>
-    <div id="currentEventName">Nincs betöltött menetrend</div>
-    <div id="currentEventDetail">Töltsd be a JSON fájlt</div>
-  </section>
-  <div class="countdown-section">
-    <div id="countdownLabel">VISSZASZÁMLÁLÓ</div>
-    <div id="countdownTime">--:--</div>
-    <div id="countdownCtx">—</div>
   </div>
   <section class="schedule-section">
     <div class="schedule-header">
