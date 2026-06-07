@@ -252,6 +252,19 @@ const MONTH_NAMES=['Jan','Feb','Már','Ápr','Máj','Jún','Júl','Aug','Szep','
 function pad(n){return String(n).padStart(2,'0')}
 let processedSchedule=[];
 let categoryLogos={};
+const LOGO_MAP = {
+  'MotoGP':     'https://porkolabjozsef-gif.github.io/RC_pwa/motogp.png',
+  'Moto2':      'https://porkolabjozsef-gif.github.io/RC_pwa/moto2.png',
+  'Moto3':      'https://porkolabjozsef-gif.github.io/RC_pwa/moto3.png',
+  'WorldSBK':   'https://porkolabjozsef-gif.github.io/RC_pwa/worldsbk.png',
+  'WorldSSP':   'https://porkolabjozsef-gif.github.io/RC_pwa/worldssp.png',
+  'WorldSSP300':'https://porkolabjozsef-gif.github.io/RC_pwa/worldssp.png',
+  'WorldWCR':   'https://porkolabjozsef-gif.github.io/RC_pwa/worldwcr.png',
+  'WorldSPB':   'https://porkolabjozsef-gif.github.io/RC_pwa/worldspb.png',
+  'R3':         'https://porkolabjozsef-gif.github.io/RC_pwa/r3.png',
+  'Moto4NC':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto4nc.png',
+  'M4NC':       'https://porkolabjozsef-gif.github.io/RC_pwa/moto4nc.png',
+};
 let scheduleManuallyLoaded=false;
 let testModeTime=null,testModeStartedAt=0;
 const hornFired=new Set(),liveHornFired=new Set();
@@ -366,9 +379,18 @@ function updateSeriesLogo(current,next){
   const logoEl=document.getElementById('seriesLogo');
   const badgeEl=document.getElementById('seriesBadge');
   if(!cat){logoEl.style.display='none';badgeEl.style.display='none';return}
-  const logoUrl=categoryLogos&&categoryLogos[cat];
-  if(logoUrl){logoEl.src=logoUrl;logoEl.style.display='block';badgeEl.style.display='none'}
-  else{logoEl.style.display='none';badgeEl.textContent=cat;badgeEl.style.display='inline-block'}
+  // LOGO_MAP elsőbbsége, utána JSON categoryLogos
+  const logoUrl=LOGO_MAP[cat]||(categoryLogos&&categoryLogos[cat])||null;
+  if(logoUrl){
+    logoEl.src=logoUrl;
+    logoEl.style.display='block';
+    logoEl.style.height='32px';
+    badgeEl.style.display='none';
+  } else {
+    logoEl.style.display='none';
+    badgeEl.textContent=cat;
+    badgeEl.style.display='inline-block';
+  }
 }
 function buildSchedule(){
   const now=getNow();
