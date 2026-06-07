@@ -93,10 +93,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 /* CONTROLS */
 .top-bar{position:fixed;top:6px;right:8px;display:flex;gap:6px;z-index:100}
 .icon-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
-.test-bar{position:fixed;bottom:0;left:0;right:0;background:var(--next-bg);border-top:2px solid var(--next);padding:8px 16px;display:none;align-items:center;gap:8px;z-index:50}
+.test-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:3px solid var(--next);padding:10px 16px 14px;display:none;flex-direction:column;gap:8px;z-index:50;box-shadow:0 -4px 20px rgba(0,0,0,0.15)}
 .test-bar.visible{display:flex}
-.test-bar input{flex:1;font-family:var(--mono);font-size:14px;padding:6px 10px;border:1.5px solid var(--next);border-radius:4px;background:var(--surface);color:var(--text)}
-.test-bar button{font-family:var(--font);font-size:13px;font-weight:800;letter-spacing:1px;padding:6px 14px;border-radius:4px;border:none;cursor:pointer;background:var(--next);color:#fff}
+.test-bar-row{display:flex;align-items:center;gap:6px}
+.test-bar label{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--next);text-transform:uppercase;flex-shrink:0}
+.test-bar input[type=datetime-local]{flex:1;font-family:var(--mono);font-size:14px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);min-width:0}
+.test-jump-btns{display:flex;gap:5px;flex-wrap:wrap}
+.tjb{font-family:var(--font);font-size:13px;font-weight:800;padding:6px 10px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent;flex:1;min-width:48px;text-align:center}
+.tjb.neg{color:var(--active);border-color:var(--active)}
+.tjb.pos{color:var(--next);border-color:var(--next)}
+.tjb.act{background:var(--next);color:#fff;border-color:var(--next)}
+.tjb:active{opacity:.7}
+.test-bar-actions{display:flex;gap:6px}
+.test-bar-actions button{font-family:var(--font);font-size:13px;font-weight:800;letter-spacing:1px;padding:7px 16px;border-radius:6px;border:none;cursor:pointer;flex:1}
+.tbtn-set{background:var(--next);color:#fff}
+.tbtn-off{background:var(--bg);color:var(--sub);border:1.5px solid var(--border)}
+.test-active-badge{display:none;font-size:10px;font-weight:800;letter-spacing:2px;color:var(--next);background:var(--next-bg);border:1.5px solid var(--next);border-radius:4px;padding:2px 8px;text-transform:uppercase}
+.test-active-badge.visible{display:inline-block}
 
 /* ── BOOT SCREEN ── */
 #bootScreen{position:fixed;inset:0;background:#080808;z-index:99999;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -183,6 +196,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
   <header class="clock-section">
     <div id="clockTime">--:--:--</div>
     <div id="clockSub">—</div>
+    <span class="test-active-badge" id="testBadge">● TEST MÓD</span>
     <div class="clock-logo">
       <img id="seriesLogo" src="" alt="">
       <span id="seriesBadge"></span>
@@ -213,9 +227,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
   <div class="icon-btn" id="testBtn">🕹</div>
 </div>
 <div class="test-bar" id="testBar">
-  <input type="datetime-local" id="testDateInput">
-  <button onclick="activateTestMode()">▶ SET</button>
-  <button onclick="deactivateTestMode()">✕</button>
+  <div class="test-bar-row">
+    <label>🕹 TESZT IDŐ</label>
+    <input type="datetime-local" id="testDateInput">
+  </div>
+  <div class="test-jump-btns">
+    <div class="tjb neg" onclick="jumpTime(-60)">−1h</div>
+    <div class="tjb neg" onclick="jumpTime(-15)">−15m</div>
+    <div class="tjb neg" onclick="jumpTime(-5)">−5m</div>
+    <div class="tjb neg" onclick="jumpTime(-1)">−1m</div>
+    <div class="tjb pos" onclick="jumpTime(1)">+1m</div>
+    <div class="tjb pos" onclick="jumpTime(5)">+5m</div>
+    <div class="tjb pos" onclick="jumpTime(15)">+15m</div>
+    <div class="tjb pos" onclick="jumpTime(60)">+1h</div>
+  </div>
+  <div class="test-bar-actions">
+    <button class="tbtn-set" onclick="activateTestMode()">▶ Beállít</button>
+    <button class="tbtn-off" onclick="deactivateTestMode()">✕ Kikapcsol</button>
+  </div>
 </div>
 <script>
 const DAY_NAMES=['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'];
@@ -391,15 +420,44 @@ function applyMode(){document.body.classList.toggle('dark',isDark);modeBtn.textC
 applyMode();
 modeBtn.addEventListener('click',()=>{isDark=!isDark;localStorage.setItem('rc_dark',isDark?'1':'0');applyMode()});
 const testBtn=document.getElementById('testBtn'),testBar=document.getElementById('testBar');
-testBtn.addEventListener('click',()=>testBar.classList.toggle('visible'));
+testBtn.addEventListener('click',()=>{
+  // Ha teszt mód aktív: az aktuális teszt időt töltse be az inputba
+  if(testModeTime){
+    const t=getNow();
+    const pad2=n=>String(n).padStart(2,'0');
+    document.getElementById('testDateInput').value=
+      t.getFullYear()+'-'+pad2(t.getMonth()+1)+'-'+pad2(t.getDate())+'T'+pad2(t.getHours())+':'+pad2(t.getMinutes());
+  }
+  testBar.classList.toggle('visible');
+});
 function activateTestMode(){
   const val=document.getElementById('testDateInput').value;if(!val)return;
   testModeTime=new Date(val);testModeStartedAt=Date.now();hornFired.clear();
-  document.getElementById('clockTime').classList.add('test-mode');testBar.classList.remove('visible');
+  document.getElementById('clockTime').classList.add('test-mode');
+  document.getElementById('testBadge').classList.add('visible');
+  testBar.classList.remove('visible');
 }
 function deactivateTestMode(){
   testModeTime=null;document.getElementById('clockTime').classList.remove('test-mode');
+  document.getElementById('testBadge').classList.remove('visible');
   document.getElementById('testDateInput').value='';testBar.classList.remove('visible');
+}
+function jumpTime(minutes){
+  if(!testModeTime){
+    // Ha nincs teszt mód, az aktuális időből indul
+    testModeTime=new Date();testModeStartedAt=Date.now();hornFired.clear();
+    document.getElementById('clockTime').classList.add('test-mode');
+    document.getElementById('testBadge').classList.add('visible');
+  }
+  // Offset: mennyi idő telt el a testModeStartedAt óta
+  const elapsed=Date.now()-testModeStartedAt;
+  testModeTime=new Date(testModeTime.getTime()+elapsed+minutes*60000);
+  testModeStartedAt=Date.now();
+  // Update input field
+  const t=testModeTime;
+  const pad2=n=>String(n).padStart(2,'0');
+  document.getElementById('testDateInput').value=
+    t.getFullYear()+'-'+pad2(t.getMonth()+1)+'-'+pad2(t.getDate())+'T'+pad2(t.getHours())+':'+pad2(t.getMinutes());
 }
 const RC_KEY='rc_schedule_v1';
 function saveScheduleToStorage(parsed){
