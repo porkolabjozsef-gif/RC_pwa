@@ -200,6 +200,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 @media (orientation: portrait) {
   .left-panel { display: contents; }
 }
+
+/* ── HORN FLASH ── */
+@keyframes hornFlash {
+  0%   { background: var(--active); }
+  100% { background: var(--surface); }
+}
+.horn-flash { animation: hornFlash 0.6s ease-out; }
+.icon-btn.sound-off { opacity: 0.35; }
 </style>
 </head>
 <body>
@@ -287,6 +295,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
   </section>
 </div>
 <div class="top-bar">
+  <div class="icon-btn" id="soundBtn" title="Hang">🔔</div>
   <div class="icon-btn" id="modeBtn">🌙</div>
   <div class="icon-btn" id="testBtn">🕹</div>
 </div>
@@ -518,13 +527,13 @@ testBtn.addEventListener('click',()=>{
 });
 function activateTestMode(){
   const val=document.getElementById('testDateInput').value;if(!val)return;
-  testModeTime=new Date(val);testModeStartedAt=Date.now();hornFired.clear();
+  testModeTime=new Date(val);testModeStartedAt=Date.now();hornFired.clear();hornFiredLive.clear();
   document.getElementById('clockTime').classList.add('test-mode');
   document.getElementById('testBadge').classList.add('visible');
   testBar.classList.remove('visible');
 }
 function deactivateTestMode(){
-  testModeTime=null;document.getElementById('clockTime').classList.remove('test-mode');
+  testModeTime=null;document.getElementById('clockTime').classList.remove('test-mode');hornFiredLive.clear();
   document.getElementById('testBadge').classList.remove('visible');
   document.getElementById('testDateInput').value='';testBar.classList.remove('visible');
 }
@@ -571,6 +580,98 @@ updateClock();updateDashboard();buildSchedule();
 setInterval(updateClock,1000);setInterval(updateDashboard,1000);setInterval(buildSchedule,1000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker.js').catch(()=>{});
 </script>
+
+// ============================================================
+// SOUND ENGINE — Web Audio API szintetizált kürt
+// ============================================================
+let audioCtx = null;
+let soundEnabled = localStorage.getItem('rc_sound') !== '0';
+
+function unlockAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playHorn() {
+  if (!soundEnabled) return;
+  unlockAudio();
+  if (!audioCtx) return;
+
+  const ctx = audioCtx;
+  const t = ctx.currentTime;
+
+  // Kettős szinuszos kürt: alap + kvint felharmonikus
+  const freqs = [220, 330];  // A3 + E4 — klasszikus kürt hangzás
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0, t);
+  master.gain.linearRampToValueAtTime(0.55, t + 0.04);
+  master.gain.setValueAtTime(0.55, t + 0.9);
+  master.gain.linearRampToValueAtTime(0, t + 1.2);
+  master.connect(ctx.destination);
+
+  freqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, t);
+    // Enyhe pitch glide a valódibb hangzásért
+    osc.frequency.linearRampToValueAtTime(freq * 1.015, t + 0.08);
+    g.gain.setValueAtTime(i === 0 ? 0.7 : 0.4, t);
+    osc.connect(g);
+    g.connect(master);
+    osc.start(t);
+    osc.stop(t + 1.2);
+  });
+
+  // Vizuális visszajelzés: rövid villantás
+  document.getElementById('currentSection').classList.add('horn-flash');
+  setTimeout(() => document.getElementById('currentSection').classList.remove('horn-flash'), 600);
+}
+
+// Sound toggle gomb
+const soundBtn = document.getElementById('soundBtn');
+function applySound() {
+  soundBtn.textContent = soundEnabled ? '🔔' : '🔕';
+  soundBtn.classList.toggle('sound-off', !soundEnabled);
+}
+applySound();
+soundBtn.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('rc_sound', soundEnabled ? '1' : '0');
+  applySound();
+  if (soundEnabled) unlockAudio();
+});
+
+// Audio unlock minden user interakción
+document.addEventListener('touchstart', unlockAudio, { once: true });
+document.addEventListener('click', unlockAudio, { once: true });
+
+// ============================================================
+// HORN EVENT CHECKER — minden másodpercben
+// ============================================================
+const hornFiredLive = new Set();
+
+function checkHornEvents() {
+  const now = getNow();
+  const ms  = now.getTime();
+
+  for (const ev of processedSchedule) {
+    if (!ev.horn || !ev.startDt) continue;
+    const diff = ms - ev.startDt.getTime();
+    // Pontosan az esemény időpontján (±2 sec ablak)
+    if (diff >= 0 && diff < 2000 && !hornFiredLive.has(ev.idx)) {
+      hornFiredLive.add(ev.idx);
+      playHorn();
+    }
+  }
+}
+
+setInterval(checkHornEvents, 500);
+
+</script>
+
 <script>
 // Boot screen — külön script blokk, hogy a főkód hibája ne blokkolja
 (function(){
