@@ -589,22 +589,50 @@ let soundEnabled = localStorage.getItem('rc_sound') === '1';
 
 function doPlayHorn(ctx) {
   const t = ctx.currentTime;
+
+  // Kompresszor — maximális észlelt hangerő
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -6;
+  comp.knee.value      = 0;
+  comp.ratio.value     = 20;
+  comp.attack.value    = 0.001;
+  comp.release.value   = 0.1;
+  comp.connect(ctx.destination);
+
+  // Torzító waveshaper — "dirt" ami átvágja a motorzajt
+  const shaper = ctx.createWaveShaper();
+  const N = 512, curve = new Float32Array(N);
+  const k = 80; // torzítás erőssége
+  for (let i = 0; i < N; i++) {
+    const x = (i * 2) / N - 1;
+    curve[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
+  }
+  shaper.curve = curve;
+  shaper.oversample = '4x';
+  shaper.connect(comp);
+
+  // Master envelope — gyors attack (15ms), teljes sustain, gyors decay
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.001, t);
-  master.gain.linearRampToValueAtTime(0.6,  t + 0.05);
-  master.gain.setValueAtTime(0.6,            t + 0.85);
-  master.gain.linearRampToValueAtTime(0.001, t + 1.1);
-  master.connect(ctx.destination);
-  [[220, 0.7], [330, 0.45]].forEach(([freq, vol]) => {
+  master.gain.linearRampToValueAtTime(0.9, t + 0.015); // 15ms attack
+  master.gain.setValueAtTime(0.9, t + 0.85);
+  master.gain.linearRampToValueAtTime(0.001, t + 1.05);
+  master.connect(shaper);
+
+  // Négyszög hullám: max felharmonikusok, átüt a motorzajon
+  // 520Hz alap + 780Hz kvint → klasszikus ipari kürt hangzás
+  [[520, 0.65], [780, 0.35]].forEach(([freq, vol]) => {
     const osc = ctx.createOscillator();
     const g   = ctx.createGain();
-    osc.type = 'sawtooth';
+    osc.type  = 'square';
     osc.frequency.setValueAtTime(freq, t);
-    osc.frequency.linearRampToValueAtTime(freq * 1.01, t + 0.06);
     g.gain.value = vol;
-    osc.connect(g); g.connect(master);
-    osc.start(t); osc.stop(t + 1.15);
+    osc.connect(g);
+    g.connect(master);
+    osc.start(t);
+    osc.stop(t + 1.1);
   });
+
   // Vizuális flash
   const sec = document.getElementById('currentSection');
   sec.classList.remove('horn-flash');
