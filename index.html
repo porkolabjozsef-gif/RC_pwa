@@ -582,80 +582,73 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker
 </script>
 
 // ============================================================
-// SOUND ENGINE — Web Audio API szintetizált kürt
+// SOUND ENGINE
 // ============================================================
 let audioCtx = null;
-let soundEnabled = localStorage.getItem('rc_sound') !== '0';
+// Default: KI — csak explicit bekapcsoláskor szól
+let soundEnabled = localStorage.getItem('rc_sound') === '1';
 
-function getAudioCtx() {
-  if (!audioCtx) {
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch(e) { return null; }
-  }
-  return audioCtx;
+function doPlayHorn(ctx) {
+  const t = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.001, t);
+  master.gain.linearRampToValueAtTime(0.6,  t + 0.05);
+  master.gain.setValueAtTime(0.6,            t + 0.85);
+  master.gain.linearRampToValueAtTime(0.001, t + 1.1);
+  master.connect(ctx.destination);
+  [[220, 0.7], [330, 0.45]].forEach(([freq, vol]) => {
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.linearRampToValueAtTime(freq * 1.01, t + 0.06);
+    g.gain.value = vol;
+    osc.connect(g); g.connect(master);
+    osc.start(t); osc.stop(t + 1.15);
+  });
+  // Vizuális flash
+  const sec = document.getElementById('currentSection');
+  sec.classList.remove('horn-flash');
+  void sec.offsetWidth;
+  sec.classList.add('horn-flash');
+  setTimeout(() => sec.classList.remove('horn-flash'), 700);
 }
 
+// Csak timer-ből hívva (nem user gesture)
 function playHorn() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-
-  // Resume ha suspended (autoplay policy)
-  const doPlay = () => {
-    const t = ctx.currentTime;
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.001, t);
-    master.gain.linearRampToValueAtTime(0.6, t + 0.05);
-    master.gain.setValueAtTime(0.6, t + 0.85);
-    master.gain.linearRampToValueAtTime(0.001, t + 1.1);
-    master.connect(ctx.destination);
-
-    [[220, 0.7], [330, 0.45]].forEach(([freq, vol]) => {
-      const osc = ctx.createOscillator();
-      const g   = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, t);
-      osc.frequency.linearRampToValueAtTime(freq * 1.012, t + 0.07);
-      g.gain.value = vol;
-      osc.connect(g);
-      g.connect(master);
-      osc.start(t);
-      osc.stop(t + 1.15);
-    });
-
-    // Vizuális visszajelzés
-    const sec = document.getElementById('currentSection');
-    sec.classList.remove('horn-flash');
-    void sec.offsetWidth; // reflow
-    sec.classList.add('horn-flash');
-    setTimeout(() => sec.classList.remove('horn-flash'), 700);
-  };
-
-  if (ctx.state === 'suspended') {
-    ctx.resume().then(doPlay).catch(() => {});
+  if (!soundEnabled || !audioCtx) return;
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().then(() => doPlayHorn(audioCtx)).catch(() => {});
   } else {
-    doPlay();
+    doPlayHorn(audioCtx);
   }
 }
 
-// Sound toggle gomb — megnyomáskor felold ÉS próbahangot játszik
+// Sound gomb — AudioContext létrehozása USER GESTURE-N BELÜL
 const soundBtn = document.getElementById('soundBtn');
 function applySound() {
   soundBtn.textContent = soundEnabled ? '🔔' : '🔕';
   soundBtn.classList.toggle('sound-off', !soundEnabled);
 }
 applySound();
-soundBtn.addEventListener('click', () => {
-  if (!soundEnabled) {
-    // Bekapcsolás: unlock + azonnali próbahang
-    soundEnabled = true;
-    localStorage.setItem('rc_sound', '1');
-    applySound();
-    playHorn();
-  } else {
-    soundEnabled = false;
-    localStorage.setItem('rc_sound', '0');
-    applySound();
+
+soundBtn.addEventListener('click', function() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('rc_sound', soundEnabled ? '1' : '0');
+  applySound();
+
+  if (soundEnabled) {
+    // AudioContext létrehozása/feloldása a gesztuson belül
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e) { soundEnabled = false; applySound(); return; }
+    }
+    const play = () => doPlayHorn(audioCtx);
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().then(play).catch(() => {});
+    } else {
+      play();
+    }
   }
 });
 
