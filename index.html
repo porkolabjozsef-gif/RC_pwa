@@ -1,1226 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Race Control">
-<meta name="theme-color" content="#080808">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+<title>Race Control</title>
 <link rel="manifest" href="manifest.json">
-<title>Race Control Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
-  --red: #E8000D;
-  --red-dark: #9B0009;
-  --red-glow: rgba(232,0,13,0.35);
-  --yellow: #F5C400;
-  --yellow-light: #FFE566;
-  --green: #1DB954;
-  --green-glow: rgba(29,185,84,0.3);
-  --white: #FFFFFF;
-  --off-white: #EEE8D8;
-  --bg: #080808;
-  --bg2: #101010;
-  --bg3: #181818;
-  --bg4: #202020;
-  --border: #282828;
-  --border-hi: #383838;
-  --text-dim: #555;
-  --text-mid: #888;
+  --bg:#F8F8F6; --surface:#FFFFFF; --border:#DDDDD8;
+  --text:#111110; --sub:#666660;
+  --active:#CC0000; --active-bg:#FFF0F0;
+  --next:#0044BB;   --next-bg:#F0F4FF;
+  --race:#CC0000; --session:#0044BB; --marshal:#007700; --procedure:#886600;
+  --font:'Barlow Condensed',sans-serif;
+  --mono:'Share Tech Mono',monospace;
 }
-
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-html, body {
-  width: 100%; height: 100%;
-  background: var(--bg);
-  color: var(--white);
-  font-family: 'Rajdhani', sans-serif;
-  overflow: hidden;
+.dark {
+  --bg:#0A0A0A; --surface:#161616; --border:#2A2A2A;
+  --text:#F0F0EE; --sub:#888884;
+  --active:#FF3322; --active-bg:#200808;
+  --next:#4488FF;   --next-bg:#080C20;
+  --race:#FF4433; --session:#4488FF; --marshal:#44CC44; --procedure:#DDAA00;
 }
-
-/* ── SCANLINES ── */
-body::after {
-  content:'';
-  position:fixed; inset:0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
-  pointer-events:none; z-index:999;
-}
-
-/* ── CATEGORY LOGO BACKGROUND ── */
-#bgLogo {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 0;
-  transition: opacity 1.5s ease;
-  opacity: 0;
-}
-
-#bgLogo img {
-  max-width: 60%;
-  max-height: 60%;
-  object-fit: contain;
-  filter: grayscale(30%);
-  opacity: 0.08;
-}
-
-/* ── TOP HEADER ── */
-.header {
-  height: 40px;
-  background: linear-gradient(90deg, #0d0000 0%, #160003 50%, #0d0000 100%);
-  border-bottom: 2px solid var(--red);
-  box-shadow: 0 2px 16px var(--red-glow);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.header-logo {
-  background: var(--red);
-  padding: 4px 12px;
-  clip-path: polygon(0 0, 100% 0, 93% 100%, 0 100%);
-  font-family: 'Oswald', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: #fff;
-  white-space: nowrap;
-}
-
-.header-title {
-  font-family: 'Oswald', sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 4px;
-  color: var(--off-white);
-}
-
-.header-title span { color: var(--red); }
-
-.header-live {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: var(--text-mid);
-}
-
-.live-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--red);
-  animation: blink 1.5s ease-in-out infinite;
-  box-shadow: 0 0 6px var(--red);
-}
-
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-
-/* ── BOOT SCREEN ── */
-#bootScreen {
-  position: fixed; inset: 0; background: #080808;
-  z-index: 99999; display: flex; align-items: center;
-  justify-content: center; overflow: hidden;
-}
-
-#bootScreen.hide {
-  animation: curtainRip 0.45s cubic-bezier(0.9,0,1,1) forwards;
-}
-
-@keyframes curtainRip {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(105%); }
-}
-
-#bootBike {
-  position: absolute;
-  animation: bikeRide 2.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
-}
-
-@keyframes bikeRide {
-  0%   { transform: translateX(-110vw); opacity: 0; }
-  15%  { opacity: 1; }
-  38%  { transform: translateX(0); }
-  72%  { transform: translateX(0); }
-  82%  { transform: translateX(20vw); }
-  100% { transform: translateX(130vw); }
-}
-
-#bootExhaust {
-  position: absolute;
-  display: flex; gap: 8px; align-items: center;
-  animation: exhaustLife 2.6s forwards;
-}
-
-@keyframes exhaustLife {
-  0%,35%  { opacity: 0; }
-  45%     { opacity: 1; }
-  70%     { opacity: 1; }
-  82%     { opacity: 0; }
-  100%    { opacity: 0; }
-}
-
-.exhaust-puff {
-  border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-  animation: puff 0.6s ease-out infinite;
-}
-.exhaust-puff:nth-child(1) { width:8px;  height:8px;  animation-delay:0s; }
-.exhaust-puff:nth-child(2) { width:14px; height:14px; animation-delay:0.15s; }
-.exhaust-puff:nth-child(3) { width:22px; height:22px; animation-delay:0.3s; }
-
-@keyframes puff {
-  0%   { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-
-#bootLines {
-  position: absolute; inset: 0; overflow: hidden;
-  animation: linesLife 2.6s forwards;
-}
-
-@keyframes linesLife {
-  0%,68%  { opacity: 0; }
-  76%     { opacity: 1; }
-  86%     { opacity: 1; }
-  100%    { opacity: 0; }
-}
-
-.speed-line {
-  position: absolute; height: 1px;
-  background: linear-gradient(to right, transparent, rgba(220,30,30,0.7), transparent);
-}
-
-#bootGlow {
-  position: absolute;
-  width: 300px; height: 80px;
-  background: radial-gradient(ellipse, rgba(200,20,20,0.15) 0%, transparent 70%);
-  animation: glowLife 2.6s forwards;
-}
-
-@keyframes glowLife {
-  0%,35%  { opacity: 0; }
-  45%     { opacity: 1; }
-  70%     { opacity: 1; }
-  82%     { opacity: 0; }
-  100%    { opacity: 0; }
-}
-
-#bootTitle {
-  position: absolute; bottom: 28%;
-  font-size: 10px; letter-spacing: 10px;
-  color: rgba(255,255,255,0.2); text-transform: uppercase;
-  animation: titleLife 2.6s forwards;
-}
-
-@keyframes titleLife {
-  0%    { opacity: 0; }
-  15%   { opacity: 1; }
-  72%   { opacity: 1; }
-  100%  { opacity: 0; }
-}
-
-#bootFlash {
-  position: absolute; inset: 0;
-  background: rgba(200,0,0,0.08);
-  animation: flashLife 2.6s forwards;
-  pointer-events: none;
-}
-
-@keyframes flashLife {
-  0%,72%  { opacity: 0; }
-  78%     { opacity: 1; }
-  88%     { opacity: 0; }
-  100%    { opacity: 0; }
-}
-
-/* ── PDF IMPORT BAR ── */
-.pdf-bar {
-  background: #000d0a;
-  border-bottom: 2px solid var(--green);
-  padding: 0 12px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  flex-wrap: nowrap;
-}
-
-.pdf-label {
-  font-family: 'Oswald', sans-serif;
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: var(--green);
-  background: rgba(29,185,84,0.1);
-  border: 1px solid rgba(29,185,84,0.3);
-  padding: 3px 8px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.pdf-file-btn {
-  font-family: 'Oswald', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  padding: 5px 14px;
-  border: 1px solid var(--green);
-  color: var(--green);
-  background: rgba(29,185,84,0.08);
-  cursor: pointer;
-  text-transform: uppercase;
-  height: 32px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.pdf-file-btn:hover { background: rgba(29,185,84,0.2); }
-
-.pdf-status {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  color: var(--text-mid);
-  letter-spacing: 1px;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pdf-status.loading { color: var(--yellow); animation: blink 1s step-end infinite; }
-.pdf-status.ok      { color: var(--green); }
-.pdf-status.error   { color: var(--red); }
-
-.pdf-progress {
-  display: none;
-  height: 3px;
-  background: var(--bg3);
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-}
-
-/* ── TEST BAR ── */
-.test-bar {
-  height: 38px;
-  background: #130c00;
-  border-bottom: 2px solid var(--yellow);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  flex-shrink: 0;
-}
-
-.test-label {
-  font-family: 'Oswald', sans-serif;
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: var(--yellow);
-  background: rgba(245,196,0,0.1);
-  border: 1px solid rgba(245,196,0,0.3);
-  padding: 3px 8px;
-  white-space: nowrap;
-}
-
-.test-input {
-  background: #1a1000;
-  border: 2px solid var(--yellow);
-  color: var(--yellow);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 13px;
-  padding: 4px 8px;
-  outline: none;
-  color-scheme: dark;
-  min-width: 180px;
-  height: 32px;
-}
-
-.test-btn {
-  font-family: 'Oswald', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  padding: 5px 14px;
-  border: 1px solid;
-  cursor: pointer;
-  text-transform: uppercase;
-  height: 32px;
-}
-
-.test-btn.go   { color: #000; border-color: var(--yellow); background: var(--yellow); }
-.test-btn.live { color: var(--text-mid); border-color: var(--border-hi); background: transparent; }
-.test-btn.horn { color: var(--text-mid); border-color: var(--border-hi); background: transparent; }
-
-.test-indicator {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  color: var(--yellow);
-  letter-spacing: 2px;
-}
-
-.test-indicator.on { display: flex; }
-
-.test-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--yellow);
-  animation: blink 1s ease-in-out infinite;
-}
-
-/* ── MAIN LAYOUT ── */
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  width: 100vw;
-  overflow: hidden;
-}
-
-.main-body {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1.4fr 0.8fr 1.6fr;
-  grid-template-rows: auto 1fr;
-  gap: 0;
-  overflow: hidden;
-  min-height: 0;
-}
-
-/* ================================================================
-   RESPONSIVE v2 — minden panel látható, nincs oldal-görgetés
-   ================================================================ */
-
-/* ── PHONE PORTRAIT  ≤ 599px ────────────────────────────────────
-   2 × 2 grid:
-   ┌──────────────┬─────────────┐
-   │ Óra +        │ CD +        │
-   │ Current event│ Next + Rec  │
-   ├──────────────┼─────────────┤
-   │ Logó /       │ Menetrend   │
-   │ Eredmények   │ (belső scr) │
-   └──────────────┴─────────────┘
-   ──────────────────────────────────────────────────────────────── */
-@media (max-width: 599px) {
-
-  /* ─── HEADER ─── */
-  .header        { height: 30px; padding: 0 6px; }
-  .header-logo   { font-size: 7px; padding: 2px 6px; letter-spacing: 1px; }
-  .header-title  { font-size: 9px; letter-spacing: 2px; }
-  .header-live   { font-size: 7px; gap: 3px; }
-  .live-dot      { width: 5px; height: 5px; }
-
-  /* ─── PDF BAR ─── */
-  .pdf-bar       { height: 26px; padding: 0 6px; gap: 4px; }
-  .pdf-file-btn  { font-size: 7px; padding: 1px 6px; height: 20px; letter-spacing: 1px; }
-  .pdf-status    { font-size: 8px; }
-
-  /* ─── 2×2 GRID: egyenlő sorok ─── */
-  .main-body {
-    grid-template-columns: 55% 45%;
-    grid-template-rows: 1fr 1fr;   /* egyenlő magasság! */
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .col-left  {
-    grid-column: 1; grid-row: 1;
-    overflow: hidden;
-    border-right: 1px solid var(--border);
-  }
-  .col-mid   {
-    grid-column: 2; grid-row: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .col-logo  {
-    grid-column: 1; grid-row: 2;
-    overflow: hidden;
-    min-height: 0;
-    border-right: 1px solid var(--border);
-    border-top: 2px solid var(--border);
-  }
-  .col-right {
-    grid-column: 2; grid-row: 2;
-    overflow: hidden;
-    min-height: 0;
-    border-top: 2px solid var(--border);
-  }
-
-  /* ─── CLOCK PANEL ─── */
-  .clock-panel  { height: auto; min-height: 0; padding: 4px 6px; flex-shrink: 0; }
-  .clock-time   { font-size: 22px; letter-spacing: 0; }
-  .clock-sub    { font-size: 6px; letter-spacing: 1px; }
-
-  /* ─── CURRENT EVENT ─── */
-  .current-panel    { padding: 3px 6px; border-left-width: 2px; flex-shrink: 0; }
-  .panel-label      { font-size: 6px; letter-spacing: 2px; margin-bottom: 2px; }
-  .status-row       { gap: 3px; margin-bottom: 2px; }
-  .status-pill      { font-size: 6px; padding: 1px 4px; }
-  .cat-tag          { font-size: 6px; padding: 1px 3px; }
-  .current-name     { font-size: 12px; margin-bottom: 1px; line-height: 1.1; }
-  .current-remark   { font-size: 8px; margin-bottom: 2px; }
-  .times-row        { gap: 2px; margin-bottom: 2px; }
-  .time-box         { padding: 2px 3px; }
-  .time-box-label   { font-size: 6px; }
-  .time-box-val     { font-size: 10px; }
-  .progress-top     { font-size: 6px; margin-bottom: 2px; }
-  .progress-track   { height: 2px; }
-
-  /* ─── SIGNAL ─── */
-  .signal-panel { padding: 3px 6px; }
-  .signal-icon  { font-size: 11px; }
-  .signal-name  { font-size: 10px; }
-  .signal-time  { font-size: 8px; }
-  .signal-ttl   { font-size: 8px; }
-
-  /* ─── COUNTDOWN ─── */
-  .countdown-panel  { height: auto; padding: 4px 6px; flex-shrink: 0; }
-  .countdown-sub    { font-size: 6px; letter-spacing: 1px; margin-bottom: 1px; }
-  .countdown-digits { gap: 2px; }
-  .cd-num  { font-size: 18px; letter-spacing: 0; }
-  .cd-unit { font-size: 5px; }
-  .cd-sep  { font-size: 13px; margin-bottom: 6px; }
-
-  /* ─── NEXT EVENT ─── */
-  .next-panel   { padding: 3px 6px; border-left-width: 2px; }
-  .next-name    { font-size: 10px; }
-  .next-remark  { font-size: 8px; margin-top: 0; }
-  .next-time    { font-size: 8px; padding: 1px 4px; margin-top: 2px; }
-
-  /* ─── LAP RECORD ─── */
-  #recordPanel  { padding: 3px 6px; }
-  #recordHeader { font-size: 6px; letter-spacing: 1px; margin-bottom: 1px; }
-
-  /* ─── SCHEDULE (bal felső panel) ─── */
-  .schedule-header        { height: 26px; padding: 0 6px; }
-  .schedule-header-title  { font-size: 7px; letter-spacing: 1px; }
-  .schedule-header-badge  { font-size: 7px; }
-  #scheduleHeaderDate     { font-size: 7px; }
-
-  .day-header      { padding: 2px 6px; gap: 4px; }
-  .day-header-name { font-size: 7px; letter-spacing: 1px; }
-  .day-header-date { font-size: 7px; }
-
-  .sched-item    {
-    grid-template-columns: 60px 1fr;
-    padding: 2px 5px;
-    border-left-width: 2px;
-    min-height: 28px;        /* touch-friendly */
-  }
-  .sched-name    { font-size: 11px; }
-  .sched-time    { font-size: 9px; }
-  .sched-remark  { font-size: 7px; }
-  .sched-item.t-procedure .sched-name { font-size: 10px; }
-  .no-events     { padding: 10px; font-size: 9px; }
-  .horn-icon     { font-size: 8px; }
-
-  /* ─── WSBK PANEL gombjai (touch-friendly) ─── */
-  .wsbk-btn, [onclick*="wsbk"], [onclick*="switchCat"] {
-    min-height: 28px;
-  }
-
-}
-
-/* ── PHONE LANDSCAPE  max-height ≤ 480px + min-width 600px ─────
-   3 oszlop kompakt, times-row elrejtve
-   ──────────────────────────────────────────────────────────────── */
-@media (max-height: 480px) and (min-width: 600px) {
-
-  /* Landscape telefon: 3 oszlop, nagyon kompakt */
-  .header  { height: 26px; padding: 0 6px; }
-  .header-title { font-size: 9px; }
-  .pdf-bar { height: 22px; padding: 0 6px; }
-  .pdf-file-btn { height: 16px; font-size: 7px; }
-
-  .main-body {
-    grid-template-columns: 1.2fr 0.7fr 1.5fr;
-    grid-template-rows: auto 1fr;
-  }
-
-  .clock-panel    { height: 40px; padding: 2px 8px; }
-  .clock-time     { font-size: 20px; }
-  .clock-sub      { font-size: 5px; }
-  .times-row      { display: none; }     /* helytakarékosság */
-  .progress-track { display: none; }
-
-  .countdown-panel  { height: 40px; padding: 2px 8px; }
-  .cd-num           { font-size: 16px; }
-  .cd-unit          { font-size: 4px; }
-
-  .current-name  { font-size: 11px; }
-  .next-name     { font-size: 9px; }
-
-  .sched-item    { padding: 1px 5px; min-height: 24px; }
-  .sched-name    { font-size: 10px; }
-  .sched-time    { font-size: 8px; }
-
-}
-
-@media (min-width: 600px) and (max-width: 899px) {
-
-  .main-body {
-    grid-template-columns: 1.3fr 0.75fr 1.5fr;
-    grid-template-rows: auto 1fr;
-    overflow: hidden;
-  }
-
-  .col-left  { grid-column: 1; grid-row: 1; overflow: hidden; }
-  .col-mid   { grid-column: 2; grid-row: 1 / 3; overflow: hidden; display: flex; flex-direction: column; }
-  .col-logo  { grid-column: 1; grid-row: 2; overflow: hidden; min-height: 0; }
-  .col-right { grid-column: 3; grid-row: 1 / 3; overflow: hidden; }
-
-  .clock-time { font-size: clamp(30px, 4vw, 44px); }
-  .cd-num     { font-size: clamp(22px, 3.5vw, 36px); }
-
-  .sched-item { padding: 3px 8px; }
-  .sched-name { font-size: 13px; }
-
-}
-
-@media (min-width: 900px) {
-
-  .main-body {
-    grid-template-columns: 1.4fr 0.8fr 1.6fr;
-    grid-template-rows: auto 1fr;
-    overflow: hidden;
-  }
-
-  .col-left  { grid-column: 1; grid-row: 1; }
-  .col-mid   { grid-column: 2; grid-row: 1 / 3; }
-  .col-logo  { grid-column: 1; grid-row: 2; }
-  .col-right { grid-column: 3; grid-row: 1 / 3; }
-
-  .clock-time   { font-size: clamp(44px, 4.5vw, 72px); }
-  .cd-num       { font-size: clamp(36px, 4vw, 64px); }
-  .current-name { font-size: clamp(15px, 1.8vw, 24px); }
-  .next-name    { font-size: clamp(14px, 1.6vw, 22px); }
-  .sched-name   { font-size: clamp(14px, 1.5vw, 17px); }
-}
-
-/* ── LARGE MONITOR  ≥ 1400px ────────────────────────────────── */
-@media (min-width: 1400px) {
-  .sched-name { font-size: 18px; }
-  .sched-time { font-size: 16px; }
-  .sched-item { padding: 10px 20px; }
-}
-
-/* ── THREE COLUMNS ── */
-.col-left, .col-mid, .col-right {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.col-left {
-  border-right: 2px solid var(--border);
-  grid-column: 1;
-  grid-row: 1;
-  align-self: start;
-}
-
-.col-mid {
-  border-right: 2px solid var(--border);
-  grid-column: 2;
-  grid-row: 1 / 3;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
-#recordPanel {
-  flex: 1;
-  overflow-y: auto;
-  border-top: 1px solid var(--border);
-  padding: 8px 10px;
-  min-height: 60px;
-  background: #0a0a0a;
-}
-
-.col-right {
-  grid-column: 3;
-  grid-row: 1 / 3;
-}
-
-/* ── LOGO PANEL ── */
-.col-logo {
-  grid-column: 1 / 3;
-  grid-row: 2;
-  border-top: 2px solid var(--border);
-  border-right: 2px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  background: #222222;
-  overflow: hidden;
-  min-height: 120px;
-}
-#timingPanel { flex: 1; min-height: 0; }
-
-.col-logo img {
-  max-width: 70%;
-  max-height: 85%;
-  object-fit: contain;
-  opacity: 0.9;
-  transition: opacity 1.5s ease;
-}
-
-.col-logo .logo-placeholder {
-  font-family: 'Oswald', sans-serif;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;transition:background .3s,color .3s}
+#app{display:flex;flex-direction:column;height:100%;max-width:600px;margin:0 auto;width:100%}
 
 /* CLOCK */
-.clock-panel {
-  background: linear-gradient(180deg, #110000 0%, var(--bg2) 100%);
-  border-bottom: 2px solid var(--border);
-  padding: 6px 14px 5px;
-  text-align: center;
-  flex-shrink: 0;
-  overflow: hidden;
-  height: 90px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.clock-time {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: clamp(28px, 4.5vw, 58px);
-  color: var(--white);
-  letter-spacing: 3px;
-  line-height: 1;
-  text-shadow: 0 0 30px rgba(255,255,255,0.1), 0 0 60px var(--red-glow);
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.clock-time.test-mode { color: var(--yellow); text-shadow: 0 0 20px rgba(245,196,0,0.3); }
-
-.clock-sub {
-  font-family: 'Oswald', sans-serif;
-  font-size: 11px;
-  letter-spacing: 4px;
-  color: var(--red);
-  margin-top: 2px;
-  text-transform: uppercase;
-}
-
-/* CURRENT EVENT */
-.current-panel {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  border-left: 3px solid var(--red);
-  box-shadow: inset 0 0 30px rgba(232,0,13,0.04);
-  padding: 8px 14px;
-  flex-shrink: 0;
-}
-
-.current-panel::after { display: none; }
-
-.panel-label {
-  font-family: 'Oswald', sans-serif;
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: var(--red);
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.panel-label .badge {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 1px;
-}
-
-.status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-
-.status-pill {
-  font-family: 'Oswald', sans-serif;
-  font-size: 9px;
-  letter-spacing: 2px;
-  padding: 2px 8px;
-  border: 1px solid;
-  text-transform: uppercase;
-}
-
-.status-pill.live {
-  color: var(--green);
-  border-color: var(--green);
-  background: rgba(29,185,84,0.1);
-  animation: glow-green 2s ease-in-out infinite;
-}
-
-.status-pill.break {
-  color: var(--yellow);
-  border-color: var(--yellow);
-  background: rgba(245,196,0,0.08);
-}
-
-@keyframes glow-green {
-  0%,100% { box-shadow: 0 0 6px var(--green-glow); }
-  50% { box-shadow: none; }
-}
-
-.cat-tag {
-  font-family: 'Oswald', sans-serif;
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  padding: 2px 6px;
-  border: 1px solid;
-  text-transform: uppercase;
-}
-
-.tag-WorldSBK { color: var(--green); border-color: rgba(29,185,84,0.4); background: rgba(29,185,84,0.08); }
-.tag-WorldSSP { color: #4AABFF; border-color: rgba(74,171,255,0.4); background: rgba(74,171,255,0.08); }
-.tag-WorldWCR { color: #FF9F40; border-color: rgba(255,159,64,0.4); background: rgba(255,159,64,0.08); }
-.tag-R3       { color: #A855F7; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.08); }
-.tag-MARSHAL  { color: var(--red); border-color: rgba(232,0,13,0.4); background: rgba(232,0,13,0.08); }
-.tag-OFFICIAL { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
-.tag-TRACK    { color: var(--yellow); border-color: rgba(245,196,0,0.3); background: rgba(245,196,0,0.06); }
-.tag-Moto4NC  { color: #76c442; border-color: rgba(118,196,66,0.45); background: rgba(118,196,66,0.09); }
-
-.current-name {
-  font-family: 'Oswald', sans-serif;
-  font-size: clamp(16px, 2.2vw, 24px);
-  font-weight: 600;
-  color: var(--white);
-  line-height: 1.15;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
-}
-
-.current-remark {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 12px;
-  color: var(--text-mid);
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
-}
-
-.times-row { display: flex; gap: 8px; margin-bottom: 8px; }
-
-.time-box {
-  flex: 1;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  padding: 4px 7px;
-}
-
-.time-box-label {
-  font-family: 'Oswald', sans-serif;
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-
-.time-box-val {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 16px;
-  color: var(--off-white);
-  letter-spacing: 1px;
-}
-
-.progress-top {
-  display: flex;
-  justify-content: space-between;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: var(--text-dim);
-  margin-bottom: 4px;
-}
-
-.progress-track {
-  height: 4px;
-  background: var(--bg4);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--red-dark), var(--red));
-  transition: width 1s linear;
-  position: relative;
-}
-
-.progress-fill::after {
-  content:'';
-  position:absolute; right:0; top:0; bottom:0;
-  width: 16px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
-}
-
-/* SIGNAL PANEL */
-.signal-panel {
-  display: none;
-  background: #0d0900;
-  border-bottom: 1px solid rgba(245,196,0,0.3);
-  border-left: 3px solid var(--yellow);
-  padding: 7px 16px;
-  flex-shrink: 0;
-  animation: signal-appear 0.2s ease-out;
-}
-
-.signal-panel.visible { display: flex; align-items: center; gap: 10px; }
-
-@keyframes signal-appear {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.signal-icon   { font-size: 16px; flex-shrink: 0; }
-.signal-content { flex: 1; min-width: 0; }
-
-.signal-time {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  color: var(--yellow);
-  letter-spacing: 2px;
-}
-
-.signal-name {
-  font-family: 'Oswald', sans-serif;
-  font-size: clamp(13px, 1.8vw, 17px);
-  font-weight: 600;
-  color: var(--yellow-light);
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.signal-ttl {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  color: var(--text-mid);
-  flex-shrink: 0;
-  text-align: right;
-  letter-spacing: 1px;
-}
-
-.signal-ttl.urgent { color: var(--red); }
-
-/* COUNTDOWN PANEL */
-.countdown-panel {
-  background: var(--bg2);
-  border-bottom: 2px solid var(--border);
-  border-left: 3px solid var(--border-hi);
-  padding: 10px 14px 10px;
-  flex-shrink: 0;
-  text-align: center;
-  height: 90px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.countdown-sub {
-  font-family: 'Oswald', sans-serif;
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.countdown-digits { display: flex; align-items: center; justify-content: center; gap: 4px; }
-
-.cd-seg { text-align: center; }
-
-.cd-num {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: clamp(28px, 3.2vw, 48px);
-  line-height: 1;
-  color: var(--white);
-  letter-spacing: 2px;
-  display: block;
-}
-
-.cd-num.urgent {
-  color: var(--red);
-  animation: urgent-glow 0.4s ease-in-out infinite alternate;
-}
-
-@keyframes urgent-glow {
-  from { text-shadow: 0 0 10px var(--red); }
-  to   { text-shadow: 0 0 30px var(--red), 0 0 60px var(--red-glow); }
-}
-
-.cd-unit {
-  font-family: 'Oswald', sans-serif;
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  display: block;
-  margin-top: 1px;
-}
-
-.cd-sep {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: clamp(22px, 2.8vw, 40px);
-  color: var(--red);
-  line-height: 1;
-  opacity: 0.5;
-  margin-bottom: 14px;
-  animation: sep-blink 1s step-end infinite;
-}
-
-@keyframes sep-blink { 0%,100%{opacity:0.5} 50%{opacity:0.1} }
-
-/* NEXT EVENT */
-.next-panel {
-  background: var(--bg2);
-  border-left: 3px solid var(--yellow);
-  padding: 5px 10px;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.next-panel .panel-label { color: var(--yellow); }
-
-.next-name {
-  font-family: 'Oswald', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--off-white);
-  line-height: 1.2;
-  margin-bottom: 2px;
-  letter-spacing: 0.3px;
-}
-
-.next-time {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  color: var(--yellow);
-  letter-spacing: 2px;
-  margin-top: 3px;
-  display: inline-block;
-  border: 1px solid rgba(245,196,0,0.3);
-  background: rgba(245,196,0,0.05);
-  padding: 1px 8px;
-}
-
-.next-remark {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 10px;
-  color: var(--text-mid);
-  margin-top: 1px;
-}
-
-/* ── RIGHT COLUMN: SCHEDULE ── */
-.schedule-header {
-  background: var(--bg3);
-  border-bottom: 2px solid var(--border);
-  padding: 0 16px;
-  height: 90px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-
-.schedule-header-title {
-  font-family: 'Oswald', sans-serif;
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: var(--red);
-  text-transform: uppercase;
-}
-
-.schedule-header-badge {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dim);
-}
-
-.schedule-list {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--red) var(--bg3);
-}
-
-.schedule-list::-webkit-scrollbar { width: 4px; }
-.schedule-list::-webkit-scrollbar-track { background: var(--bg3); }
-.schedule-list::-webkit-scrollbar-thumb { background: var(--red); }
-
-/* DAY HEADER */
-.day-header {
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border-hi);
-  border-top: 1px solid var(--border);
-  padding: 6px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 5;
-}
-
-.day-header-name {
-  font-family: 'Oswald', sans-serif;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: var(--red);
-}
-
-.day-header-date {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dim);
-}
-
-.day-header-line { flex: 1; height: 1px; background: var(--border); }
-
-/* SCHEDULE ITEM */
-.sched-item {
-  display: grid;
-  grid-template-columns: 115px 1fr;
-  gap: 8px;
-  align-items: center;
-  padding: 7px 12px;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  border-left: 3px solid transparent;
-  transition: background 0.15s;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.sched-item:hover { background: var(--bg3); }
-
-.sched-item.t-race     { border-left-color: var(--green);  background: rgba(29,185,84,0.04); }
-.sched-item.t-session  { border-left-color: var(--yellow); background: rgba(245,196,0,0.03); }
-.sched-item.t-marshal  { border-left-color: var(--red);    background: rgba(232,0,13,0.04); }
-.sched-item.t-official { border-left-color: #444; }
-.sched-item.t-procedure{ border-left-color: #333; opacity: 0.75; }
-
-.sched-item.is-current {
-  background: rgba(232,0,13,0.06) !important;
-  border-left-color: var(--red) !important;
-  opacity: 1 !important;
-}
-
-.sched-time {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 12px;
-  color: var(--off-white);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.sched-time .end {
-  font-size: 10px;
-  color: var(--text-dim);
-  display: block;
-  margin-top: 1px;
-}
-
-.sched-content { min-width: 0; overflow: hidden; }
-
-.sched-name {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--white);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sched-item.t-procedure .sched-name {
-  font-size: 13px;
-  font-weight: 400;
-  color: #aaa;
-}
-
-.sched-remark {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 1px;
-  margin-top: 1px;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.horn-icon { font-size: 11px; margin-right: 3px; opacity: 0.7; }
-
-.no-events {
-  padding: 40px;
-  text-align: center;
-  font-family: 'Share Tech Mono', monospace;
-  color: var(--text-dim);
-  font-size: 12px;
-  letter-spacing: 2px;
-}
+.clock-section{padding:14px 20px 10px;background:var(--surface);border-bottom:2px solid var(--border);flex-shrink:0}
+#clockTime{font-family:var(--mono);font-size:clamp(52px,13vw,80px);line-height:1;letter-spacing:-1px;color:var(--text)}
+#clockTime.test-mode{color:var(--next)}
+#clockSub{font-size:clamp(12px,3vw,16px);font-weight:700;letter-spacing:2px;color:var(--sub);text-transform:uppercase;margin-top:2px}
+
+/* CURRENT */
+.current-section{padding:12px 20px 10px;border-bottom:2px solid var(--border);flex-shrink:0;background:var(--surface);border-left:6px solid transparent;transition:background .2s,border-color .2s}
+.current-section.active{background:var(--active-bg);border-left-color:var(--active)}
+.current-section.next-only{background:var(--next-bg);border-left-color:var(--next)}
+.section-label{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--sub);text-transform:uppercase;margin-bottom:3px}
+.current-section.active .section-label{color:var(--active)}
+.current-section.next-only .section-label{color:var(--next)}
+#currentEventName{font-size:clamp(24px,7vw,40px);font-weight:900;line-height:1.1;color:var(--text)}
+.current-section.active #currentEventName{color:var(--active)}
+.current-section.next-only #currentEventName{color:var(--next)}
+#currentEventDetail{font-size:clamp(14px,4vw,18px);font-weight:600;color:var(--sub);margin-top:2px}
+
+/* COUNTDOWN */
+.countdown-section{padding:14px 20px;border-bottom:3px solid var(--border);flex-shrink:0;background:var(--surface);text-align:center}
+#countdownLabel{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--sub);text-transform:uppercase;margin-bottom:0}
+#countdownTime{font-family:var(--mono);font-size:clamp(60px,20vw,104px);line-height:1;letter-spacing:-2px;color:var(--text)}
+#countdownTime.running{color:var(--active)}
+#countdownTime.waiting{color:var(--next)}
+#countdownCtx{font-size:clamp(12px,3.5vw,16px);font-weight:700;color:var(--sub);letter-spacing:1px;margin-top:2px;text-transform:uppercase}
+
+/* SCHEDULE */
+.schedule-section{flex:1;min-height:0;display:flex;flex-direction:column}
+.schedule-header{display:flex;align-items:center;gap:10px;padding:8px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.schedule-title{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--sub);text-transform:uppercase;flex:1}
+#scheduleCount{font-size:12px;font-weight:700;color:var(--sub);letter-spacing:1px}
+.load-btn{cursor:pointer;font-size:13px;font-weight:800;letter-spacing:1px;color:var(--text);background:var(--bg);border:1.5px solid var(--border);padding:5px 12px;border-radius:4px;user-select:none;font-family:var(--font);transition:background .15s}
+.load-btn:active{background:var(--border)}
+#scheduleBody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0 24px}
+.empty-msg{padding:40px 20px;text-align:center;font-size:16px;font-weight:700;color:var(--sub);letter-spacing:1px}
+.day-header{display:flex;align-items:center;gap:10px;padding:10px 20px 5px;position:sticky;top:0;background:var(--bg);z-index:2}
+.day-name{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--sub);text-transform:uppercase}
+.day-date{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--sub)}
+.day-line{flex:1;height:1px;background:var(--border)}
+.sched-item{display:flex;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border);border-left:5px solid transparent;transition:background .15s}
+.sched-item.is-current{background:var(--active-bg);border-left-color:var(--active)}
+.sched-item.is-next{background:var(--next-bg);border-left-color:var(--next)}
+.sched-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--sub)}
+.sched-item.t-race .sched-dot{background:var(--race)}
+.sched-item.t-session .sched-dot{background:var(--session)}
+.sched-item.t-marshal .sched-dot{background:var(--marshal)}
+.sched-item.t-procedure .sched-dot{background:var(--procedure);border-radius:2px}
+.sched-item.is-current .sched-dot{background:var(--active)}
+.sched-item.is-next .sched-dot{background:var(--next)}
+.sched-time{font-family:var(--mono);font-size:clamp(16px,5vw,21px);color:var(--sub);flex-shrink:0;min-width:54px}
+.sched-item.is-current .sched-time{color:var(--active);font-weight:700}
+.sched-item.is-next .sched-time{color:var(--next)}
+.sched-name{font-size:clamp(18px,5vw,24px);font-weight:800;color:var(--text);flex:1;line-height:1.1}
+.sched-item.is-current .sched-name{color:var(--active)}
+.sched-item.is-next .sched-name{color:var(--next)}
+.sched-cat{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--sub);text-transform:uppercase;flex-shrink:0}
+
+/* CONTROLS */
+.top-bar{position:fixed;top:6px;right:8px;display:flex;gap:6px;z-index:100}
+.icon-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.test-bar{position:fixed;bottom:0;left:0;right:0;background:var(--next-bg);border-top:2px solid var(--next);padding:8px 16px;display:none;align-items:center;gap:8px;z-index:50}
+.test-bar.visible{display:flex}
+.test-bar input{flex:1;font-family:var(--mono);font-size:14px;padding:6px 10px;border:1.5px solid var(--next);border-radius:4px;background:var(--surface);color:var(--text)}
+.test-bar button{font-family:var(--font);font-size:13px;font-weight:800;letter-spacing:1px;padding:6px 14px;border-radius:4px;border:none;cursor:pointer;background:var(--next);color:#fff}
+
+/* ── BOOT SCREEN ── */
+#bootScreen{position:fixed;inset:0;background:#080808;z-index:99999;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#bootScreen.hide{animation:curtainRip 0.45s cubic-bezier(0.9,0,1,1) forwards}
+@keyframes curtainRip{0%{transform:translateX(0)}100%{transform:translateX(105%)}}
+#bootBike{position:absolute;animation:bikeRide 2.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards}
+@keyframes bikeRide{0%{transform:translateX(-110vw);opacity:0}15%{opacity:1}38%{transform:translateX(0)}72%{transform:translateX(0)}82%{transform:translateX(20vw)}100%{transform:translateX(130vw)}}
+#bootExhaust{position:absolute;display:flex;gap:8px;align-items:center;animation:exhaustLife 2.6s forwards}
+@keyframes exhaustLife{0%,35%{opacity:0}45%{opacity:1}70%{opacity:1}82%{opacity:0}100%{opacity:0}}
+.exhaust-puff{border-radius:50%;background:rgba(255,255,255,0.1);animation:puff 0.6s ease-out infinite}
+.exhaust-puff:nth-child(1){width:8px;height:8px;animation-delay:0s}
+.exhaust-puff:nth-child(2){width:14px;height:14px;animation-delay:0.15s}
+.exhaust-puff:nth-child(3){width:22px;height:22px;animation-delay:0.3s}
+@keyframes puff{0%{transform:scale(1);opacity:0.7}100%{transform:scale(2.2);opacity:0}}
+#bootLines{position:absolute;inset:0;overflow:hidden;animation:linesLife 2.6s forwards}
+@keyframes linesLife{0%,68%{opacity:0}76%{opacity:1}86%{opacity:1}100%{opacity:0}}
+.speed-line{position:absolute;height:1px;background:linear-gradient(to right,transparent,rgba(220,30,30,0.7),transparent)}
+#bootGlow{position:absolute;width:300px;height:80px;background:radial-gradient(ellipse,rgba(200,20,20,0.15) 0%,transparent 70%);animation:glowLife 2.6s forwards}
+@keyframes glowLife{0%,35%{opacity:0}45%{opacity:1}70%{opacity:1}82%{opacity:0}100%{opacity:0}}
+#bootTitle{position:absolute;bottom:28%;font-size:10px;letter-spacing:10px;color:rgba(255,255,255,0.2);text-transform:uppercase;animation:titleLife 2.6s forwards}
+@keyframes titleLife{0%{opacity:0}15%{opacity:1}72%{opacity:1}100%{opacity:0}}
+#bootFlash{position:absolute;inset:0;background:rgba(200,0,0,0.08);animation:flashLife 2.6s forwards;pointer-events:none}
+@keyframes flashLife{0%,72%{opacity:0}78%{opacity:1}88%{opacity:0}100%{opacity:0}}
+
+/* ── SERIES LOGO ── */
+.clock-logo{display:flex;align-items:center;gap:10px;margin-top:6px;min-height:28px}
+#seriesLogo{height:28px;max-width:140px;object-fit:contain;display:none}
+#seriesBadge{font-size:11px;font-weight:800;letter-spacing:3px;color:var(--sub);text-transform:uppercase;padding:3px 10px;border:1.5px solid var(--border);border-radius:3px;display:none}
 </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-  </script>
 </head>
 <body>
-
 <div id="bootScreen">
   <div id="bootLines">
-    <div class="speed-line" style="top:40%; width:55%; left:22%;"></div>
-    <div class="speed-line" style="top:43%; width:75%; left:8%;"></div>
-    <div class="speed-line" style="top:46%; width:85%; left:3%;"></div>
-    <div class="speed-line" style="top:49%; width:95%; left:0%;"></div>
-    <div class="speed-line" style="top:52%; width:80%; left:6%;"></div>
-    <div class="speed-line" style="top:55%; width:65%; left:14%;"></div>
-    <div class="speed-line" style="top:58%; width:48%; left:28%;"></div>
+    <div class="speed-line" style="top:38%;left:-10%;width:120%;"></div>
+    <div class="speed-line" style="top:44%;left:-10%;width:100%;opacity:0.5;"></div>
+    <div class="speed-line" style="top:54%;left:-10%;width:110%;opacity:0.7;"></div>
+    <div class="speed-line" style="top:60%;left:-10%;width:90%;opacity:0.4;"></div>
   </div>
-
   <div id="bootGlow"></div>
-
-  <div id="bootExhaust" style="left: calc(50% - 175px); top: 50%; transform: translateY(-55%);">
+  <div id="bootExhaust" style="left:calc(50% - 175px);top:50%;transform:translateY(-55%);">
     <div class="exhaust-puff"></div>
     <div class="exhaust-puff"></div>
     <div class="exhaust-puff"></div>
   </div>
-
   <div id="bootBike">
     <svg width="300" height="180" viewBox="0 0 300 180" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="72" cy="128" r="38" stroke="#2a2a2a" stroke-width="9"/>
@@ -1244,1664 +164,276 @@ body::after {
       <rect x="136" y="102" width="10" height="18" rx="2" fill="#151515"/>
       <rect x="150" y="102" width="10" height="18" rx="2" fill="#151515"/>
       <path d="M118 128 Q98 135 80 128" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round"/>
-      <path d="M118 128 Q98 132 80 128" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>
       <path d="M145 58 Q172 50 188 62 L185 78 Q168 70 142 76 Z" fill="#cc0000"/>
       <path d="M145 58 Q128 54 118 67 L120 80 Q134 72 142 76 Z" fill="#991100"/>
-      <path d="M148 60 Q168 54 182 63" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none" stroke-linecap="round"/>
       <path d="M108 102 Q90 106 72 118 L76 130 Q96 118 114 112 Z" fill="#991100"/>
       <path d="M172 66 Q205 60 228 82 L218 100 Q196 88 174 94 Z" fill="#cc0000"/>
-      <path d="M174 68 Q204 63 225 82" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
       <path d="M185 62 Q205 46 226 64 L218 76 Q200 62 188 74 Z" fill="rgba(120,200,255,0.18)" stroke="rgba(120,200,255,0.5)" stroke-width="1"/>
-      <line x1="212" y1="88" x2="228" y2="128" stroke="#2a2a2a" stroke-width="7" stroke-linecap="round"/>
-      <line x1="204" y1="88" x2="220" y2="128" stroke="#222" stroke-width="5" stroke-linecap="round"/>
-      <line x1="205" y1="104" x2="215" y2="104" stroke="#333" stroke-width="3"/>
-      <path d="M206 82 Q210 72 220 76" stroke="#333" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <ellipse cx="168" cy="62" rx="20" ry="18" fill="#0d0d0d" stroke="#222" stroke-width="1.5"/>
-      <path d="M150 62 Q158 52 180 56" stroke="#cc0000" stroke-width="2" fill="none"/>
-      <path d="M150 62 Q158 54 178 58 L178 68 Q158 70 150 65 Z" fill="rgba(120,200,255,0.12)" stroke="rgba(120,200,255,0.35)" stroke-width="1"/>
-      <path d="M150 76 Q162 66 184 70 L180 92 Q162 88 148 90 Z" fill="#0a0a0a" stroke="#1a1a1a" stroke-width="1"/>
-      <path d="M178 74 Q195 72 208 80" stroke="#111" stroke-width="8" fill="none" stroke-linecap="round"/>
-      <line x1="118" y1="76" x2="188" y2="70" stroke="#ff2200" stroke-width="2"/>
-      <line x1="118" y1="80" x2="188" y2="74" stroke="#ff2200" stroke-width="1" opacity="0.5"/>
-      <rect x="220" y="76" width="26" height="17" rx="3" fill="#fff" stroke="#ddd" stroke-width="0.5"/>
-      <text x="233" y="89" font-family="Arial Black, sans-serif" font-size="10" font-weight="900" fill="#111" text-anchor="middle">1</text>
-      <path d="M226 82 Q238 78 242 88 L232 96 Q222 90 218 84 Z" fill="#cc0000"/>
+      <ellipse cx="240" cy="78" rx="12" ry="7" fill="#0a0a0a" stroke="#cc0000" stroke-width="1.5"/>
+      <path d="M195 65 Q210 55 226 64" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M108 108 Q130 100 165 100 Q180 100 195 92" stroke="#2a2a2a" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M108 108 Q130 100 165 100 Q180 100 195 92" stroke="#cc0000" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M56 90 Q62 82 72 80 L78 95 Q70 96 64 102 Z" fill="#111" stroke="#2a2a2a" stroke-width="1.5"/>
     </svg>
   </div>
-
+  <div id="bootTitle">RACE CONTROL</div>
   <div id="bootFlash"></div>
-  <div id="bootTitle">Race Control Dashboard</div>
 </div>
-
-
-<div class="app">
-
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-logo">RACE CONTROL</div>
-    <div class="header-title" id="headerTitle">RACE CONTROL <span>DASHBOARD</span></div>
-    <div class="header-live">
-      <div class="live-dot"></div>
-      <span>RACE CONTROL</span>
-      <button onclick="toggleTestBar()" id="testToggleBtn"
-        style="margin-left:12px; background:rgba(245,196,0,0.1); border:1px solid rgba(245,196,0,0.3);
-               color:rgba(245,196,0,0.7); font-family:'Oswald',sans-serif; font-size:9px;
-               letter-spacing:2px; padding:3px 8px; cursor:pointer; text-transform:uppercase;">
-        ⚙ TEST
-      </button>
+<div id="app">
+  <header class="clock-section">
+    <div id="clockTime">--:--:--</div>
+    <div id="clockSub">—</div>
+    <div class="clock-logo">
+      <img id="seriesLogo" src="" alt="">
+      <span id="seriesBadge"></span>
     </div>
+  </header>
+  <section class="current-section" id="currentSection">
+    <div class="section-label" id="currentLabel">JELENLEG</div>
+    <div id="currentEventName">Nincs betöltött menetrend</div>
+    <div id="currentEventDetail">Töltsd be a JSON fájlt</div>
+  </section>
+  <div class="countdown-section">
+    <div id="countdownLabel">VISSZASZÁMLÁLÓ</div>
+    <div id="countdownTime">--:--</div>
+    <div id="countdownCtx">—</div>
   </div>
-
-  <!-- IMPORT BAR -->
-  <div class="pdf-bar">
-    <button class="pdf-file-btn" onclick="document.getElementById('jsonFileInput').click()">
-      📂 Időterv betöltése
-    </button>
-    <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJsonUpload(event)" />
-    <div class="pdf-status" id="pdfStatus">Töltsd be az időtervet JSON formátumban</div>
-  </div>
-
-  <!-- TEST BAR -->
-  <div class="test-bar" style="display:none">
-    <div class="test-label">⚠ TEST MODE</div>
-    <input type="datetime-local" class="test-input" id="testDateInput" value="2026-05-02T10:20" />
-    <button class="test-btn go"   onclick="activateTestMode()">▶ Set Time</button>
-    <button class="test-btn live" onclick="resetTestMode()">↩ Live</button>
-    <button class="test-btn horn" onclick="playHorn()">📯 Horn</button>
-    <div class="test-indicator" id="testModeIndicator">
-      <div class="test-dot"></div>
-      <span id="testModeTime">TEST</span>
+  <section class="schedule-section">
+    <div class="schedule-header">
+      <span class="schedule-title">MENETREND</span>
+      <span id="scheduleCount"></span>
+      <label class="load-btn" for="jsonFile">📂 JSON</label>
+      <input type="file" id="jsonFile" accept=".json" style="display:none">
     </div>
-  </div>
-
-  <!-- MAIN BODY -->
-  <div class="main-body">
-
-    <!-- COL 1: CLOCK + CURRENT EVENT + SIGNAL -->
-    <div class="col-left">
-
-      <div class="clock-panel">
-        <div class="clock-time" id="clockTime">--:--:--</div>
-        <div class="clock-sub" id="clockSub">Loading...</div>
-      </div>
-
-      <div class="current-panel">
-        <div class="panel-label">
-          ▶ CURRENT EVENT
-          <span class="badge" id="currentIdx">—</span>
-        </div>
-        <div class="status-row">
-          <div class="status-pill" id="statusPill">—</div>
-          <div id="sessionCategory"></div>
-        </div>
-        <div class="current-name" id="currentEventName">Waiting...</div>
-        <div class="current-remark" id="currentEventDetail"></div>
-        <div class="times-row">
-          <div class="time-box">
-            <div class="time-box-label">Start</div>
-            <div class="time-box-val" id="currentStart">—</div>
-          </div>
-          <div class="time-box">
-            <div class="time-box-label">End</div>
-            <div class="time-box-val" id="currentEnd">—</div>
-          </div>
-          <div class="time-box">
-            <div class="time-box-label">Duration</div>
-            <div class="time-box-val" id="currentDuration">—</div>
-          </div>
-        </div>
-        <div id="progressContainer" style="display:none">
-          <div class="progress-top">
-            <span>ELAPSED</span>
-            <span id="progressPct">0%</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" id="progressFill" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="signal-panel" id="signalPanel">
-        <div class="signal-icon" id="signalIcon">📋</div>
-        <div class="signal-content">
-          <div class="signal-time" id="signalTime">—</div>
-          <div class="signal-name" id="signalName">—</div>
-        </div>
-        <div class="signal-ttl" id="signalTTL">—</div>
-      </div>
-
-    </div>
-
-    <!-- COL 2: COUNTDOWN + NEXT EVENT -->
-    <div class="col-mid">
-
-      <div class="countdown-panel">
-        <div class="countdown-sub" id="countdownLabel">—</div>
-        <div class="countdown-digits">
-          <div class="cd-seg">
-            <span class="cd-num" id="cdHours">00</span>
-            <span class="cd-unit">hrs</span>
-          </div>
-          <span class="cd-sep">:</span>
-          <div class="cd-seg">
-            <span class="cd-num" id="cdMinutes">00</span>
-            <span class="cd-unit">min</span>
-          </div>
-          <span class="cd-sep">:</span>
-          <div class="cd-seg">
-            <span class="cd-num" id="cdSeconds">00</span>
-            <span class="cd-unit">sec</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="next-panel">
-        <div class="panel-label">
-          ⏭ NEXT EVENT
-          <span class="badge" id="nextEventBadge">—</span>
-        </div>
-        <div class="status-row">
-          <div id="nextSessionCategory"></div>
-        </div>
-        <div class="next-name" id="nextEventName">—</div>
-        <div class="next-remark" id="nextEventDetail"></div>
-        <div class="next-time" id="nextTimePill">—</div>
-      </div>
-
-      <div id="recordPanel">
-        <div id="recordHeader" style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:2px;color:var(--text-dim);margin-bottom:5px;">&#11035; TRACK RECORD</div>
-        <div id="recordContent"></div>
-      </div>
-    </div>
-
-    <!-- 4. PANEL: LOGÓ + LIVE TIMING -->
-    <div class="col-logo" id="logoPanel">
-      <div class="logo-placeholder" id="logoPlaceholder" style="flex:1;display:flex;align-items:center;justify-content:center;">— Nincs aktív sorozat —</div>
-      <img id="logoPanelImg" src="" alt="" style="display:none;max-width:70%;max-height:85%;object-fit:contain;margin:auto;" />
-    </div>
-
-    <!-- COL 3: SCHEDULE LIST -->
-    <div class="col-right">
-      <div class="schedule-header">
-        <div style="display:flex; flex-direction:column; justify-content:center; gap:3px;">
-          <span class="schedule-header-title">Event Schedule — From Now</span>
-          <div id="scheduleHeaderDate" style="font-family:monospace; font-size:10px; color:var(--text-mid); letter-spacing:2px;"></div>
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button id="liveScrBtn" onclick="goLive()"
-            style="display:none; font-family:'Oswald',sans-serif; font-size:9px;
-                   letter-spacing:2px; padding:3px 10px; cursor:pointer;
-                   background:rgba(232,0,13,0.15); border:1px solid var(--red);
-                   color:var(--red); text-transform:uppercase;">
-            ● LIVE
-          </button>
-          <span class="schedule-header-badge" id="scheduleCount">—</span>
-        </div>
-      </div>
-      <div class="schedule-list" id="scheduleBody">
-        <div class="no-events" id="scheduleEmptyMsg">
-          📥 Nincs betöltött menetrend<br><br>
-          Használd a zöld sávban a <strong>📂 JSON betöltése</strong> gombot<br>
-          az időterv betöltéséhez.
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /main-body -->
-
-</div><!-- /app -->
-
-
+    <div id="scheduleBody"><div class="empty-msg">Töltsd be az időtervet (JSON)</div></div>
+  </section>
+</div>
+<div class="top-bar">
+  <div class="icon-btn" id="modeBtn">🌙</div>
+  <div class="icon-btn" id="testBtn">🕹</div>
+</div>
+<div class="test-bar" id="testBar">
+  <input type="datetime-local" id="testDateInput">
+  <button onclick="activateTestMode()">▶ SET</button>
+  <button onclick="deactivateTestMode()">✕</button>
+</div>
 <script>
-// ============================================================
-// FULL SCHEDULE DATA
-// ============================================================
-
-const SCHEDULE = [];
-let scheduleManuallyLoaded = false;
-
-// ============================================================
-// HORN SOUND
-// ============================================================
-let audioCtx = null;
-
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
+const DAY_NAMES=['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'];
+const MONTH_NAMES=['Jan','Feb','Már','Ápr','Máj','Jún','Júl','Aug','Szep','Okt','Nov','Dec'];
+function pad(n){return String(n).padStart(2,'0')}
+let processedSchedule=[];
+let categoryLogos={};
+let scheduleManuallyLoaded=false;
+let testModeTime=null,testModeStartedAt=0;
+const hornFired=new Set(),liveHornFired=new Set();
+function getNow(){return testModeTime===null?new Date():new Date(testModeTime.getTime()+(Date.now()-testModeStartedAt))}
+function parseEventDateTime(date,timeStr){
+  if(!timeStr)return null;
+  const p=timeStr.split(':').map(Number);
+  const[y,mo,d]=date.split('-').map(Number);
+  return new Date(y,mo-1,d,p[0]||0,p[1]||0,p[2]||0,0);
 }
-
-let currentHornStyle = 3;
-
-const HORN_PRESETS = {
-  1: { name: 'Soft city horn',  low: 220.00, high: 440.00, dist: 100, dur: 1.5 },
-  2: { name: 'Standard horn',   low: 261.63, high: 523.25, dist: 200, dur: 1.5 },
-  3: { name: 'Truck/bus horn',  low: 311.13, high: 622.25, dist: 300, dur: 1.5 },
-  4: { name: 'Sport car horn',  low: 349.23, high: 698.46, dist: 350, dur: 1.5 },
-  5: { name: 'High alarm horn', low: 392.00, high: 783.99, dist: 400, dur: 1.5 },
-};
-
-function playHorn(styleNum) {
-  const style = HORN_PRESETS[styleNum || currentHornStyle] || HORN_PRESETS[3];
-  try {
-    const ctx = getAudioCtx();
-    const duration = style.dur;
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    const distortion = ctx.createWaveShaper();
-    const k = style.dist;
-    const curve = new Float32Array(256);
-    for (let i = 0; i < 256; i++) {
-      const x = (i * 2) / 256 - 1;
-      curve[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
-    }
-    distortion.curve = curve;
-    osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(style.low, ctx.currentTime);
-    osc2.type = 'square';
-    osc2.frequency.setValueAtTime(style.high, ctx.currentTime);
-    gainNode.gain.setValueAtTime(0.0, ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
-    gainNode.gain.setValueAtTime(0.5, ctx.currentTime + duration - 0.2);
-    gainNode.gain.linearRampToValueAtTime(0.0, ctx.currentTime + duration);
-    osc1.connect(distortion);
-    osc2.connect(distortion);
-    distortion.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    osc1.start(ctx.currentTime);
-    osc2.start(ctx.currentTime);
-    osc1.stop(ctx.currentTime + duration);
-    osc2.stop(ctx.currentTime + duration);
-  } catch(e) {
-    console.warn('Horn sound error:', e);
-  }
-}
-
-const hornFired = new Set();
-
-function checkHornEvents() {
-  if (testModeTime === null) return;
-  const now = getNow();
-  for (let ev of processedSchedule) {
-    if (!ev.horn || !ev.startDt) continue;
-    const diff = now - ev.startDt;
-    if (diff >= 0 && diff < 2000 && !hornFired.has(ev.idx)) {
-      hornFired.add(ev.idx);
-      playHorn();
+function loadNewSchedule(parsed){
+  const raw=parsed.schedule.map((ev,i)=>({...ev,startDt:parseEventDateTime(ev.date,ev.start),endDt:ev.end?parseEventDateTime(ev.date,ev.end):null,idx:i}));
+  raw.sort((a,b)=>(!a.startDt?1:!b.startDt?-1:a.startDt-b.startDt));
+  for(let i=0;i<raw.length;i++){
+    const ev=raw[i];
+    if(ev.endDt||ev.type==='procedure')continue;
+    for(let j=i+1;j<raw.length;j++){
+      const nev=raw[j];
+      if(!nev.startDt||nev.startDt<=ev.startDt)continue;
+      if((nev.startDt-ev.startDt)>4*60*60*1000)break;
+      ev.implicitEndDt=nev.startDt;break;
     }
   }
-}
-
-let liveHornFired = new Set();
-function checkLiveHorn() {
-  if (testModeTime !== null) return;
-  const now = getNow();
-  for (let ev of processedSchedule) {
-    if (!ev.horn || !ev.startDt) continue;
-    const diff = now - ev.startDt;
-    if (diff >= 0 && diff < 2000 && !liveHornFired.has(ev.idx)) {
-      liveHornFired.add(ev.idx);
-      playHorn();
-    }
-  }
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function parseEventDateTime(date, timeStr) {
-  if (!timeStr) return null;
-  const parts = timeStr.split(':').map(Number);
-  const h = parts[0] || 0;
-  const m = parts[1] || 0;
-  const s = parts[2] || 0;
-  const [y, mo, d] = date.split('-').map(Number);
-  const dt = new Date(y, mo - 1, d, h, m, s, 0);
-  return dt;
-}
-
-function toHHMMSS(totalSeconds) {
-  if (totalSeconds < 0) totalSeconds = 0;
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return { h, m, s };
-}
-
-function pad(n) { return String(n).padStart(2, '0'); }
-
-function getCategoryTag(cat) {
-  const labels = {
-    'WorldSBK': 'WorldSBK', 'WorldSSP': 'WorldSSP', 'WorldWCR': 'WorldWCR',
-    'R3': 'R3 CUP', 'MARSHAL': 'MARSHAL', 'OFFICIAL': 'OFFICIAL', 'TRACK': 'TRACK', 'Moto4NC': 'M4NC',
-  };
-  const label = labels[cat];
-  if (!label) return '';
-  return `<span class="cat-tag tag-${cat}">${label}</span>`;
-}
-
-function getItemClass(ev) {
-  if (ev.type === 'marshal')    return 't-marshal';
-  if (ev.type === 'race')       return 't-race';
-  if (ev.type === 'session')    return 't-session';
-  if (ev.type === 'procedure')  return 't-procedure';
-  return '';
-}
-
-const DAY_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-let processedSchedule = SCHEDULE.map((ev, i) => {
-  const startDt = parseEventDateTime(ev.date, ev.start);
-  const endDt = ev.end ? parseEventDateTime(ev.date, ev.end) : null;
-  return { ...ev, startDt, endDt, idx: i };
-});
-
-processedSchedule.sort((a, b) => {
-  if (!a.startDt) return 1;
-  if (!b.startDt) return -1;
-  return a.startDt - b.startDt;
-});
-
-for (let i = 0; i < processedSchedule.length; i++) {
-  const ev = processedSchedule[i];
-  if (ev.endDt || ev.type === 'procedure') continue;
-  for (let j = i + 1; j < processedSchedule.length; j++) {
-    const nextEv = processedSchedule[j];
-    if (!nextEv.startDt || nextEv.startDt <= ev.startDt) continue;
-    const gapMs = nextEv.startDt - ev.startDt;
-    if (gapMs > 4 * 60 * 60 * 1000) break;
-    ev.implicitEndDt = nextEv.startDt;
-    break;
-  }
-}
-
-processedSchedule.forEach((ev, i) => { ev.idx = i; });
-
-if (processedSchedule.length === 0) {
-  setTimeout(function() {
-    var champ = typeof activeChampionship !== 'undefined' ? activeChampionship : 'motogp';
-    if (typeof autoLoadSchedule === 'function') autoLoadSchedule(champ);
-  }, 500);
-}
-
-// ============================================================
-// JSON IMPORT
-// ============================================================
-
-async function handleJsonUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const statusEl = document.getElementById('pdfStatus');
-  const setStatus = (cls, msg) => { statusEl.className = 'pdf-status ' + cls; statusEl.textContent = msg; };
-  setStatus('loading', `📂 Beolvasás: ${file.name} ...`);
-  try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    if (!parsed.schedule || !Array.isArray(parsed.schedule)) throw new Error('Hiányzó schedule tömb — nem érvényes menetrend JSON');
-    if (parsed.schedule.length === 0) throw new Error('A schedule tömb üres');
-    setStatus('loading', `📥 ${parsed.schedule.length} esemény betöltése...`);
-    scheduleManuallyLoaded = true;
-    loadNewSchedule(parsed);
-    setStatus('ok', `✅ ${parsed.eventName || file.name} — ${parsed.schedule.length} esemény betöltve`);
-  } catch (err) {
-    console.error('JSON import error:', err);
-    setStatus('error', `❌ ${err.message}`);
-  }
-  event.target.value = '';
-}
-
-function exportScheduleJson() {
-  const data = {
-    eventName: document.title.replace(' — Race Control', ''),
-    exportedAt: new Date().toISOString(),
-    schedule: processedSchedule.map(ev => ({
-      date: ev.date, start: ev.start, end: ev.end || '',
-      name: ev.name, remark: ev.remark || '',
-      type: ev.type, category: ev.category, horn: ev.horn || false
-    }))
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = (data.eventName || 'schedule').replace(/\s+/g, '_') + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-const CLAUDE_SYSTEM_PROMPT = `Te egy versenyirányítási menetrend feldolgozó vagy.
-Kapsz egy motorsport verseny "Minute by Minute schedule" PDF-et.
-A feladatod: kinyerni az összes eseményt és visszaadni KIZÁRÓLAG valid JSON formátumban.
-
-A JSON struktúra:
-{
-  "eventName": "A verseny neve (pl. Superbike of Hungary 2026)",
-  "dateRange": "pl. 2026-04-29 to 2026-05-03",
-  "schedule": [
-    {
-      "date": "YYYY-MM-DD",
-      "start": "HH:MM" vagy "HH:MM:SS",
-      "end": "HH:MM" vagy "",
-      "name": "Esemény neve",
-      "remark": "Megjegyzés vagy üres string",
-      "type": "session" | "race" | "marshal" | "official" | "procedure",
-      "category": "WorldSBK" | "WorldSSP" | "WorldWCR" | "R3" | "MARSHAL" | "OFFICIAL" | "TRACK",
-      "horn": true | false
-    }
-  ]
-}
-
-Szabályok:
-- type="procedure": táblás jelzések (board+horn, seconds visszaszámlálás, pit lane events)
-- type="session": edzés, superpole, warm up
-- type="race": versenyrajtok (START OF THE RACE, RACE 1, RACE 2 stb.)
-- type="marshal": marshal akkreditáció, deployment, radio pick-up
-- type="official": FIM inspection, meeting, briefing
-- horn=true: csak akkor, ha a szövegben szerepel "+ horn" vagy "Horn" vagy "Board + Horn"
-- category: a kategória neve a szövegből (WorldSBK, WorldSSP, WorldWCR, R3/FIM Yamaha R3 stb.)
-- Ha a kategória nem meghatározható, használd az "OFFICIAL" értéket
-- MINDEN időponthoz tartozó eseményt vegyél fel, beleértve a másodperces visszaszámlálást is
-- Csak valid JSON-t adj vissza, semmi más szöveget, magyarázatot vagy markdown kódblokk jelölést`;
-
-async function handlePdfUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const statusEl = document.getElementById('pdfStatus');
-  const setStatus = (cls, msg) => { statusEl.className = 'pdf-status ' + cls; statusEl.textContent = msg; };
-  setStatus('loading', `📄 Fájl beolvasása: ${file.name} ...`);
-  try {
-    const base64Data = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = () => reject(new Error('Fájl olvasási hiba'));
-      reader.readAsDataURL(file);
-    });
-    setStatus('loading', `🤖 Claude elemzi a menetrendet... (ez 20-40 mp lehet)`);
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-default': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 16000,
-        system: CLAUDE_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Data } },
-          { type: 'text', text: 'Kérlek dolgozd fel ezt a motorsport menetrendet és add vissza a teljes JSON-t.' }
-        ]}]
-      })
-    });
-    if (!response.ok) {
-      let errMsg = `HTTP ${response.status}`;
-      try { const err = await response.json(); errMsg = err.error?.message || errMsg; } catch(e) {}
-      throw new Error(errMsg);
-    }
-    setStatus('loading', '📊 Válasz feldolgozása...');
-    const data = await response.json();
-    const rawText = data.content.map(c => c.text || '').join('');
-    if (!rawText) throw new Error('Üres válasz az API-tól');
-    const clean = rawText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch(e) {
-      const match = clean.match(/\{[\s\S]*\}/);
-      if (match) { parsed = JSON.parse(match[0]); }
-      else { throw new Error('JSON értelmezési hiba: ' + e.message); }
-    }
-    if (!parsed.schedule || !Array.isArray(parsed.schedule)) throw new Error('Hiányzó schedule tömb a válaszban');
-    if (parsed.schedule.length === 0) throw new Error('A schedule tömb üres');
-    setStatus('loading', `📥 ${parsed.schedule.length} esemény betöltése...`);
-    loadNewSchedule(parsed);
-    setStatus('ok', `✅ ${parsed.eventName || file.name} — ${parsed.schedule.length} esemény betöltve`);
-  } catch (err) {
-    console.error('PDF import error:', err);
-    setStatus('error', `❌ ${err.message}`);
-  }
-  event.target.value = '';
-}
-
-// ============================================================
-// AUTOMATIKUS IDŐTERV BETÖLTÉS
-// ============================================================
-
-async function autoLoadSchedule(championship) {
-  if (scheduleManuallyLoaded) return;
-  if (championship === 'wsbk') { await autoLoadWsbkSchedule(); }
-  else if (championship === 'motogp') { await autoLoadMotogpSchedule(); }
-}
-
-async function autoLoadWsbkSchedule() {
-  try {
-    var auto = typeof autoSelectWsbkEvent === 'function' ? autoSelectWsbkEvent() : {code: wsbkEvent, year: wsbkYear};
-    var url = 'https://motogp-proxy.porkolab-jozsef.workers.dev/wsbk-schedule/' + auto.code + '/' + auto.year;
-    var r = await fetch(url);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    var data = await r.json();
-    if (!data.sessions || !data.sessions.length) throw new Error('Nincs session adat');
-    var evInfo = (WSBK_EVENTS[auto.year] || []).find(function(e){ return e.code === auto.code; });
-    var evName = evInfo ? evInfo.name : auto.code;
-    var circuit = evInfo ? (evInfo.circuit || '') : '';
-    var schedule = data.sessions.map(function(s) {
-      var cat = s.series || 'WorldSBK';
-      var type = 'session';
-      var name = s.name || cat;
-      var lname = name.toLowerCase();
-      if (lname.includes('race') || lname.includes('superpole race') || lname.includes('sprint')) type = 'race';
-      return {
-        date: s.start.slice(0, 10), start: s.start.slice(11, 16),
-        end: s.end ? s.end.slice(11, 16) : '', name: name,
-        remark: '', type: type, category: cat, horn: false, finished: s.finished || false
-      };
-    });
-    if (!schedule.length) throw new Error('Üres menetrend');
-    var firstDate = schedule[0].date;
-    var lastDate = schedule[schedule.length-1].date;
-    loadNewSchedule({ eventName: evName, circuit: circuit, dateRange: firstDate + ' to ' + lastDate, schedule: schedule });
-    var statusEl = document.getElementById('pdfStatus');
-    if (statusEl) { statusEl.className = 'pdf-status ok'; statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve'; }
-  } catch(e) { console.warn('[AUTO SCHEDULE] WSBK betöltés sikertelen:', e.message); }
-}
-
-async function autoLoadMotogpSchedule() {
-  try {
-    var seasonUuid = SEASON_UUIDS[selectedYear];
-    if (!seasonUuid) throw new Error('Ismeretlen szezon');
-    var now = new Date();
-    var evList = (SEASON_EVENTS[selectedYear] || []);
-    var targetEv = null;
-    for (var i = 0; i < evList.length; i++) {
-      var ev = evList[i];
-      var evStart = new Date(ev.date + 'T00:00:00');
-      var evEnd = new Date((ev.dateEnd || ev.date) + 'T23:59:59');
-      if (now >= evStart && now <= evEnd) { targetEv = ev; break; }
-    }
-    if (!targetEv) {
-      for (var i = 0; i < evList.length; i++) {
-        var ev = evList[i];
-        if (new Date(ev.date + 'T00:00:00') > now) { targetEv = ev; break; }
-      }
-    }
-    if (!targetEv && evList.length) targetEv = evList[evList.length - 1];
-    if (!targetEv) throw new Error('Nincs forduló adat');
-    var events = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=false');
-    var allEvents = events.concat ? events : (events.events || []);
-    var apiEv = null;
-    for (var i = 0; i < allEvents.length; i++) {
-      var e = allEvents[i];
-      if ((e.short_name||'').toUpperCase() === targetEv.code.toUpperCase() ||
-          (e.additional_name||'').toUpperCase() === targetEv.code.toUpperCase()) { apiEv = e; break; }
-    }
-    if (!apiEv) {
-      var finEvents = await apiGet('events?seasonUuid=' + seasonUuid + '&isFinished=true');
-      var allFin = finEvents.concat ? finEvents : (finEvents.events || []);
-      for (var i = 0; i < allFin.length; i++) {
-        var e = allFin[i];
-        if ((e.short_name||'').toUpperCase() === targetEv.code.toUpperCase()) { apiEv = e; break; }
-      }
-    }
-    if (!apiEv) throw new Error('Forduló nem található az API-ban: ' + targetEv.code);
-    var cats = ['MotoGP', 'Moto2', 'Moto3'];
-    var schedule = [];
-    var sessTypeToName = {
-      'FP':'Free Practice','FP1':'Free Practice 1','FP2':'Free Practice 2',
-      'PR':'Practice','Q1':'Qualifying 1','Q2':'Qualifying 2',
-      'SPR':'Sprint Race','WUP':'Warm Up','RAC':'Race','RAC2':'Race 2'
-    };
-    for (var ci = 0; ci < cats.length; ci++) {
-      var cat = cats[ci];
-      var catUuid = CAT_UUIDS[cat];
-      if (!catUuid) continue;
-      try {
-        var sessions = await apiGet('sessions?eventUuid=' + apiEv.id + '&categoryUuid=' + catUuid);
-        if (!sessions || !sessions.length) continue;
-        for (var si = 0; si < sessions.length; si++) {
-          var s = sessions[si];
-          if (!s.date || !s.time_start) continue;
-          var sType = (s.type || '').toUpperCase();
-          var sName = sessTypeToName[sType] || s.type || s.name || sType;
-          var fullName = cat + ' ' + sName;
-          var type = (sType === 'RAC' || sType === 'RAC2' || sType === 'SPR') ? 'race' : 'session';
-          var startStr = (s.time_start || '').slice(0, 5);
-          var endStr = (s.time_end || s.duration ? computeEndTime(s.time_start, s.duration_minutes) : '');
-          schedule.push({ date: s.date, start: startStr, end: endStr, name: fullName, remark: '', type: type, category: cat, horn: false });
-        }
-      } catch(ce) {}
-    }
-    if (!schedule.length) throw new Error('Nincs session adat az API-ból');
-    schedule.sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); });
-    var dateRange = schedule[0].date + ' to ' + schedule[schedule.length-1].date;
-    var evName = (apiEv.name || targetEv.name || targetEv.code) + ' ' + selectedYear;
-    loadNewSchedule({ eventName: evName, circuit: apiEv.circuit || '', dateRange: dateRange, schedule: schedule });
-    var statusEl = document.getElementById('pdfStatus');
-    if (statusEl) { statusEl.className = 'pdf-status ok'; statusEl.textContent = '✅ ' + evName + ' — automatikusan betöltve'; }
-  } catch(e) { console.warn('[AUTO SCHEDULE] MotoGP betöltés sikertelen:', e.message); }
-}
-
-function computeEndTime(timeStart, durationMin) {
-  if (!timeStart || !durationMin) return '';
-  var parts = timeStart.split(':');
-  var h = parseInt(parts[0]), m = parseInt(parts[1]);
-  var total = h * 60 + m + parseInt(durationMin);
-  return String(Math.floor(total/60)).padStart(2,'0') + ':' + String(total%60).padStart(2,'0');
-}
-
-function loadNewSchedule(parsed) {
-  const newRaw = parsed.schedule.map((ev, i) => {
-    const startDt = parseEventDateTime(ev.date, ev.start);
-    const endDt = ev.end ? parseEventDateTime(ev.date, ev.end) : null;
-    return { ...ev, startDt, endDt, idx: i };
-  });
-  newRaw.sort((a, b) => {
-    if (!a.startDt) return 1;
-    if (!b.startDt) return -1;
-    return a.startDt - b.startDt;
-  });
-  for (let i = 0; i < newRaw.length; i++) {
-    const ev = newRaw[i];
-    if (ev.endDt || ev.type === 'procedure') continue;
-    for (let j = i + 1; j < newRaw.length; j++) {
-      const nextEv = newRaw[j];
-      if (!nextEv.startDt || nextEv.startDt <= ev.startDt) continue;
-      const gapMs = nextEv.startDt - ev.startDt;
-      if (gapMs > 4 * 60 * 60 * 1000) break;
-      ev.implicitEndDt = nextEv.startDt;
-      break;
-    }
-  }
-  newRaw.forEach((ev, i) => { ev.idx = i; });
-  processedSchedule.length = 0;
-  newRaw.forEach(ev => processedSchedule.push(ev));
-  hornFired.clear();
-  liveHornFired.clear();
+  raw.forEach((ev,i)=>{ev.idx=i});
+  processedSchedule.length=0;
+  raw.forEach(ev=>processedSchedule.push(ev));
+  hornFired.clear();liveHornFired.clear();
   categoryLogos = parsed.categoryLogos || {};
-  currentBgCategory = null;
-  if (parsed.eventName) {
-    const parts = parsed.eventName.toUpperCase().split(' ');
-    const last = parts.pop();
-    document.getElementById('headerTitle').innerHTML = parts.join(' ') + ' <span>' + last + '</span>';
-    document.getElementById('headerTitle').previousElementSibling.textContent = parsed.circuit || 'RACE CONTROL';
-  }
-  if (parsed.dateRange) {
-    const dates = parsed.dateRange.match(/(\d{4}-\d{2}-\d{2})/g);
-    if (dates && dates.length >= 1) { document.getElementById('testDateInput').value = dates[0] + 'T09:00'; }
-  } else if (newRaw.length > 0 && newRaw[0].startDt) {
-    document.getElementById('testDateInput').value = newRaw[0].date + 'T09:00';
-  }
-  buildSchedule();
-  updateDashboard();
-  saveScheduleToStorage(parsed);
+  buildSchedule();updateDashboard();saveScheduleToStorage(parsed);
 }
-
-// ============================================================
-// 4. PANEL — LOGO + EREDMÉNYEK
-// ============================================================
-const PROXY = 'https://motogp-proxy.porkolab-jozsef.workers.dev/';
-const MOTOGP_CATEGORIES = ['MotoGP', 'Moto2', 'Moto3'];
-const WSBK_CATEGORIES = ['WorldSBK', 'WorldSSP', 'WorldWCR', 'R3', 'WorldSPB'];
-const SEASON_UUIDS = {
-  '2026': 'e88b4e43-2209-47aa-8e83-0e0b1cedde6e',
-  '2025': 'ae6c6f0d-c652-44f8-94aa-420fc5b3dab4',
-  '2024': 'dd12382e-1d9f-46ee-a5f7-c5104db28e43',
-  '2023': 'db8dc197-c7b2-4c1b-b3a4-6dc534c023ef'
-};
-const CAT_UUIDS = {
-  'MotoGP': 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942',
-  'Moto2':  '549640b8-fd9c-4245-acfd-60e4bc38b25c',
-  'Moto3':  '954f7e65-2ef2-4423-b949-4961cc603e45'
-};
-const SEASONS = ['2026', '2025', '2024', '2023'];
-const SEASON_EVENTS = {
-  '2026': [
-    {code:'THA',name:'Thailand',          date:'2026-02-27',dateEnd:'2026-03-01'},
-    {code:'BRA',name:'Brazil',            date:'2026-03-20',dateEnd:'2026-03-22'},
-    {code:'USA',name:'USA',               date:'2026-03-27',dateEnd:'2026-03-29'},
-    {code:'SPA',name:'Spain',             date:'2026-04-24',dateEnd:'2026-04-26'},
-    {code:'FRA',name:'France',            date:'2026-05-08',dateEnd:'2026-05-10'},
-    {code:'CAT',name:'Catalonia',         date:'2026-05-15',dateEnd:'2026-05-17'},
-    {code:'ITA',name:'Italy',             date:'2026-05-29',dateEnd:'2026-05-31'},
-    {code:'HUN',name:'Hungary',           date:'2026-06-05',dateEnd:'2026-06-07'},
-    {code:'CZE',name:'Czech Republic',    date:'2026-06-19',dateEnd:'2026-06-21'},
-    {code:'NED',name:'Netherlands',       date:'2026-06-26',dateEnd:'2026-06-28'},
-    {code:'GER',name:'Germany',           date:'2026-07-10',dateEnd:'2026-07-12'},
-    {code:'GBR',name:'Great Britain',     date:'2026-08-07',dateEnd:'2026-08-09'},
-    {code:'ARA',name:'Aragon',            date:'2026-08-28',dateEnd:'2026-08-30'},
-    {code:'RSM',name:'San Marino',        date:'2026-09-11',dateEnd:'2026-09-13'},
-    {code:'AUT',name:'Austria',           date:'2026-09-18',dateEnd:'2026-09-20'},
-    {code:'JPN',name:'Japan',             date:'2026-10-02',dateEnd:'2026-10-04'},
-    {code:'INA',name:'Indonesia',         date:'2026-10-09',dateEnd:'2026-10-11'},
-    {code:'AUS',name:'Australia',         date:'2026-10-23',dateEnd:'2026-10-25'},
-    {code:'MAL',name:'Malaysia',          date:'2026-10-30',dateEnd:'2026-11-01'},
-    {code:'QAT',name:'Qatar',             date:'2026-11-08',dateEnd:'2026-11-10'},
-    {code:'POR',name:'Portugal',          date:'2026-11-13',dateEnd:'2026-11-15'},
-    {code:'VAL',name:'Valencia',          date:'2026-11-20',dateEnd:'2026-11-22'}
-  ],
-  '2025': [
-    {code:'THA',name:'Thailand'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
-    {code:'QAT',name:'Qatar'},{code:'SPA',name:'Spain'},{code:'FRA',name:'France'},
-    {code:'GBR',name:'Great Britain'},{code:'ARA',name:'Aragon'},{code:'ITA',name:'Italy'},
-    {code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},{code:'CZE',name:'Czech Republic'},
-    {code:'AUT',name:'Austria'},{code:'HUN',name:'Hungary'},{code:'RSM',name:'San Marino'},
-    {code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},
-    {code:'MAL',name:'Malaysia'},{code:'POR',name:'Portugal'},{code:'VAL',name:'Valencia'}
-  ],
-  '2024': [
-    {code:'QAT',name:'Qatar'},{code:'POR',name:'Portugal'},{code:'USA',name:'USA'},
-    {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
-    {code:'CAT',name:'Catalonia'},{code:'NED',name:'Netherlands'},{code:'GER',name:'Germany'},
-    {code:'GBR',name:'Great Britain'},{code:'AUT',name:'Austria'},{code:'ARA',name:'Aragon'},
-    {code:'RSM',name:'San Marino'},{code:'EMI',name:'Emilia Romagna'},{code:'INA',name:'Indonesia'},
-    {code:'JPN',name:'Japan'},{code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},
-    {code:'MAL',name:'Malaysia'},{code:'VAL',name:'Valencia'}
-  ],
-  '2023': [
-    {code:'POR',name:'Portugal'},{code:'ARG',name:'Argentina'},{code:'USA',name:'USA'},
-    {code:'ESP',name:'Spain'},{code:'FRA',name:'France'},{code:'ITA',name:'Italy'},
-    {code:'GER',name:'Germany'},{code:'NED',name:'Netherlands'},{code:'GBR',name:'Great Britain'},
-    {code:'AUT',name:'Austria'},{code:'CAT',name:'Catalonia'},{code:'RSM',name:'San Marino'},
-    {code:'IND',name:'India'},{code:'INA',name:'Indonesia'},{code:'JPN',name:'Japan'},
-    {code:'AUS',name:'Australia'},{code:'THA',name:'Thailand'},{code:'MAL',name:'Malaysia'},
-    {code:'VAL',name:'Valencia'}
-  ]
-};
-
-let selectedYear = '2026';
-let selectedEventCode = 'FRA';
-let selectedCat = 'MotoGP';
-let autoCat = 'MotoGP';
-let selectedSession = 'RAC';
-let autoTimer = null;
-let fetchInterval = null;
-let m4ncCircuit = 'BAL';
-let m4ncSession = 'RAC1';
-let isFetching = false;
-
-const SESSION_TYPES_MOTOGP = ['FP1','FP2','PR','Q1','Q2','SPR','WUP','RAC'];
-const SESSION_TYPES_OTHER  = ['FP1','FP2','PR','Q1','Q2','WUP','RAC'];
-function getSessionTypes() { return selectedCat === 'MotoGP' ? SESSION_TYPES_MOTOGP : SESSION_TYPES_OTHER; }
-
-function initResultsPanel() {
-  const { current, next } = findCurrentAndNext(getNow());
-  const activeCat = (current && current.category) || (next && next.category);
-  if (MOTOGP_CATEGORIES.includes(activeCat)) { autoCat = activeCat; selectedCat = activeCat; }
-  selectedYear = '2026';
-  const evs = SEASON_EVENTS['2026'] || [];
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0,10);
-  const activeEv = evs.find(e => e.date && e.dateEnd && todayStr >= e.date && todayStr <= e.dateEnd);
-  const lastPassed = evs.filter(e => e.dateEnd && new Date(e.dateEnd) < now).pop();
-  selectedEventCode = (activeEv || lastPassed || evs[0]).code;
-  renderPanel();
-  doFetch();
-  fetchInterval = setInterval(doFetch, 30000);
-}
-
-function autoSelectMotoGPEvent() {
-  const now2 = new Date();
-  const todayStr2 = now2.toISOString().slice(0,10);
-  const evs2 = SEASON_EVENTS[selectedYear] || [];
-  const activeEv2 = evs2.find(e => e.date && e.dateEnd && todayStr2 >= e.date && todayStr2 <= e.dateEnd);
-  const lastPassed2 = evs2.filter(e => e.dateEnd && new Date(e.dateEnd) < now2).pop();
-  return (activeEv2 || lastPassed2 || evs2[0] || {}).code || selectedEventCode;
-}
-
-function resetAutoTimer() {
-  clearTimeout(autoTimer);
-  autoTimer = setTimeout(() => {
-    const { current, next } = findCurrentAndNext(getNow());
-    const activeCat = (current && current.category) || (next && next.category);
-    if (MOTOGP_CATEGORIES.includes(activeCat)) { selectedCat = activeCat; } else { selectedCat = autoCat; }
-    selectedEventCode = autoSelectMotoGPEvent();
-    selectedSession = 'RAC';
-    renderPanel();
-    doFetch();
-  }, 30000);
-}
-
-function switchYear(year) { selectedYear = year; selectedEventCode = autoSelectMotoGPEvent(); resetAutoTimer(); renderPanel(); doFetch(); }
-function switchEventCode(code) { selectedEventCode = code; resetAutoTimer(); doFetch(); if(typeof renderRecordPanel==='function') renderRecordPanel(); }
-function switchCat(cat) {
-  selectedCat = cat;
-  if (selectedSession === 'SPR' && cat !== 'MotoGP') selectedSession = 'RAC';
-  resetAutoTimer(); renderPanel(); doFetch();
-  if(typeof renderRecordPanel==='function') renderRecordPanel();
-}
-function switchSession(sess) { selectedSession = sess; resetAutoTimer(); renderPanel(); doFetch(); }
-
-function renderPanel() {
-  const panel = document.getElementById('logoPanel');
-  if (!panel) return;
-  const img = document.getElementById('logoPanelImg');
-  const ph  = document.getElementById('logoPlaceholder');
-  if (img) img.style.display = 'none';
-  if (ph)  ph.style.display  = 'none';
-  let tp = document.getElementById('timingPanel');
-  if (!tp) { tp = document.createElement('div'); tp.id = 'timingPanel'; panel.appendChild(tp); }
-  tp.style.cssText = 'width:100%;flex:1;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;';
-  const evList = SEASON_EVENTS[selectedYear] || [];
-  function catLogo(cat) { return getLogoUrl(cat) || ''; }
-  const { current, next } = findCurrentAndNext(getNow());
-  const schedCat = (current && current.category) || (next && next.category);
-  const isAuto = cat => MOTOGP_CATEGORIES.includes(schedCat) && cat === schedCat;
-  var champRow = '<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">';
-  champRow += '<button onclick="switchChampionship(\'motogp\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid var(--green);background:rgba(29,185,84,0.15);color:var(--green);">MotoGP</button>';
-  champRow += '<button onclick="switchChampionship(\'wsbk\')" style="flex:1;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:2px;padding:7px 4px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text-dim);">WSBK</button>';
-  champRow += '</div>';
-  tp.innerHTML = champRow;
-
-  tp.insertAdjacentHTML('beforeend', `
-    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
-        <select onchange="switchYear(this.value)"
-          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--red);
-          border:1px solid var(--red);padding:2px 4px;cursor:pointer;border-radius:2px;width:60px;">
-          ${SEASONS.map(y=>`<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')}
-        </select>
-        <select onchange="switchEventCode(this.value)"
-          style="font-family:'Oswald',sans-serif;font-size:10px;background:#1e1e1e;color:var(--off-white);
-          border:1px solid rgba(255,255,255,0.3);padding:2px 4px;cursor:pointer;border-radius:2px;width:120px;">
-          ${evList.map(e=>`<option value="${e.code}" ${e.code===selectedEventCode?'selected':''}>${e.name}</option>`).join('')}
-        </select>
-      </div>
-      <div style="display:flex;flex:1;gap:4px;justify-content:flex-end;">
-        ${MOTOGP_CATEGORIES.map(cat => {
-          const active = cat === selectedCat;
-          const auto = isAuto(cat);
-          const logo = catLogo(cat);
-          return `<button onclick="switchCat('${cat}')"
-            style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;
-            background:${active?'rgba(29,185,84,0.2)':'rgba(255,255,255,0.03)'};
-            border-color:${active?'var(--green)':'rgba(255,255,255,0.15)'};
-            position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
-            ${auto?`<span style="position:absolute;top:2px;left:4px;color:var(--green);font-size:10px;">●</span>`:''}
-            ${logo
-              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\\'font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid)\\'>${cat}</span>'">`
-              : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'var(--green)':'var(--text-mid)'};">${cat}</span>`
-            }
-          </button>`;
-        }).join('')}
-        ${M4NC_EVENTS[selectedEventCode] ? (()=>{
-          const active = selectedCat === 'Moto4NC';
-          const logo = catLogo('Moto4NC');
-          return `<button onclick="switchCat('Moto4NC')"
-            style="flex:1;padding:4px 6px;cursor:pointer;border:2px solid;border-radius:3px;
-            background:${active?'rgba(118,196,66,0.2)':'rgba(255,255,255,0.03)'};
-            border-color:${active?'#76c442':'rgba(255,255,255,0.15)'};
-            position:relative;display:flex;align-items:center;justify-content:center;min-height:36px;">
-            ${logo
-              ? `<img src="${logo}" style="max-height:24px;max-width:100%;object-fit:contain;opacity:${active?1:0.5};" onerror="this.outerHTML='<span style=\\'font-family:Oswald,sans-serif;font-size:9px;color:#76c442\\'>M4NC</span>'">`
-              : `<span style="font-family:'Oswald',sans-serif;font-size:9px;color:${active?'#76c442':'var(--text-mid)'};">M4NC</span>`
-            }
-          </button>`;
-        })() : ''}
-      </div>
-    </div>
-    <div style="display:flex;gap:3px;padding:5px 8px;flex-shrink:0;">
-      ${selectedCat === 'Moto4NC' ?
-        ['FP1','FP2','QUA','RAC1','RAC2'].map(s => {
-          const lbl = {FP1:'FP1',FP2:'FP2',QUA:'QUAL',RAC1:'RAC1',RAC2:'RAC2'}[s]||s;
-          const sub = {FP1:'péntek',FP2:'péntek',QUA:'péntek',RAC1:'szombat',RAC2:'vasárnap'}[s]||'';
-          return `<button onclick="switchM4ncSession('${s}')"
-            style="flex:1;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;
-            padding:4px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
-            background:${s===m4ncSession?'rgba(118,196,66,0.25)':'rgba(255,255,255,0.05)'};
-            border-color:${s===m4ncSession?'#76c442':'rgba(255,255,255,0.15)'};
-            color:${s===m4ncSession?'#76c442':'var(--text-mid)'};">
-            <div>${lbl}</div><div style="font-size:7px;opacity:0.65;margin-top:1px;">${sub}</div>
-          </button>`;
-        }).join('')
-        :
-        getSessionTypes().map(sess => {
-          const active = sess === selectedSession;
-          return `<button onclick="switchSession('${sess}')"
-            style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
-            padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
-            background:${active?'rgba(245,196,0,0.25)':'rgba(255,255,255,0.05)'};
-            border-color:${active?'var(--yellow)':'rgba(255,255,255,0.15)'};
-            color:${active?'var(--yellow)':'var(--text-dim)'};">${sess}</button>`;
-        }).join('')
-        + `<button onclick="switchSession('STANDINGS')"
-          style="flex:1;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
-          padding:6px 2px;cursor:pointer;text-transform:uppercase;border:1px solid;border-radius:2px;
-          background:${'STANDINGS'===selectedSession?'rgba(29,185,84,0.25)':'rgba(255,255,255,0.05)'};
-          border-color:${'STANDINGS'===selectedSession?'var(--green)':'rgba(255,255,255,0.15)'};
-          color:${'STANDINGS'===selectedSession?'var(--green)':'var(--text-dim)'};">STD</button>`
-      }
-    </div>
-    <div id="timingResults" style="flex:1;overflow:auto;padding:4px 8px;">
-      <div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>
-    </div>
-  `);
-}
-
-async function doFetch() {
-  if (isFetching) return;
-  isFetching = true;
-  const rd = document.getElementById('timingResults');
-  if (!rd) { isFetching = false; return; }
-  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
-  try {
-    if (selectedCat === 'Moto4NC') {
-      isFetching = false; await doM4ncFetch(); return;
-    } else if (selectedSession === 'STANDINGS') { await doStandings(rd); }
-    else { await doResults(rd); }
-  } catch(e) {
-    rd.innerHTML = `<div style="color:var(--red);font-size:9px;padding:4px;">❌ ${e.message}</div>`;
-  } finally { isFetching = false; }
-}
-
-async function apiGet(path) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 8000);
-  try {
-    const r = await fetch(PROXY + path, { signal: ctrl.signal });
-    clearTimeout(t);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return await r.json();
-  } catch(e) { clearTimeout(t); throw e.name === 'AbortError' ? new Error('Időtúllépés') : e; }
-}
-
-async function doResults(rd) {
-  const seasonUuid = SEASON_UUIDS[selectedYear];
-  if (!seasonUuid) throw new Error('Ismeretlen szezon');
-  if (selectedYear === '2026') {
-    try {
-      const live = await apiGet('timing-gateway/livetiming-lite');
-      if (live && live.head && live.rider && Object.keys(live.rider).length > 0) {
-        const liveCat = (live.head.category || '').replace('™','');
-        if (liveCat.toLowerCase().includes(selectedCat.toLowerCase()) ||
-            selectedCat.toLowerCase().includes(liveCat.toLowerCase())) { showLive(rd, live); return; }
-      }
-    } catch(e) {}
-  }
-  const events = await apiGet(`events?seasonUuid=${seasonUuid}&isFinished=true`);
-  const races = events.filter(e => !e.test);
-  if (!races.length) throw new Error('Nincs befejezett futam');
-  const ev = races.find(e =>
-    (e.short_name||'').toUpperCase() === selectedEventCode.toUpperCase() ||
-    (e.additional_name||'').toUpperCase() === selectedEventCode.toUpperCase()
-  );
-  if(!ev) {
-    const evInfo = (SEASON_EVENTS[selectedYear]||[]).find(e=>e.code===selectedEventCode);
-    const evName = evInfo ? evInfo.name : selectedEventCode;
-    const dateStr = evInfo && evInfo.date ? evInfo.date.replace(/-/g,'.') + (evInfo.dateEnd ? ' – ' + evInfo.dateEnd.replace(/-/g,'.') : '') : '';
-    rd.innerHTML = '<div style="text-align:center;padding:20px 8px;">'
-      + '<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text-mid);letter-spacing:2px;margin-bottom:8px;">'+evName.toUpperCase()+'</div>'
-      + (dateStr ? '<div style="font-family:Oswald,sans-serif;font-size:14px;color:var(--yellow);">'+dateStr+'</div>' : '')
-      + '<div style="font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px;">MÉG NEM ZAJLOTT LE</div>'
-      + '</div>';
-    if(typeof renderRecordPanel==='function') renderRecordPanel();
-    return;
-  }
-  const evFinal = ev || races[races.length - 1];
-  const sessions = await apiGet(`sessions?eventUuid=${evFinal.id}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
-  if (!sessions.length) throw new Error('Nincs session');
-  const sessTypeMap = {
-    'FP1':['FP','FP1','P1'],'FP2':['FP2','P2'],'PR':['PR','P'],
-    'Q1':['Q1'],'Q2':['Q2','Q'],'SPR':['SPR','S'],
-    'WUP':['WUP','WU','W'],'RAC':['RAC','R']
-  };
-  const typeCodes = sessTypeMap[selectedSession] || [selectedSession];
-  let sess;
-  if (selectedSession === 'RAC' || selectedSession === 'SPR') {
-    const matching = sessions.filter(s => typeCodes.some(code => (s.type||'').toUpperCase() === code.toUpperCase()));
-    sess = matching.length ? matching[matching.length - 1] : null;
-  } else {
-    sess = sessions.find(s => typeCodes.some(code => (s.type||'').toUpperCase() === code.toUpperCase()));
-  }
-  if (!sess) {
-    const fpSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('FP') || (s.type||'').toUpperCase() === 'P');
-    if (selectedSession === 'FP1') sess = fpSessions[0];
-    else if (selectedSession === 'FP2') sess = fpSessions[1] || fpSessions[0];
-    const qSessions = sessions.filter(s => (s.type||'').toUpperCase().includes('Q'));
-    if (selectedSession === 'Q1') sess = qSessions[0];
-    else if (selectedSession === 'Q2') sess = qSessions[1] || qSessions[0];
-  }
-  if (!sess) {
-    const finished = sessions.filter(s => s.status === 'Finished');
-    sess = finished.length ? finished[finished.length-1] : sessions[sessions.length-1];
-  }
-  const cls = await apiGet(`session/${sess.id}/classification?test=false`);
-  const riders = cls.classification || cls;
-  showResults(rd, riders, evFinal.name || evFinal.short_name, sess.type || sess.name, selectedCat);
-}
-
-async function doStandings(rd) {
-  const seasonUuid = SEASON_UUIDS[selectedYear];
-  if (!seasonUuid) throw new Error('Ismeretlen szezon');
-  try {
-    const xmlUrl = `https://resources.motogp.com/files/results/${selectedYear}/${selectedEventCode}/${selectedCat}/RAC/worldstanding.XML`;
-    const r = await fetch(xmlUrl);
-    if (r.ok) { const xml = await r.text(); const parser = new DOMParser(); const doc = parser.parseFromString(xml, 'text/xml'); showStandingsXml(rd, doc); return; }
-  } catch(e) {}
-  const data = await apiGet(`standings?seasonUuid=${seasonUuid}&categoryUuid=${CAT_UUIDS[selectedCat]}`);
-  const riders = data.classification || data;
-  if (!riders || !riders.length) throw new Error('Nincs pontállás');
-  showStandings(rd, riders);
-}
-
-function showLive(el, data) {
-  const h = data.head;
-  const riders = Object.values(data.rider).filter(r => r.pos > 0).sort((a,b) => a.pos - b.pos);
-  const status = h.session_status_id === 'R' ? '🔴 LIVE' : '🏁 ' + (h.session_shortname || '');
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">
-    <span style="color:var(--green);">${h.category} · ${h.session_name}</span>
-    <span>${status}</span></div>`;
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i) => {
-    const pc = r.pos===1?'#f5c400':r.pos===2?'#aaa':r.pos===3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${r.pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider_number}</td>
-      <td style="padding:2px 3px;color:${r.trac_status==='T'?'var(--green)':'var(--white)'}">${r.rider_surname}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap_first>0?'+'+r.gap_first:'—'}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.lap_time}</td>
-    </tr>`;
-  });
-  el.innerHTML = html + '</table>';
-}
-
-function showResults(el, riders, evName, sessType, cat) {
-  if (!riders || !riders.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs adat</div>'; return; }
-  const sl = sessType==='RAC'?'RACE':sessType==='SPR'?'SPRINT':sessType==='Q'||sessType==='Q2'?'QUALIFYING':sessType==='FP'?'FREE PRACTICE':sessType;
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--green);">${cat}</span> · ${evName} · ${sl}</div>`;
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i) => {
-    const pos = r.position||(i+1);
-    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
-      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-mid);font-size:9px;">${r.gap?.first||r.gap||''}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--green);font-size:9px;">${r.best_lap?.time||r.time||''}</td>
-    </tr>`;
-  });
-  el.innerHTML = html + '</table>';
-}
-
-function showStandings(el, riders) {
-  const leader = riders[0]?.points || 0;
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  riders.slice(0,20).forEach((r,i) => {
-    const pos = r.position||(i+1);
-    const pc = pos===1?'#f5c400':pos===2?'#aaa':pos===3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${r.rider?.number||''}</td>
-      <td style="padding:2px 3px;color:var(--white)">${r.rider?.full_name||r.rider?.surname||r.name||'—'}</td>
-      <td style="padding:2px 3px;text-align:right;color:${pos===1?'#f5c400':'var(--green)'};font-weight:bold;">${r.points||0}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${i===0?'—':'-'+(leader-(r.points||0))}</td>
-    </tr>`;
-  });
-  el.innerHTML = html + '</table>';
-}
-
-function showStandingsXml(el, doc) {
-  const entries = Array.from(doc.querySelectorAll('Standing, ClassificationEntry, Entry, Rider'));
-  if (!entries.length) { el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">Nincs pontállás</div>'; return; }
-  const leader = parseFloat(entries[0]?.getAttribute('Points') || entries[0]?.getAttribute('points') || 0);
-  let html = `<div style="font-family:'Oswald',sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;">
-    <span style="color:var(--yellow);">${selectedCat}</span> · ${selectedYear} STANDINGS</div>`;
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  entries.slice(0,20).forEach((e,i) => {
-    const pos = e.getAttribute('Position') || e.getAttribute('position') || (i+1);
-    const num = e.getAttribute('RacingNumber') || e.getAttribute('Number') || '';
-    const name = e.getAttribute('Rider') || e.getAttribute('RiderName') || e.getAttribute('name') || '—';
-    const pts = parseFloat(e.getAttribute('Points') || e.getAttribute('points') || 0);
-    const gap = i===0?'—':`-${(leader-pts).toFixed(1)}`;
-    const pc = pos==1?'#f5c400':pos==2?'#aaa':pos==3?'#cd7f32':'var(--off-white)';
-    html += `<tr style="background:${i%2?'transparent':'rgba(255,255,255,0.02)'}">
-      <td style="padding:2px 3px;color:${pc};width:20px;">${pos}</td>
-      <td style="padding:2px 3px;color:var(--text-mid);width:22px;">${num}</td>
-      <td style="padding:2px 3px;color:var(--white)">${name}</td>
-      <td style="padding:2px 3px;text-align:right;color:${pos==1?'#f5c400':'var(--green)'};font-weight:bold;">${pts}</td>
-      <td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">${gap}</td>
-    </tr>`;
-  });
-  el.innerHTML = html + '</table>';
-}
-
-// ============================================================
-// M4NC — Moto4 Northern Cup (MotoGP helyszíneken)
-// Mapping: MotoGP event code → M4NC circuit code
-// ============================================================
-const M4NC_EVENTS = { 'HUN': 'BAL', 'CZE': 'BRN', 'GER': 'SAC' };
-
-function switchM4ncSession(s) { m4ncSession = s; renderPanel(); doFetch(); }
-
-async function doM4ncFetch() {
-  const rd = document.getElementById('timingResults');
-  if (!rd) return;
-  const circ = M4NC_EVENTS[selectedEventCode];
-  if (!circ) { rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:8px;">Ezen a helyszínen nincs M4NC</div>'; return; }
-  rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:4px;">⏳ Betöltés...</div>';
-  try {
-    const data = await apiGet('m4nc/2026/' + circ + '/' + m4ncSession);
-    if (data.error) {
-      rd.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:8px;text-align:center;">Még nincs eredmény<br><span style="font-size:8px;color:var(--text-dim);">' + (data.tried||'') + '</span></div>';
-      return;
-    }
-    showM4ncResults(rd, data, circ);
-  } catch(e) {
-    rd.innerHTML = '<div style="color:var(--red);font-size:9px;padding:4px;">❌ ' + e.message + '</div>';
-  }
-}
-
-function showM4ncResults(el, data, circ) {
-  if (!data || !data.rows || !data.rows.length) {
-    el.innerHTML = '<div style="color:var(--text-mid);font-size:10px;padding:8px;">Nincs adat</div>';
-    return;
-  }
-  const sess = data.session || m4ncSession;
-  const sessLabel = {FP1:'Free Practice 1',FP2:'Free Practice 2',RAC1:'Race 1',RAC2:'Race 2'}[sess] || sess;
-  let html = '<div style="font-family:Oswald,sans-serif;font-size:9px;color:var(--text-mid);margin-bottom:3px;display:flex;justify-content:space-between;">'
-    + '<span style="color:#76c442;">Moto4 Northern Cup · ' + (circ||'') + '</span>'
-    + '<span>' + m4ncDay + ' · ' + sessLabel + '</span></div>';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  data.rows.forEach(function(r, i) {
-    const pc = i===0?'#f5c400':i===1?'#aaa':i===2?'#cd7f32':'var(--off-white)';
-    html += '<tr style="background:' + (i%2?'transparent':'rgba(255,255,255,0.02)') + '">'
-      + '<td style="padding:2px 3px;color:' + pc + ';width:20px;">' + r.pos + '</td>'
-      + '<td style="padding:2px 3px;color:var(--text-mid);width:22px;">' + r.num + '</td>'
-      + '<td style="padding:2px 3px;color:var(--white)">' + r.name + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + r.nat + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:#76c442;font-size:9px;">' + r.lap + '</td>'
-      + '<td style="padding:2px 3px;text-align:right;color:var(--text-dim);font-size:9px;">' + r.gap + '</td>'
-      + '</tr>';
-  });
-  el.innerHTML = html + '</table>';
-}
-
-// ============================================================
-// LISTA GÖRGETÉS
-// ============================================================
-let userScrolled = false;
-let scrollTimer = null;
-
-function initScrollTracking() {
-  const body = document.getElementById('scheduleBody');
-  if (!body) return;
-  body.addEventListener('scroll', () => {
-    userScrolled = true;
-    document.getElementById('liveScrBtn').style.display = 'block';
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => { goLive(); }, 30000);
-  }, { passive: true });
-}
-
-function goLive() {
-  userScrolled = false;
-  document.getElementById('liveScrBtn').style.display = 'none';
-  const body = document.getElementById('scheduleBody');
-  const currentEl = body ? body.querySelector('.is-current') : null;
-  const nextEl    = body ? body.querySelector('.is-next') : null;
-  const target = currentEl || nextEl;
-  if (target && body) {
-    const headerHeight = document.querySelector('.schedule-header') ? document.querySelector('.schedule-header').offsetHeight : 0;
-    const targetTop = target.offsetTop - headerHeight;
-    body.scrollTo({ top: targetTop, behavior: 'smooth' });
-  } else if (body) { body.scrollTop = 0; }
-}
-
-function toggleTestBar() {
-  const bar = document.querySelector('.test-bar');
-  const btn = document.getElementById('testToggleBtn');
-  const hidden = bar.style.display === 'none';
-  bar.style.display = hidden ? 'flex' : 'none';
-  btn.style.color = hidden ? 'var(--yellow)' : 'rgba(245,196,0,0.7)';
-  btn.style.borderColor = hidden ? 'var(--yellow)' : 'rgba(245,196,0,0.3)';
-  btn.style.background = hidden ? 'rgba(245,196,0,0.15)' : 'rgba(245,196,0,0.1)';
-}
-
-const BUILTIN_LOGOS = {
-  'MotoGP':   'https://porkolabjozsef-gif.github.io/RC_pwa/motogp.png',
-  'Moto2':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto2.png',
-  'Moto3':    'https://porkolabjozsef-gif.github.io/RC_pwa/moto3.png',
-  'WorldSBK': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldsbk.png',
-  'WorldSSP': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldssp.png',
-  'WorldWCR': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldwcr.png',
-  'R3':       'https://porkolabjozsef-gif.github.io/RC_pwa/r3.png',
-  'WorldSPB': 'https://porkolabjozsef-gif.github.io/RC_pwa/worldspb.png',
-  'Moto4NC':  'https://porkolabjozsef-gif.github.io/RC_pwa/moto4nc.png',
-};
-
-let categoryLogos = {};
-let currentBgCategory = null;
-
-function getLogoUrl(category) {
-  if (categoryLogos[category]) return categoryLogos[category];
-  if (BUILTIN_LOGOS[category]) return BUILTIN_LOGOS[category];
-  return null;
-}
-
-function updateBgLogo(category) {
-  if (category === currentBgCategory) return;
-  currentBgCategory = category;
-  const url = getLogoUrl(category);
-  const panelImg = document.getElementById('logoPanelImg');
-  const placeholder = document.getElementById('logoPlaceholder');
-  if (!url) {
-    if (panelImg) { panelImg.style.display = 'none'; panelImg.src = ''; }
-    if (placeholder) placeholder.style.display = 'block';
-    return;
-  }
-  if (panelImg) {
-    if (placeholder) placeholder.style.display = 'none';
-    panelImg.style.display = 'block';
-    panelImg.onerror = () => {
-      panelImg.style.display = 'none';
-      if (placeholder) { placeholder.textContent = category; placeholder.style.display = 'block'; }
-    };
-    panelImg.src = url;
-  }
-}
-
-let testModeTime = null;
-let testModeOffset = 0;
-let testModeStartedAt = null;
-
-function getNow() {
-  if (testModeTime === null) return new Date();
-  const elapsed = Date.now() - testModeStartedAt;
-  return new Date(testModeTime.getTime() + elapsed);
-}
-
-function activateTestMode() {
-  const val = document.getElementById('testDateInput').value;
-  if (!val) return;
-  testModeTime = new Date(val);
-  testModeStartedAt = Date.now();
-  hornFired.clear();
-  document.getElementById('testModeIndicator').classList.add('visible');
-  document.getElementById('testModeTime').textContent = val.replace('T', ' ');
-  document.getElementById('clockTime').classList.add('test-mode');
-  buildSchedule();
-}
-
-function resetTestMode() {
-  testModeTime = null;
-  testModeStartedAt = null;
-  liveHornFired.clear();
-  document.getElementById('testModeIndicator').classList.remove('visible');
-  document.getElementById('clockTime').classList.remove('test-mode');
-  buildSchedule();
-}
-
-function updateClock() {
-  const now = getNow();
-  document.getElementById('clockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-  const dayName = DAY_NAMES[now.getDay()];
-  const dateStr = now.getDate() + ' ' + MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
-  document.getElementById('clockSub').textContent = dayName.toUpperCase() + ' ' + dateStr + (testModeTime ? ' — TEST MODE' : ' — CET');
-  const schedHdr = document.getElementById('scheduleHeaderDate');
-  if (schedHdr) schedHdr.textContent = dayName.toUpperCase() + ' ' + dateStr;
-  document.getElementById('clockTime').classList.toggle('test-mode', testModeTime !== null);
-}
-
-function findCurrentAndNext(now) {
-  let next = null;
-  let currentSession = null;
-  let currentProcedure = null;
-
-  for (let ev of processedSchedule) {
-    if (!ev.startDt) continue;
-    const started = now >= ev.startDt;
-    const isProcedure = ev.type === 'procedure';
-    let effectiveEnd = ev.endDt || ev.implicitEndDt || null;
+function findCurrentAndNext(now){
+  let next=null,currentSession=null,currentProcedure=null;
+  for(let ev of processedSchedule){
+    if(!ev.startDt)continue;
+    const started=now>=ev.startDt,isProcedure=ev.type==='procedure';
+    const effectiveEnd=ev.endDt||ev.implicitEndDt||null;
     let ended;
-    if (effectiveEnd) {
-      ended = now >= effectiveEnd;
-    } else if (isProcedure) {
-      ended = (now - ev.startDt) > 60 * 1000;
-    } else if (ev.type === 'race' || ev.type === 'session') {
-      let nextStart = null;
-      for (let j = ev.idx + 1; j < processedSchedule.length; j++) {
-        const nev = processedSchedule[j];
-        if (nev.startDt && nev.type !== 'procedure' && nev.startDt > ev.startDt) { nextStart = nev.startDt; break; }
-      }
-      ended = nextStart ? now >= nextStart : (now - ev.startDt) > 4 * 60 * 60 * 1000;
+    if(effectiveEnd){ended=now>=effectiveEnd}
+    else if(isProcedure){ended=(now-ev.startDt)>60*1000}
+    else if(ev.type==='race'||ev.type==='session'){
+      let ns=null;
+      for(let j=ev.idx+1;j<processedSchedule.length;j++){const nev=processedSchedule[j];if(nev.startDt&&nev.type!=='procedure'&&nev.startDt>ev.startDt){ns=nev.startDt;break}}
+      ended=ns?now>=ns:(now-ev.startDt)>4*60*60*1000;
+    } else {ended=(now-ev.startDt)>30*60*1000}
+    if(!started){if(!next)next=ev;continue}
+    if(ended)continue;
+    if(isProcedure){if(!currentProcedure||ev.startDt>currentProcedure.startDt)currentProcedure=ev}
+    else{if(!currentSession)currentSession=ev}
+  }
+  return{current:currentSession||currentProcedure||null,next};
+}
+function fmtCd(sec){
+  if(sec<0)sec=0;
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  return h>0?`${h}:${pad(m)}:${pad(s)}`:`${m}:${pad(s)}`;
+}
+function updateClock(){
+  const now=getNow();
+  document.getElementById('clockTime').textContent=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  document.getElementById('clockSub').textContent=DAY_NAMES[now.getDay()].toUpperCase()+' '+now.getDate()+' '+MONTH_NAMES[now.getMonth()]+' '+now.getFullYear()+(testModeTime?' — TEST':' — CET');
+  document.getElementById('clockTime').classList.toggle('test-mode',testModeTime!==null);
+}
+function updateDashboard(){
+  const now=getNow();
+  const{current,next}=findCurrentAndNext(now);
+  const section=document.getElementById('currentSection');
+  const labelEl=document.getElementById('currentLabel');
+  const nameEl=document.getElementById('currentEventName');
+  const detailEl=document.getElementById('currentEventDetail');
+  const cdTime=document.getElementById('countdownTime');
+  const cdLabel=document.getElementById('countdownLabel');
+  const cdCtx=document.getElementById('countdownCtx');
+  if(current){
+    section.className='current-section active';
+    labelEl.textContent='JELENLEG';
+    nameEl.textContent=current.name;
+    const end=current.endDt||current.implicitEndDt;
+    if(end){
+      const durMin=Math.round((end-current.startDt)/60000);
+      detailEl.textContent=current.start+(current.end?' – '+current.end:'')+' · '+durMin+' perc';
+      const rem=Math.max(0,Math.floor((end-now)/1000));
+      cdTime.textContent=fmtCd(rem);cdTime.className='running';
+      cdLabel.textContent='HÁTRALÉVŐ IDŐ';
     } else {
-      ended = (now - ev.startDt) > 30 * 60 * 1000;
+      detailEl.textContent=current.start;
+      cdTime.textContent=fmtCd(Math.floor((now-current.startDt)/1000));cdTime.className='';
+      cdLabel.textContent='ELTELT IDŐ';
     }
-    if (!started) { if (!next) next = ev; continue; }
-    if (ended) continue;
-    if (isProcedure) {
-      if (!currentProcedure || ev.startDt > currentProcedure.startDt) currentProcedure = ev;
-    } else {
-      if (!currentSession) currentSession = ev;
-    }
-  }
-  const current = currentSession || null;
-  const signal  = currentProcedure || null;
-  const displayCurrent = current || signal || null;
-  return { current: displayCurrent, signal, next };
-}
-
-function updateDashboard() {
-  const now = getNow();
-  const { current, signal, next } = findCurrentAndNext(now);
-
-  const activeCategory = (current && current.category) || (next && next.category) || null;
-  updateBgLogo(activeCategory);
-
-  const scheduleCategory = (current && current.category) || (next && next.category) || null;
-  if (scheduleCategory) {
-    const wsbkCats = { 'WorldSBK':'SBK','WorldSSP':'SSP','WorldWCR':'WCR','WorldSPB':'SPB','R3':'R3' };
-    const motogpCats = ['MotoGP','Moto2','Moto3'];
-    const isWsbkCat = wsbkCats.hasOwnProperty(scheduleCategory);
-    const isMotoGPCat = motogpCats.indexOf(scheduleCategory) >= 0;
-    if (isWsbkCat && typeof activeChampionship !== 'undefined' && activeChampionship === 'wsbk') {
-      var newSeries = wsbkCats[scheduleCategory];
-      if (typeof wsbkSeries !== 'undefined' && wsbkSeries !== newSeries) { wsbkSeries = newSeries; if (typeof renderRecordPanel === 'function') renderRecordPanel(); }
-    }
-    if (isMotoGPCat && typeof activeChampionship !== 'undefined' && activeChampionship === 'motogp') {
-      if (typeof selectedCat !== 'undefined' && selectedCat !== scheduleCategory) { selectedCat = scheduleCategory; if (typeof renderRecordPanel === 'function') renderRecordPanel(); }
-    }
-  }
-
-  const signalPanel = document.getElementById('signalPanel');
-  const signalIcon  = document.getElementById('signalIcon');
-  const signalName  = document.getElementById('signalName');
-  const signalTime  = document.getElementById('signalTime');
-  const signalTTL   = document.getElementById('signalTTL');
-
-  if (signal) {
-    signalPanel.classList.add('visible');
-    signalIcon.textContent = signal.horn ? '📯' : '📋';
-    signalName.textContent = signal.name;
-    signalTime.textContent = signal.start;
-    const elapsed = Math.floor((now - signal.startDt) / 1000);
-    const remaining = Math.max(0, 60 - elapsed);
-    signalTTL.textContent = remaining + 's';
-    signalTTL.classList.toggle('urgent', remaining < 15);
-  } else { signalPanel.classList.remove('visible'); }
-
-  const statusPill        = document.getElementById('statusPill');
-  const sessionCategory   = document.getElementById('sessionCategory');
-  const currentEventName  = document.getElementById('currentEventName');
-  const currentEventDetail= document.getElementById('currentEventDetail');
-  const currentStart      = document.getElementById('currentStart');
-  const currentEnd        = document.getElementById('currentEnd');
-  const currentDuration   = document.getElementById('currentDuration');
-  const progressContainer = document.getElementById('progressContainer');
-  const progressFill      = document.getElementById('progressFill');
-  const progressPct       = document.getElementById('progressPct');
-  const currentEventIndex = document.getElementById('currentIdx');
-
-  if (current) {
-    statusPill.textContent = 'LIVE';
-    statusPill.className = 'status-pill live';
-    sessionCategory.innerHTML = getCategoryTag(current.category);
-    currentEventName.textContent = current.name;
-    currentEventDetail.textContent = current.remark || '';
-    currentStart.textContent = current.start;
-    currentEnd.textContent = current.end || '—';
-    const effectiveEnd = current.endDt || current.implicitEndDt;
-    if (current.startDt && effectiveEnd) {
-      const totalMs = effectiveEnd - current.startDt;
-      const elapsedMs = now - current.startDt;
-      const pct = Math.min(100, Math.round((elapsedMs / totalMs) * 100));
-      const totalMin = Math.round(totalMs / 60000);
-      currentDuration.textContent = totalMin + ' min';
-      progressContainer.style.display = 'block';
-      progressFill.style.width = pct + '%';
-      progressPct.textContent = pct + '%';
-    } else { currentDuration.textContent = '—'; progressContainer.style.display = 'none'; }
-    const pos = processedSchedule.filter(e => e.startDt && e.startDt <= now).length;
-    const total = processedSchedule.length;
-    currentEventIndex.textContent = pos + ' / ' + total;
-  } else if (next) {
-    statusPill.textContent = 'BREAK';
-    statusPill.className = 'status-pill break';
-    sessionCategory.innerHTML = getCategoryTag(next.category);
-    currentEventName.textContent = 'No active session';
-    currentEventDetail.textContent = 'Next: ' + next.name;
-    currentStart.textContent = '—'; currentEnd.textContent = '—'; currentDuration.textContent = '—';
-    progressContainer.style.display = 'none'; currentEventIndex.textContent = '—';
+    cdCtx.textContent=current.name.toUpperCase();
+  } else if(next){
+    section.className='current-section next-only';
+    labelEl.textContent='KÖVETKEZŐ';
+    nameEl.textContent=next.name;
+    const[,mo,d]=next.date.split('-').map(Number);
+    detailEl.textContent=next.start+' · '+MONTH_NAMES[mo-1]+' '+d;
+    const rem=Math.max(0,Math.floor((next.startDt-now)/1000));
+    cdTime.textContent=fmtCd(rem);cdTime.className='waiting';
+    cdLabel.textContent='KÖVETKEZŐ ESEMÉNYIG';
+    cdCtx.textContent=next.name.toUpperCase();
   } else {
-    statusPill.textContent = 'ENDED';
-    statusPill.className = 'status-pill break';
-    sessionCategory.innerHTML = '';
-    currentEventName.textContent = 'Event concluded';
-    currentEventDetail.textContent = 'All sessions completed.';
-    currentStart.textContent = '—'; currentEnd.textContent = '—'; currentDuration.textContent = '—';
-    progressContainer.style.display = 'none';
-    currentEventIndex.textContent = processedSchedule.length + ' / ' + processedSchedule.length;
+    section.className='current-section';
+    labelEl.textContent='JELENLEG';
+    nameEl.textContent=processedSchedule.length>0?'Minden esemény véget ért':'Nincs betöltött menetrend';
+    detailEl.textContent=processedSchedule.length>0?'':'Töltsd be a JSON fájlt';
+    cdTime.textContent='--:--';cdTime.className='';
+    cdLabel.textContent='VISSZASZÁMLÁLÓ';cdCtx.textContent='—';
   }
-
-  const countdownLabel = document.getElementById('countdownLabel');
-  const cdHours   = document.getElementById('cdHours');
-  const cdMinutes = document.getElementById('cdMinutes');
-  const cdSeconds = document.getElementById('cdSeconds');
-
-  const sessionForCountdown = (current && current.type !== 'procedure') ? current : null;
-  const effectiveEndForCountdown = sessionForCountdown ? (sessionForCountdown.endDt || sessionForCountdown.implicitEndDt) : null;
-  let targetDt = null;
-  let cdLabelText = '';
-
-  if (sessionForCountdown && effectiveEndForCountdown) { targetDt = effectiveEndForCountdown; cdLabelText = 'TIME REMAINING'; }
-  else if (next) { targetDt = next.startDt; cdLabelText = 'TIME UNTIL NEXT'; }
-
-  if (targetDt) {
-    const diffMs = targetDt - now;
-    const totalSec = Math.max(0, Math.floor(diffMs / 1000));
-    const { h, m, s } = toHHMMSS(totalSec);
-    countdownLabel.textContent = cdLabelText;
-    cdHours.textContent = pad(h); cdMinutes.textContent = pad(m); cdSeconds.textContent = pad(s);
-    const urgent = totalSec < 180;
-    [cdHours, cdMinutes, cdSeconds].forEach(el => el.classList.toggle('urgent', urgent));
-  } else {
-    countdownLabel.textContent = 'No upcoming events';
-    cdHours.textContent = '00'; cdMinutes.textContent = '00'; cdSeconds.textContent = '00';
-    [cdHours, cdMinutes, cdSeconds].forEach(el => el.classList.remove('urgent'));
-  }
-
-  const nextEventName     = document.getElementById('nextEventName');
-  const nextEventDetail   = document.getElementById('nextEventDetail');
-  const nextSessionCategory = document.getElementById('nextSessionCategory');
-  const nextTimePill      = document.getElementById('nextTimePill');
-  const nextEventBadge    = document.getElementById('nextEventBadge');
-
-  if (next) {
-    nextEventName.textContent = next.name;
-    nextEventDetail.textContent = next.remark || '';
-    nextSessionCategory.innerHTML = getCategoryTag(next.category);
-    nextTimePill.textContent = next.start + (next.end ? ' → ' + next.end : '');
-    const nowDay = now.toISOString().slice(0,10);
-    const sameDayNext = next.date === nowDay || (next.startDt && next.startDt.getDate() === now.getDate() && next.startDt.getMonth() === now.getMonth());
-    if (sameDayNext) { nextEventBadge.textContent = 'TODAY'; }
-    else {
-      const [y, mo, d] = next.date.split('-').map(Number);
-      const dayName = DAY_NAMES[new Date(y, mo-1, d).getDay()].slice(0,3).toUpperCase();
-      nextEventBadge.textContent = dayName + ' ' + d + ' ' + MONTH_NAMES[mo-1].toUpperCase();
-    }
-  } else {
-    nextEventName.textContent = 'No upcoming events'; nextEventDetail.textContent = 'Schedule complete';
-    nextSessionCategory.innerHTML = ''; nextTimePill.textContent = '—'; nextEventBadge.textContent = '—';
-  }
+  updateSeriesLogo(current,next);
 }
-
-function buildSchedule() {
-  const now = getNow();
-  const body = document.getElementById('scheduleBody');
-  const countBadge = document.getElementById('scheduleCount');
-  const groups = {};
-  let futureCount = 0;
-
-  for (let ev of processedSchedule) {
-    if (!ev.startDt) continue;
-    let isPast = false;
-    if (now < ev.startDt) { isPast = false; }
-    else if (ev.endDt && now > ev.endDt) { isPast = true; }
-    else if (!ev.endDt && ev.implicitEndDt && now > ev.implicitEndDt) { isPast = true; }
-    else if (!ev.endDt && !ev.implicitEndDt && ev.type === 'procedure' && (now - ev.startDt) > 60 * 1000) { isPast = true; }
-    else if (!ev.endDt && !ev.implicitEndDt && ev.type !== 'procedure' && (now - ev.startDt) > 30 * 60 * 1000) { isPast = true; }
-    if (isPast) continue;
-    if (!groups[ev.date]) groups[ev.date] = [];
-    groups[ev.date].push(ev);
-    futureCount++;
+function updateSeriesLogo(current,next){
+  const cat=(current&&current.category)||(next&&next.category)||null;
+  const logoEl=document.getElementById('seriesLogo');
+  const badgeEl=document.getElementById('seriesBadge');
+  if(!cat){logoEl.style.display='none';badgeEl.style.display='none';return}
+  const logoUrl=categoryLogos&&categoryLogos[cat];
+  if(logoUrl){logoEl.src=logoUrl;logoEl.style.display='block';badgeEl.style.display='none'}
+  else{logoEl.style.display='none';badgeEl.textContent=cat;badgeEl.style.display='inline-block'}
+}
+function buildSchedule(){
+  const now=getNow();
+  const body=document.getElementById('scheduleBody');
+  const badge=document.getElementById('scheduleCount');
+  const{current,next}=findCurrentAndNext(now);
+  const groups={};let count=0;
+  for(let ev of processedSchedule){
+    if(!ev.startDt)continue;
+    const end=ev.endDt||ev.implicitEndDt;
+    let isPast=end?now>end:ev.type==='procedure'?(now-ev.startDt)>60*1000:(now-ev.startDt)>30*60*1000;
+    if(isPast)continue;
+    if(!groups[ev.date])groups[ev.date]=[];
+    groups[ev.date].push(ev);count++;
   }
-
-  countBadge.textContent = futureCount + ' events remaining';
-
-  if (futureCount === 0) { body.innerHTML = '<div class="no-events">✅ Minden esemény véget ért.</div>'; return; }
-
-  let html = '';
-  const { current, next } = findCurrentAndNext(now);
-
-  for (let date of Object.keys(groups).sort()) {
-    const [y, mo, d] = date.split('-').map(Number);
-    const dt = new Date(y, mo - 1, d);
-    const dayName = DAY_NAMES[dt.getDay()].toUpperCase();
-    const dateLabel = d + ' ' + MONTH_NAMES[mo - 1].toUpperCase() + ' ' + y;
-    html += `<div class="day-header">
-      <span class="day-header-name">${dayName}</span>
-      <span class="day-header-date">${dateLabel}</span>
-      <div class="day-header-line"></div>
-    </div>`;
-    for (let ev of groups[date]) {
-      const isCurrent = current && current.idx === ev.idx;
-      const isNext = next && next.idx === ev.idx;
-      const typeClass = getItemClass(ev);
-      const currentClass = isCurrent ? ' is-current' : (isNext ? ' is-next' : '');
-      const tag = getCategoryTag(ev.category);
-      const timeDisplay = ev.end ? `${ev.start}<span class="end-time">→ ${ev.end}</span>` : ev.start;
-      const durationDisplay = (ev.startDt && ev.endDt) ? Math.round((ev.endDt - ev.startDt) / 60000) + ' min' : '';
-      html += `<div class="sched-item ${typeClass}${currentClass}">
-        <div class="sched-time">${timeDisplay}</div>
-        <div class="sched-content">
-          <div class="sched-name">${tag}${ev.horn ? '<span class="horn-icon" title="Horn signal">📯</span> ' : ''}${ev.name}</div>
-          ${ev.remark ? `<div class="sched-remark">${ev.remark}</div>` : ''}
-        </div>
-        <div style="display:none">${durationDisplay}</div>
-      </div>`;
+  if(badge)badge.textContent=count>0?count+' esemény':'';
+  if(count===0){body.innerHTML=processedSchedule.length>0?'<div class="empty-msg">✅ Minden esemény véget ért</div>':'<div class="empty-msg">Töltsd be az időtervet (JSON)</div>';return}
+  let html='';
+  for(let date of Object.keys(groups).sort()){
+    const[y,mo,d]=date.split('-').map(Number);
+    const dt=new Date(y,mo-1,d);
+    html+=`<div class="day-header"><span class="day-name">${DAY_NAMES[dt.getDay()].toUpperCase()}</span><span class="day-date">${d} ${MONTH_NAMES[mo-1].toUpperCase()} ${y}</span><div class="day-line"></div></div>`;
+    for(let ev of groups[date]){
+      const isCurrent=current&&current.idx===ev.idx;
+      const isNext=!isCurrent&&next&&next.idx===ev.idx;
+      const tc=ev.type==='race'?'t-race':ev.type==='session'?'t-session':ev.type==='marshal'?'t-marshal':ev.type==='procedure'?'t-procedure':'';
+      const sc=isCurrent?'is-current':isNext?'is-next':'';
+      const cat=ev.category?`<span class="sched-cat">${ev.category}</span>`:'';
+      html+=`<div class="sched-item ${tc} ${sc}"><div class="sched-dot"></div><div class="sched-time">${ev.start}</div><div class="sched-name">${ev.name}</div>${cat}</div>`;
     }
   }
-
-  body.innerHTML = html;
-
-  const currentEl = body.querySelector('.is-current');
-  const nextEl = body.querySelector('.is-next');
-  const target = currentEl || nextEl;
-  if (target && !userScrolled) {
-    setTimeout(() => { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
-  }
+  body.innerHTML=html;
 }
-
-
-// ============================================================
-// SCHEDULE PERSISTENCE — localStorage
-// Az időterv megmarad az utolsó esemény napjának végéig
-// ============================================================
-const RC_STORAGE_KEY = 'rc_schedule_v1';
-
-function saveScheduleToStorage(parsed) {
-  if (!parsed || !parsed.schedule || !parsed.schedule.length) return;
-  // Az utolsó esemény dátuma → azon a napon 23:59-ig marad
-  let lastDate = '';
-  for (const ev of parsed.schedule) {
-    if (ev.date && ev.date > lastDate) lastDate = ev.date;
-  }
-  if (!lastDate) return;
-  const [y, mo, d] = lastDate.split('-').map(Number);
-  const expires = new Date(y, mo - 1, d, 23, 59, 59).getTime();
-  try {
-    localStorage.setItem(RC_STORAGE_KEY, JSON.stringify({ parsed, expires }));
-    console.log('[RC] Menetrend elmentve, lejár:', new Date(expires).toLocaleDateString());
-  } catch(e) {
-    console.warn('[RC] localStorage mentés sikertelen:', e);
-  }
+document.getElementById('jsonFile').addEventListener('change',function(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(evt){
+    try{
+      const parsed=JSON.parse(evt.target.result);
+      if(!parsed.schedule||!Array.isArray(parsed.schedule)){alert('Érvénytelen JSON');return}
+      scheduleManuallyLoaded=true;loadNewSchedule(parsed);
+    }catch(err){alert('JSON hiba: '+err.message)}
+  };
+  reader.readAsText(file);this.value='';
+});
+const modeBtn=document.getElementById('modeBtn');
+let isDark=localStorage.getItem('rc_dark')==='1';
+function applyMode(){document.body.classList.toggle('dark',isDark);modeBtn.textContent=isDark?'☀️':'🌙'}
+applyMode();
+modeBtn.addEventListener('click',()=>{isDark=!isDark;localStorage.setItem('rc_dark',isDark?'1':'0');applyMode()});
+const testBtn=document.getElementById('testBtn'),testBar=document.getElementById('testBar');
+testBtn.addEventListener('click',()=>testBar.classList.toggle('visible'));
+function activateTestMode(){
+  const val=document.getElementById('testDateInput').value;if(!val)return;
+  testModeTime=new Date(val);testModeStartedAt=Date.now();hornFired.clear();
+  document.getElementById('clockTime').classList.add('test-mode');testBar.classList.remove('visible');
 }
-
-function loadScheduleFromStorage() {
-  try {
-    const raw = localStorage.getItem(RC_STORAGE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data?.parsed || !data?.expires) return null;
-    if (Date.now() > data.expires) {
-      localStorage.removeItem(RC_STORAGE_KEY);
-      console.log('[RC] Tárolt menetrend lejárt, törölve.');
-      return null;
-    }
+function deactivateTestMode(){
+  testModeTime=null;document.getElementById('clockTime').classList.remove('test-mode');
+  document.getElementById('testDateInput').value='';testBar.classList.remove('visible');
+}
+const RC_KEY='rc_schedule_v1';
+function saveScheduleToStorage(parsed){
+  if(!parsed?.schedule?.length)return;
+  let lastDate='';for(const ev of parsed.schedule){if(ev.date>lastDate)lastDate=ev.date}
+  if(!lastDate)return;
+  const[y,mo,d]=lastDate.split('-').map(Number);
+  const expires=new Date(y,mo-1,d,23,59,59).getTime();
+  try{localStorage.setItem(RC_KEY,JSON.stringify({parsed,expires}))}catch(e){}
+}
+function loadScheduleFromStorage(){
+  try{
+    const raw=localStorage.getItem(RC_KEY);if(!raw)return null;
+    const data=JSON.parse(raw);if(!data?.parsed||!data?.expires)return null;
+    if(Date.now()>data.expires){localStorage.removeItem(RC_KEY);return null}
     return data.parsed;
-  } catch(e) {
-    return null;
-  }
+  }catch(e){return null}
 }
-
-// ============================================================
-// WAKE LOCK
-// ============================================================
-let wakeLock = null;
-
-async function requestWakeLock() {
-  try {
-    if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); }
-  } catch (err) {}
-}
-
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWakeLock(); });
+async function requestWakeLock(){try{if('wakeLock' in navigator)await navigator.wakeLock.request('screen')}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWakeLock()});
 requestWakeLock();
-
-// ============================================================
-// INIT
-// ============================================================
-// Mentett menetrend visszaállítása (ha az utolsó esemény még nem telt el)
-const _storedSchedule = loadScheduleFromStorage();
-if (_storedSchedule && !scheduleManuallyLoaded) {
-  scheduleManuallyLoaded = true;
-  loadNewSchedule(_storedSchedule);
-  const _statusEl = document.getElementById('pdfStatus');
-  if (_statusEl) {
-    _statusEl.className = 'pdf-status ok';
-    _statusEl.textContent = '✅ ' + (_storedSchedule.eventName || 'Menetrend') + ' — mentett időterv visszaállítva';
-  }
-}
-
-if (processedSchedule.length === 0) {
-  document.getElementById('currentEventName').textContent = 'Nincs betöltött menetrend';
-  document.getElementById('currentEventDetail').textContent = 'Töltsd be a JSON fájlt a zöld sávban';
-  document.getElementById('nextEventName').textContent = '—';
-  document.getElementById('pdfStatus').textContent = '⬆ Töltsd be az időtervet JSON formátumban';
-}
-
-updateClock();
-updateDashboard();
-buildSchedule();
-initScrollTracking();
-</script>
-<script src="records.js"></script>
-<script src="wsbk.js"></script>
-<script>
-initResultsPanel();
-if(typeof renderRecordPanel==="function") renderRecordPanel();
-
-setInterval(updateClock, 1000);
-setInterval(updateDashboard, 1000);
-setInterval(buildSchedule, 1000);
-setInterval(checkHornEvents, 100);
-setInterval(checkLiveHorn, 100);
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js')
-    .then(() => console.log('Service Worker aktív'))
-    .catch(err => console.warn('SW hiba:', err));
-}
-</script>
-<script>
-(function() {
-  var boot = document.getElementById('bootScreen');
-  if (!boot) return;
-  setTimeout(function() {
+const stored=loadScheduleFromStorage();
+if(stored){scheduleManuallyLoaded=true;loadNewSchedule(stored)}
+updateClock();updateDashboard();buildSchedule();
+setInterval(updateClock,1000);setInterval(updateDashboard,1000);setInterval(buildSchedule,1000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker.js').catch(()={});
+// ── BOOT ANIMATION ──
+(function(){
+  var boot=document.getElementById('bootScreen');
+  if(!boot)return;
+  setTimeout(function(){
     boot.classList.add('hide');
-    setTimeout(function() { boot.style.display = 'none'; }, 500);
-  }, 2900);
+    setTimeout(function(){boot.style.display='none'},450);
+  },2900);
 })();
 </script>
 </body>
