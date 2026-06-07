@@ -13,20 +13,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#F8F8F6; --surface:#FFFFFF; --border:#DDDDD8;
-  --text:#111110; --sub:#666660;
-  --active:#CC0000; --active-bg:#FFF0F0;
-  --next:#0044BB;   --next-bg:#F0F4FF;
-  --race:#CC0000; --session:#0044BB; --marshal:#007700; --procedure:#886600;
+  --bg:#000000; --surface:#0D0D0D; --border:#1E1E1E;
+  --text:#FFFFFF; --sub:#888888;
+  --active:#FF3300; --active-bg:#1A0000;
+  --next:#4488FF;   --next-bg:#000D1A;
+  --race:#FF3300; --session:#4488FF; --marshal:#44CC44; --procedure:#DDAA00;
   --font:'Barlow Condensed',sans-serif;
   --mono:'Share Tech Mono',monospace;
-}
-.dark {
-  --bg:#0A0A0A; --surface:#161616; --border:#2A2A2A;
-  --text:#F0F0EE; --sub:#888884;
-  --active:#FF3322; --active-bg:#200808;
-  --next:#4488FF;   --next-bg:#080C20;
-  --race:#FF4433; --session:#4488FF; --marshal:#44CC44; --procedure:#DDAA00;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
@@ -296,7 +289,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 </div>
 <div class="top-bar">
   <div class="icon-btn" id="soundBtn" title="Hang">🔔</div>
-  <div class="icon-btn" id="modeBtn">🌙</div>
   <div class="icon-btn" id="testBtn">🕹</div>
 </div>
 <div class="test-bar" id="testBar">
@@ -509,11 +501,7 @@ document.getElementById('jsonFile').addEventListener('change',function(e){
   };
   reader.readAsText(file);this.value='';
 });
-const modeBtn=document.getElementById('modeBtn');
-let isDark=localStorage.getItem('rc_dark')==='1';
-function applyMode(){document.body.classList.toggle('dark',isDark);modeBtn.textContent=isDark?'☀️':'🌙'}
-applyMode();
-modeBtn.addEventListener('click',()=>{isDark=!isDark;localStorage.setItem('rc_dark',isDark?'1':'0');applyMode()});
+// Téma: fix sötét OLED mód
 const testBtn=document.getElementById('testBtn'),testBar=document.getElementById('testBar');
 testBtn.addEventListener('click',()=>{
   // Ha teszt mód aktív: az aktuális teszt időt töltse be az inputba
