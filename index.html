@@ -135,6 +135,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 /* ── LANDSCAPE LAYOUT ── */
 @media (orientation: landscape) {
   #app {
+    max-width: none;
+    width: 100%;
     flex-direction: row;
     height: 100%;
     overflow: hidden;
@@ -142,7 +144,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
   .left-panel {
     width: 42%;
     min-width: 260px;
-    max-width: 400px;
+    max-width: 480px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -577,7 +579,6 @@ let soundEnabled = localStorage.getItem('rc_sound') === '1';
 
 function doPlayHorn(ctx) {
   const t = ctx.currentTime;
-
   // Kompresszor — maximális észlelt hangerő
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -6;
@@ -639,7 +640,6 @@ function playHorn() {
     doPlayHorn(audioCtx);
   }
 }
-
 // Sound gomb — AudioContext létrehozása USER GESTURE-N BELÜL
 const soundBtn = document.getElementById('soundBtn');
 function applySound() {
@@ -692,7 +692,6 @@ setInterval(checkHornEvents, 500);
 
 if('serviceWorker' in navigator)navigator.serviceWorker.register('service-worker.js').catch(()=>{});
 </script>
-
 <script>
 // Boot screen — külön script blokk, hogy a főkód hibája ne blokkolja
 (function(){
