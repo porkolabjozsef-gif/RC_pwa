@@ -42,7 +42,7 @@ var TRACK_RECORDS = {
     MotoGP:{time:"1'31.958",rider:'F. Bagnaia',year:2024},Moto2:{time:"1'37.541",rider:'T. Arbolino',year:2024},
     Moto3:{time:"1'43.776",rider:'D. Holgado',year:2024}}},
   'GBR': { name:'Donington Park', len:'4.023 km', wsbk:{
-    SBK:{time:"1'25.185",rider:'?',year:2025},SSP:{time:"1'31.888",rider:'L. Mahias',year:2017},
+    SBK:{time:"1'25.052",rider:'?',year:2026},SSP:{time:"1'31.888",rider:'L. Mahias',year:2017},
     WCR:{time:"1'38.500",rider:'M. Herrera',year:2023},SPB:{time:'\u2014',rider:'\u2014',year:null},
     R3:{time:"1'41.200",rider:'G. Hendra',year:2023}},motogp:{
     MotoGP:{time:"1'58.361",rider:'F. Bagnaia',year:2023},Moto2:{time:"2'04.476",rider:'T. Arbolino',year:2023},
